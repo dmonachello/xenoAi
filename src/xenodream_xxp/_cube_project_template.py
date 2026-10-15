@@ -86,7 +86,7 @@ _PROFILES: dict[tuple[type[object], ...], _Profile] = {
     ),
     (SphereSpec,): _Profile(
         "sphere_base.xxp",
-        "b1da4b2dafa99c717f3988e4dff29bec26cbab4b6e50445c49c58a4bd3e31b32",
+        "19bdf9608585ea50de30490d08ac0ae80aa96803d6de6028191559ba314f9013",
         (_sphere(b"Sphere2", b"0.00000"),),
     ),
     (CubeSpec, SphereSpec): _Profile(

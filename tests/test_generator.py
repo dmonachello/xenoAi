@@ -54,10 +54,19 @@ TWO_CUBE_ACCEPTANCE = (
     Path(__file__).parents[1] / "experiments" / "m3-generated-two-cubes"
 )
 SPHERE_REFERENCE = (
-    Path(__file__).parents[1] / "experiments" / "scale-x" / "sphere_base.xxp"
+    Path(__file__).parents[1]
+    / "experiments"
+    / "m4-generated-sphere"
+    / "m4_generated_sphere_resaved.xxp"
 )
 CUBE_SPHERE_REFERENCE = (
     Path(__file__).parents[1] / "experiments" / "cube-sphere" / "cube_sphere.xxp"
+)
+M4_SPHERE_ACCEPTANCE = (
+    Path(__file__).parents[1] / "experiments" / "m4-generated-sphere"
+)
+M4_CUBE_SPHERE_ACCEPTANCE = (
+    Path(__file__).parents[1] / "experiments" / "m4-generated-cube-sphere"
 )
 THREE_CUBE_ACCEPTANCE = (
     Path(__file__).parents[1]
@@ -340,9 +349,9 @@ def test_default_sphere_is_byte_identical_to_verified_reference() -> None:
     generated = compile_sphere()
 
     assert generated == SPHERE_REFERENCE.read_bytes()
-    assert len(generated) == 3_465
+    assert len(generated) == 3_400
     assert sha256(generated).hexdigest() == (
-        "b1da4b2dafa99c717f3988e4dff29bec26cbab4b6e50445c49c58a4bd3e31b32"
+        "19bdf9608585ea50de30490d08ac0ae80aa96803d6de6028191559ba314f9013"
     )
     assert parse_bytes(generated).to_bytes() == generated
 
@@ -430,3 +439,61 @@ def test_sphere_compiler_rejects_unverified_precision() -> None:
         compile_sphere(
             SphereSpec(position=Vector3(D("0.000001"), D("0"), D("0")))
         )
+
+
+def test_sphere_profile_uses_xenodream_normalized_reference() -> None:
+    resaved = (
+        M4_SPHERE_ACCEPTANCE / "m4_generated_sphere_resaved.xxp"
+    ).read_bytes()
+
+    assert compile_sphere() == resaved
+
+
+def test_xenodream_accepted_generated_sphere_with_one_selection_rewrite() -> None:
+    generated = (M4_SPHERE_ACCEPTANCE / "m4_generated_sphere.xxp").read_bytes()
+    resaved = (
+        M4_SPHERE_ACCEPTANCE / "m4_generated_sphere_resaved.xxp"
+    ).read_bytes()
+
+    assert sha256(generated).hexdigest() == (
+        "b1da4b2dafa99c717f3988e4dff29bec26cbab4b6e50445c49c58a4bd3e31b32"
+    )
+    assert sha256(resaved).hexdigest() == (
+        "19bdf9608585ea50de30490d08ac0ae80aa96803d6de6028191559ba314f9013"
+    )
+    assert diff_documents(parse_bytes(generated), parse_bytes(resaved)) == [
+        {
+            "kind": "value_changed",
+            "section": "SelectionSpots",
+            "section_occurrence": 0,
+            "key": "0",
+            "key_occurrence": 0,
+            "before": (
+                "3 25 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 "
+                "20 21 22 23 24 25 "
+            ),
+            "after": "3 1 1 ",
+        }
+    ]
+    assert compile_sphere() == resaved
+
+
+def test_xenodream_resaved_generated_cube_sphere_without_changes() -> None:
+    generated = (
+        M4_CUBE_SPHERE_ACCEPTANCE / "m4_generated_cube_sphere.xxp"
+    ).read_bytes()
+    resaved = (
+        M4_CUBE_SPHERE_ACCEPTANCE / "m4_generated_cube_sphere_resaved.xxp"
+    ).read_bytes()
+    spec = ProjectSpec(
+        objects=(
+            CubeSpec(position=Vector3(D("-50"), D("0"), D("0"))),
+            SphereSpec(position=Vector3(D("50"), D("0"), D("0"))),
+        )
+    )
+
+    assert generated == resaved == compile_project(spec)
+    assert len(resaved) == 4_126
+    assert sha256(resaved).hexdigest() == (
+        "bf4c03b607ed8b27af0840e0dade492f1706bdfad3f31f451df640c65e76bc85"
+    )

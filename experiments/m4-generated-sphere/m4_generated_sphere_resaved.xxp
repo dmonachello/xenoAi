@@ -1,0 +1,194 @@
+[Header]
+Program=XDX
+Progversion=1.220
+Author=
+Comments=
+MaxMMPars=12
+NumHolons=2
+
+[Holon\0]
+ID=0
+GroupID=0
+Type=0
+Name=Group1
+Transform=100.00000 100.00000 100.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
+Density=0.0000 
+MinIters=0
+MaxIters=0
+MaxSelf=0
+ConstructorScale=0
+PostMetas=0
+Visible=1
+Free=0
+GradientID=0
+GradDensity=1.000
+GradOffset=0.000
+GradWrap=0
+UPars=3 1 1.0000 0 
+VPars=3 2 0.0000 0 
+WPars=3 3 0.0000 0 
+UVBlend=0
+VWBlend=0
+ColorMask=0.000
+ColorMaskMode=0
+IterShift=0.000
+InheritTag=1
+InheritUVW=1
+InheritGrad=1
+MixDetail=1.000
+MixResolution=1.0000
+MixMode=0
+MixUVW=10.0
+MixShiftPlus=1.330
+MinV=0.00
+
+[Holon\1]
+ID=1
+GroupID=0
+Type=1
+Name=Sphere2
+Transform=50.00000 50.00000 50.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
+Density=0.0000 
+MinIters=0
+MaxIters=0
+MaxSelf=0
+ConstructorScale=0
+PostMetas=0
+Visible=1
+Free=0
+Tag=0
+CastShadow=1
+GradientID=0
+GradDensity=1.000
+GradOffset=0.000
+GradWrap=0
+UPars=3 1 1.0000 0 
+VPars=3 2 0.0000 0 
+WPars=3 3 0.0000 0 
+UVBlend=0
+VWBlend=0
+ColorMask=0.000
+ColorMaskMode=0
+IterShift=1.000
+InheritTag=0
+
+[Holon\1\MM\0]
+Style=1
+Combine=0
+ModSrc=0
+NumPars=12
+MMask=0.00000
+Pars=0.00000 0 0.0000 0.00000 0.00000 0.00000 0.00000 0.0000 0.0000 0.000 0 0 
+Transform=100.00000 100.00000 100.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
+
+[Gradients]
+0=9 2 0.000 0 16777215 1.000 0 4144959 
+
+[TagNames]
+0=Default
+
+[HolonCamera]
+PanX=0.000
+PanY=0.000
+LogZoom=0.000
+Direction=1
+
+[SceneCamera]
+Projection=1
+AspectW=4
+AspectH=5
+AngleOrder=0
+ClipFront=0.01000
+ClipBack=0.00000
+Stereo=0
+StereoFocal=3.00000
+StereoEyeSep=0.10000
+Position=0.00000 0.00000 4.00000
+Angles=0.0000 0.0000 0.0000
+LogZoom=0.000000
+FoV=53.130102
+
+[Image Generation]
+Transparent=0
+Absorption=0.0
+TransResolution=0
+Oversample=2.00
+Margins=4.0
+ShadowRes=0.00
+AlphaGamma=3.00
+AlphaLevel=100.0
+
+[Light Sources]
+NumLights=4
+Ambient=1 0.0 16777215
+Light\1=1 0 83.0 16777215
+LightEx\1=1 1 25.000 4.5 31.6
+Light\2=1 0 45.0 16774645
+LightEx\2=1 1 40.000 -139.8 68.9
+Light\3=1 0 43.0 16777215
+LightEx\3=1 1 44.000 89.5 31.1
+Light\4=1 0 24.0 16777215
+LightEx\4=0 0 0.000 44.9 -5.1
+
+[Environment Background]
+PanV=0.0
+PanH=0.0
+Roll=0.0
+EnvType=0
+EnvMapName=(Default).jpg
+EnvGrad=9 2 0.000 0 0 1.000 0 16777215 
+BackType=0
+BackGrad=9 2 0.000 0 0 1.000 0 16777215 
+BackImgName=
+BackStereoMode=0
+
+[Materials]
+NumTagMaterials=1
+TagMaterials=0 
+NumMaterials=1
+
+[Material\0]
+Name=Base
+NumLayers=1
+NumTextures=0
+
+[Material\0\Layer\0]
+DiffGradMode=1
+SpecGradMode=1
+Diffuse=70.0
+DiffuseColor=100.0
+DiffuseSharp=1.00
+Specular=30.0
+Shininess=30.0
+Metallic=0.0
+SpecSharp=0.00
+Reflection=0.0
+IOR=1.500
+Fresnel=0.00
+Transparency=100.0
+AbsorbDist=0.00100
+Translucency=0.0
+Emission=0.0
+EmissionContrast=100.0
+EmissionColor=16777215
+UseAlpha=1
+Lens=0
+BlendMode=0
+Opacity=100.0
+ColorSrc=0
+OpacitySrc=0
+BumpSrc=0
+IORSrc=0
+OpacityMod=0.00
+BumpAmt=0.00
+IORMod=0.00
+LensWeight=0.50
+AlphaBlendDiffuse=1
+DiffFilterTrans=0
+DiffGrad=9 2 0.000 0 16777215 1.000 0 16777215 
+SpecGrad=9 2 0.000 0 16777215 1.000 0 16777215 
+AbsorbGrad=10 2 0.000 0.400 1.00 0.00 0.00 0.00 1.00 0 2 16777215 1.000 0.500 1.00 0.00 0.00 0.00 1.00 0 0 0 
+
+[SelectionSpots]
+0=3 1 1 
+

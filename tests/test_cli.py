@@ -232,7 +232,10 @@ def test_generate_two_cubes_refuses_to_overwrite(tmp_path, capsys) -> None:
 def test_generate_sphere_writes_verified_reference(tmp_path, capsys) -> None:
     output = tmp_path / "sphere.xxp"
     reference = (
-        Path(__file__).parents[1] / "experiments" / "scale-x" / "sphere_base.xxp"
+        Path(__file__).parents[1]
+        / "experiments"
+        / "m4-generated-sphere"
+        / "m4_generated_sphere_resaved.xxp"
     )
 
     assert main(["generate-sphere", str(output)]) == 0
