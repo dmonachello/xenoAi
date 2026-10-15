@@ -96,5 +96,17 @@ The output has Group1 with Cube2 and Cube3 at X positions -50 and 50. Static
 tests verify the exact reference bytes, identities, group links, per-cube
 field isolation, deterministic output, and parser round trip.
 
-Application status: generated and statically verified. XenoDream open, render,
-and resave acceptance is pending for `output/m3_generated_two_cubes.xxp`.
+## Two-cube application result
+
+Accepted on 2026-10-15. XenoDream opened the generated project and showed
+Group1 containing Cube2 and Cube3. With Cube2 selected, its controls displayed
+Scale 50, 50, 50 and Position -50, 0, 0. The preview rendered two objects.
+
+The resaved file is byte-identical to the generated file. Both are 4,103 bytes
+and have SHA-256
+`7b0f0b57d82feb0200b320befb179143804b0d75aca85908b809d9d684ac1e2a`.
+XenoDream performed no observable file normalization.
+
+Application status: generated counts one, two, and three are accepted for the
+flat Group1 cube-sibling profiles. Counts zero and four or greater remain
+unsupported.

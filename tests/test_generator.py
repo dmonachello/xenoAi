@@ -46,6 +46,9 @@ TWO_CUBE_REFERENCE = (
     / "two-cube-positions"
     / "two_cubesV2.xxp"
 )
+TWO_CUBE_ACCEPTANCE = (
+    Path(__file__).parents[1] / "experiments" / "m3-generated-two-cubes"
+)
 THREE_CUBE_ACCEPTANCE = (
     Path(__file__).parents[1]
     / "experiments"
@@ -230,6 +233,25 @@ def test_two_cube_project_changes_only_verified_fields() -> None:
         ("Holon\\2", "Transform", 0),
         ("Holon\\2\\MM\\0", "Pars", 0),
     ]
+
+
+def test_xenodream_resaved_generated_two_cubes_without_changes() -> None:
+    generated = (TWO_CUBE_ACCEPTANCE / "m3_generated_two_cubes.xxp").read_bytes()
+    resaved = (
+        TWO_CUBE_ACCEPTANCE / "m3_generated_two_cubes_resaved.xxp"
+    ).read_bytes()
+    spec = CubeProjectSpec(
+        cubes=(
+            CubeSpec(position=Vector3(D("-50"), D("0"), D("0"))),
+            CubeSpec(position=Vector3(D("50"), D("0"), D("0"))),
+        )
+    )
+
+    assert generated == resaved == compile_cube_project(spec)
+    assert len(generated) == 4_103
+    assert sha256(resaved).hexdigest() == (
+        "7b0f0b57d82feb0200b320befb179143804b0d75aca85908b809d9d684ac1e2a"
+    )
 
 
 def test_three_cube_compiler_changes_only_each_cubes_verified_fields() -> None:
