@@ -21,6 +21,7 @@ experiment broadens its scope.
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 8 | Z Rotation | `experiments/rotation-z-group/` | Verified clean write and readback: changing 0 to 30 changed only token 8, and the selected Group1 panel displayed Rotation 0, 0, 30. This does not verify the Cube2 child. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `GradDensity` | Color Density | `experiments/color-density-group/` | Verified clean write and readback: changing the UI control from 1.000 to 0.500 changed only this field. The rendering calculation remains undocumented. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `GradDensity` | Color Density | `experiments/color-density/` | Verified clean write and readback: changing the UI control from 1.000 to 0.500 changed only this field. The rendering calculation remains undocumented. |
+| 1.220 | `Holon\1\MM\0`, parent `Name=Cube2`, record `Style=5` | `Pars` token 0 | Cube Face Warp | `experiments/metamorph-face-warp/` | Verified clean write and readback: changing Face Warp from 0.00 to 0.25 changed only token 0. The deformation formula and other style codes remain undocumented. |
 
 The first three transform tokens are now verified as X, Y, and Z Scale for the
 tested sphere context.
@@ -42,6 +43,9 @@ tested cube context.
 `GradDensity` is independently verified as the Color Density field in the
 tested cube and group contexts. Its rendering calculation remains
 undocumented.
+
+`Pars` token meanings depend on the metamorph context. Token 0 is verified as
+Face Warp only for the tested Cube metamorph record with `Style=5`.
 
 ## Rendered geometry effects
 
