@@ -6,10 +6,10 @@ The user supplied both files in `output/` on 2026-10-15. They were copied into
 this directory without modification. `SHA256SUMS` records their hashes.
 
 On 2026-10-15, the user initially confirmed the requested controls, then
-corrected the application result. The X Scale UI edit was from 50 to 25, but
-the saved variant rendered as before when reopened. A screenshot after reopen
-showed `Group1` selected with Scale values `100, 100, 100`. It did not show the
-child `Sphere2` values.
+corrected the application result. The first screenshot after reopen showed
+`Group1` selected with Scale values `100, 100, 100`. A second screenshot with
+`Sphere2` selected showed Scale values `25, 50, 50`. This confirms that the
+saved token persisted and appeared in the intended child holon's X Scale UI.
 
 ## Static comparison
 
@@ -39,9 +39,9 @@ byte-for-byte.
 ## Finding
 
 The pair proves that the save operation changed only token 0 of
-`Holon\1.Transform`, from `50.00000` to `25.00000`. This is strong evidence
-that the UI writes X Scale to that token for the tested holon. It does not yet
-prove that XenoDream applies that token to the rendered sphere after reopening.
+`Holon\1.Transform`, from `50.00000` to `25.00000`. The selected-child
+screenshot proves that XenoDream 1.220 reads that token back as `Sphere2` X
+Scale. It does not yet prove that the reopened render changed shape.
 
 ```text
 Holon.Transform token 0 = displayed X Scale
@@ -52,10 +52,8 @@ metamorph transforms.
 
 ## Experiment outcome
 
-Inconclusive. The wire-field correlation is verified, but the geometry effect
-is not. The screenshot shows the parent group's transform, so it cannot tell us
-whether `Sphere2` read back as `25, 50, 50` or reset to `50, 50, 50`.
-
-The next check must select `Sphere2` after separately reopening each file and
-record its three Scale values. That distinguishes a retained-but-inactive
-parameter from a value that XenoDream ignores or resets while loading.
+Partially verified. The first three `Holon\1.Transform` tokens match the
+displayed `Sphere2` Scale triplet in this observed file. The controlled change
+verifies token 0 as persisted X Scale 25 after reopening. Tokens 1 and 2 remain
+candidates for Y and Z Scale. The rendered geometry effect remains open because
+the user previously reported that the variant looked unchanged.
