@@ -22,6 +22,7 @@ experiment broadens its scope.
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `GradDensity` | Color Density | `experiments/color-density-group/` | Verified clean write and readback: changing the UI control from 1.000 to 0.500 changed only this field. The rendering calculation remains undocumented. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `GradDensity` | Color Density | `experiments/color-density/` | Verified clean write and readback: changing the UI control from 1.000 to 0.500 changed only this field. The rendering calculation remains undocumented. |
 | 1.220 | `Holon\1\MM\0`, parent `Name=Cube2`, record `Style=5` | `Pars` token 0 | Cube Face Warp | `experiments/metamorph-face-warp/` | Verified clean write and readback: changing Face Warp from 0.00 to 0.25 changed only token 0. The deformation formula and other style codes remain undocumented. |
+| 1.220 | generated `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` tokens 0, 1, 2 | X, Y, Z Scale | `experiments/m3-generated-elongated-cube/` | Generated Scale 25, 50, 100 opened and rendered correctly. XenoDream resaved the project without byte changes. |
 
 The first three transform tokens are now verified as X, Y, and Z Scale for the
 tested sphere context.

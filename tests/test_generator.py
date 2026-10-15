@@ -20,6 +20,11 @@ BASE = (
 ACCEPTANCE = (
     Path(__file__).parents[1] / "experiments" / "m3-generated-cube"
 )
+ELONGATED_ACCEPTANCE = (
+    Path(__file__).parents[1]
+    / "experiments"
+    / "m3-generated-elongated-cube"
+)
 D = Decimal
 
 
@@ -88,4 +93,20 @@ def test_xenodream_resaved_generated_cube_without_byte_changes() -> None:
     assert len(generated) == 3_377
     assert sha256(resaved).hexdigest() == (
         "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+    )
+
+
+def test_xenodream_resaved_generated_elongated_cube_without_changes() -> None:
+    generated = (
+        ELONGATED_ACCEPTANCE / "m3_generated_elongated_cube.xxp"
+    ).read_bytes()
+    resaved = (
+        ELONGATED_ACCEPTANCE / "m3_generated_elongated_cube_resaved.xxp"
+    ).read_bytes()
+    spec = CubeSpec(scale=Vector3(D("25"), D("50"), D("100")))
+
+    assert generated == resaved == compile_cube(spec)
+    assert len(generated) == 3_378
+    assert sha256(resaved).hexdigest() == (
+        "a8b5b9d5963f5f1ef424d224871e00dd8c8391059e9117ca4579d3035159024d"
     )

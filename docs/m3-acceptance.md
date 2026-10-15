@@ -38,5 +38,18 @@ and have SHA-256
 `fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0`.
 XenoDream performed no observable file normalization in this check.
 
-Application status: accepted for the default generated cube. Modified and
-multi-object generated projects remain untested in XenoDream.
+Application status: accepted for the default generated cube. The elongated
+result is recorded below. Multi-object generation remains untested.
+
+## Elongated cube result
+
+Accepted on 2026-10-15. The generator changed Cube2 Scale from `50, 50, 50`
+to `25, 50, 100`. XenoDream displayed those values and rendered the elongated
+geometry shown in the user's screenshot.
+
+The resaved file is byte-identical to the generated file. Both are 3,378 bytes
+and have SHA-256
+`a8b5b9d5963f5f1ef424d224871e00dd8c8391059e9117ca4579d3035159024d`.
+
+Application status: accepted for the default and elongated generated cubes.
+Multi-object generation remains untested.
