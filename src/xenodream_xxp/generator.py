@@ -7,6 +7,7 @@ from decimal import Decimal
 
 
 COMPILER_PROFILE = "xdx-1.220-cube-evidence-2026-10-15"
+THREE_CUBE_COMPILER_PROFILE = "xdx-1.220-three-cube-evidence-2026-10-15"
 
 
 class GenerationError(ValueError):
@@ -57,9 +58,39 @@ class CubeSpec:
         _require_finite_decimal(self.face_warp, "face_warp")
 
 
+@dataclass(frozen=True, slots=True)
+class ThreeCubeProjectSpec:
+    """The observed Group1 project shape containing exactly three cubes."""
+
+    cubes: tuple[CubeSpec, CubeSpec, CubeSpec] = (
+        CubeSpec(position=Vector3(Decimal("-75"), Decimal("0"), Decimal("0"))),
+        CubeSpec(),
+        CubeSpec(position=Vector3(Decimal("75"), Decimal("0"), Decimal("0"))),
+    )
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.cubes, tuple):
+            raise TypeError("cubes must be a tuple")
+        if len(self.cubes) != 3:
+            raise GenerationError("three-cube projects require exactly 3 cubes")
+        for index, cube in enumerate(self.cubes):
+            if not isinstance(cube, CubeSpec):
+                raise TypeError(f"cubes[{index}] must be CubeSpec")
+
+
 def compile_cube(spec: CubeSpec | None = None) -> bytes:
     """Compile one Group1/Cube2 project from verified XDX 1.220 evidence."""
 
     from ._cube_template import compile_template
 
     return compile_template(spec if spec is not None else CubeSpec())
+
+
+def compile_three_cubes(spec: ThreeCubeProjectSpec | None = None) -> bytes:
+    """Compile the evidenced Group1 project containing Cube2 through Cube4."""
+
+    from ._three_cube_template import compile_three_cube_template
+
+    return compile_three_cube_template(
+        spec if spec is not None else ThreeCubeProjectSpec()
+    )

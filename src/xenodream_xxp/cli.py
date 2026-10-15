@@ -16,8 +16,11 @@ from .generator import (
     COMPILER_PROFILE,
     CubeSpec,
     GenerationError,
+    THREE_CUBE_COMPILER_PROFILE,
+    ThreeCubeProjectSpec,
     Vector3,
     compile_cube,
+    compile_three_cubes,
 )
 from .report import inspect_document
 
@@ -66,6 +69,20 @@ def _parser() -> argparse.ArgumentParser:
     )
     generate.add_argument("--color-density", type=Decimal, default=Decimal("1"))
     generate.add_argument("--face-warp", type=Decimal, default=Decimal("0"))
+
+    generate_three = commands.add_parser(
+        "generate-three-cubes",
+        help="create the evidenced XDX 1.220 three-cube project",
+    )
+    generate_three.add_argument("output", type=Path)
+    generate_three.add_argument(
+        "--position",
+        nargs=3,
+        action="append",
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        help="cube position; if supplied, repeat exactly three times",
+    )
     return parser
 
 
@@ -124,6 +141,40 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "bytes": len(output),
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": COMPILER_PROFILE,
+                }
+            )
+            return 0
+
+        if args.command == "generate-three-cubes":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            if args.position is None:
+                spec = ThreeCubeProjectSpec()
+            else:
+                if len(args.position) != 3:
+                    raise GenerationError(
+                        "--position must be omitted or repeated exactly 3 times"
+                    )
+                spec = ThreeCubeProjectSpec(
+                    cubes=tuple(
+                        CubeSpec(position=Vector3(*position))
+                        for position in args.position
+                    )
+                )
+            output = compile_three_cubes(spec)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": THREE_CUBE_COMPILER_PROFILE,
+                    "cube_count": 3,
                 }
             )
             return 0

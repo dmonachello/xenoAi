@@ -52,4 +52,21 @@ and have SHA-256
 `a8b5b9d5963f5f1ef424d224871e00dd8c8391059e9117ca4579d3035159024d`.
 
 Application status: accepted for the default and elongated generated cubes.
-Multi-object generation remains untested.
+
+## Three-cube static result
+
+The `xdx-1.220-three-cube-evidence-2026-10-15` profile reproduces the
+controlled three-cube reference byte for byte:
+
+```text
+bytes: 4826
+sha256: caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d
+```
+
+The output has Group1 with Cube2, Cube3, and Cube4 at X positions -75, 0, and
+75. Static tests verify exact section order, identities, group links,
+per-sibling field isolation, deterministic output, and lossless parser round
+trip.
+
+Application status: generated and statically verified. XenoDream open, render,
+and resave acceptance is pending.

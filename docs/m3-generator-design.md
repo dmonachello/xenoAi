@@ -88,7 +88,23 @@ would exceed the evidence.
 - What extra records or selection data does XenoDream require for three cube
   siblings?
 
-## Next implementation step
+## Three-cube extension
 
-Package the verified cube baseline, implement `compile_cube`, and prove that
-the default output equals the baseline before asking XenoDream to open it.
+The controlled `3_cube_positions.xxp` sample establishes one additional
+project shape: Group1 with exactly three cube siblings. The compiler therefore
+adds `ThreeCubeProjectSpec` and `compile_three_cubes`, backed by a second
+hash-pinned template. The type requires exactly three `CubeSpec` values; it
+does not present an arbitrary-length scene API.
+
+Three architecture candidates were compared. Guarded block cloning was
+rejected for this checkpoint because it would promote the observed sibling
+pattern into a construction rule before application acceptance. A broader
+project/group IR was rejected because only one group shape and two
+cardinalities are known. A separate pinned profile won because it preserves
+all opaque state and gives the default output a byte-exact oracle.
+
+The three-cube profile verifies the header, group, sibling IDs, group links,
+type codes, names, metamorph styles, exact source values, allowed semantic
+deltas, and parser round trip. Tuple order maps only to the observed Holon 1,
+2, and 3 slots. XenoDream open, render, and resave remains a separate
+acceptance checkpoint.

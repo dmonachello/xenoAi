@@ -6,7 +6,7 @@ from pathlib import Path
 from xenodream_xxp.cli import main
 from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import parse_bytes
-from xenodream_xxp.generator import COMPILER_PROFILE
+from xenodream_xxp.generator import COMPILER_PROFILE, THREE_CUBE_COMPILER_PROFILE
 
 
 SAMPLE = (
@@ -115,3 +115,59 @@ def test_generate_cube_applies_verified_cli_controls(tmp_path, capsys) -> None:
         ("Holon\\1", "Transform", 0),
         ("Holon\\1\\MM\\0", "Pars", 0),
     ]
+
+
+def test_generate_three_cubes_writes_verified_reference(tmp_path, capsys) -> None:
+    output = tmp_path / "three.xxp"
+    reference = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "three-cube-positions"
+        / "3_cube_positions.xxp"
+    )
+
+    assert main(["generate-three-cubes", str(output)]) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["compiler_profile"] == THREE_CUBE_COMPILER_PROFILE
+    assert result["cube_count"] == 3
+    assert output.read_bytes() == reference.read_bytes()
+
+
+def test_generate_three_cubes_maps_positions_in_order(tmp_path, capsys) -> None:
+    output = tmp_path / "positioned.xxp"
+
+    assert main(
+        [
+            "generate-three-cubes",
+            str(output),
+            "--position", "-100", "0", "0",
+            "--position", "0", "25", "0",
+            "--position", "100", "0", "-25",
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    data = output.read_bytes()
+    assert b"-100.00000 0.00000 0.00000 " in data
+    assert b"0.00000 25.00000 0.00000 " in data
+    assert b"100.00000 0.00000 -25.00000 " in data
+
+
+def test_generate_three_cubes_rejects_wrong_position_count(tmp_path, capsys) -> None:
+    output = tmp_path / "invalid.xxp"
+
+    assert main(
+        ["generate-three-cubes", str(output), "--position", "0", "0", "0"]
+    ) == 2
+    assert not output.exists()
+    assert "exactly 3 times" in capsys.readouterr().err
+
+
+def test_generate_three_cubes_refuses_to_overwrite(tmp_path, capsys) -> None:
+    output = tmp_path / "existing.xxp"
+    output.write_bytes(b"keep")
+
+    assert main(["generate-three-cubes", str(output)]) == 2
+    assert output.read_bytes() == b"keep"
+    assert "already exists" in capsys.readouterr().err

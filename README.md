@@ -18,6 +18,7 @@ xxp inspect samples/originals/20061109Sirps08.xxp
 xxp roundtrip samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp diff samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp generate-cube output/generated_cube.xxp
+xxp generate-three-cubes output/generated_three_cubes.xxp
 ```
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
@@ -27,6 +28,11 @@ overwrite an existing path. Verified controls can be supplied explicitly:
 xxp generate-cube output/elongated_cube.xxp --scale 25 50 100
 xxp generate-cube output/rotated_cube.xxp --rotation 10 20 30
 ```
+
+`generate-three-cubes` reproduces the controlled Group1 project containing
+Cube2, Cube3, and Cube4 at X positions -75, 0, and 75. Supply `--position X Y Z`
+exactly three times to change their positions. Other object counts are not yet
+supported because they have not been established by controlled samples.
 
 Generated files still require an open-and-render check in XenoDream. Static
 parsing and byte comparisons do not prove application acceptance.

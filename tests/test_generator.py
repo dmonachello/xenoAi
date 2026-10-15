@@ -7,8 +7,15 @@ from pathlib import Path
 import pytest
 
 from xenodream_xxp.diffing import diff_documents
-from xenodream_xxp.document import parse_bytes
-from xenodream_xxp.generator import CubeSpec, GenerationError, Vector3, compile_cube
+from xenodream_xxp.document import SectionRecord, parse_bytes
+from xenodream_xxp.generator import (
+    CubeSpec,
+    GenerationError,
+    ThreeCubeProjectSpec,
+    Vector3,
+    compile_cube,
+    compile_three_cubes,
+)
 
 
 BASE = (
@@ -24,6 +31,12 @@ ELONGATED_ACCEPTANCE = (
     Path(__file__).parents[1]
     / "experiments"
     / "m3-generated-elongated-cube"
+)
+THREE_CUBE_REFERENCE = (
+    Path(__file__).parents[1]
+    / "experiments"
+    / "three-cube-positions"
+    / "3_cube_positions.xxp"
 )
 D = Decimal
 
@@ -110,3 +123,92 @@ def test_xenodream_resaved_generated_elongated_cube_without_changes() -> None:
     assert sha256(resaved).hexdigest() == (
         "a8b5b9d5963f5f1ef424d224871e00dd8c8391059e9117ca4579d3035159024d"
     )
+
+
+def test_default_three_cubes_are_byte_identical_to_reference() -> None:
+    expected = THREE_CUBE_REFERENCE.read_bytes()
+    generated = compile_three_cubes()
+
+    assert generated == expected
+    assert len(generated) == 4_826
+    assert sha256(generated).hexdigest() == (
+        "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d"
+    )
+    assert parse_bytes(generated).to_bytes() == generated
+    assert compile_three_cubes() == generated
+
+    sections = [
+        record.name.decode("ascii")
+        for record in parse_bytes(generated).records
+        if isinstance(record, SectionRecord)
+    ]
+    assert sections[:8] == [
+        "Header",
+        "Holon\\0",
+        "Holon\\1",
+        "Holon\\1\\MM\\0",
+        "Holon\\2",
+        "Holon\\2\\MM\\0",
+        "Holon\\3",
+        "Holon\\3\\MM\\0",
+    ]
+    assert sections[8] == "Gradients"
+
+
+def test_three_cube_compiler_changes_only_each_cubes_verified_fields() -> None:
+    spec = ThreeCubeProjectSpec(
+        cubes=(
+            CubeSpec(
+                scale=Vector3(D("25"), D("50"), D("50")),
+                position=Vector3(D("-75"), D("0"), D("0")),
+            ),
+            CubeSpec(rotation=Vector3(D("0"), D("30"), D("0"))),
+            CubeSpec(
+                position=Vector3(D("100"), D("0"), D("0")),
+                color_density=D("0.5"),
+                face_warp=D("0.25"),
+            ),
+        )
+    )
+
+    generated = compile_three_cubes(spec)
+    differences = diff_documents(
+        parse_bytes(THREE_CUBE_REFERENCE.read_bytes()), parse_bytes(generated)
+    )
+
+    assert [
+        (item["section"], item["key"], item.get("token_index"))
+        for item in differences
+    ] == [
+        ("Holon\\1", "Transform", 0),
+        ("Holon\\2", "Transform", 7),
+        ("Holon\\3", "Transform", 9),
+        ("Holon\\3", "GradDensity", None),
+        ("Holon\\3\\MM\\0", "Pars", 0),
+    ]
+
+
+def test_three_cube_project_rejects_unsupported_shapes() -> None:
+    with pytest.raises(TypeError, match="tuple"):
+        ThreeCubeProjectSpec(cubes=[CubeSpec()] * 3)  # type: ignore[arg-type]
+
+    with pytest.raises(GenerationError, match="exactly 3"):
+        ThreeCubeProjectSpec(cubes=(CubeSpec(),))  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match=r"cubes\[1\]"):
+        ThreeCubeProjectSpec(
+            cubes=(CubeSpec(), object(), CubeSpec())  # type: ignore[arg-type]
+        )
+
+
+def test_three_cube_compiler_rejects_rounding_on_later_cube() -> None:
+    spec = ThreeCubeProjectSpec(
+        cubes=(
+            CubeSpec(position=Vector3(D("-75"), D("0"), D("0"))),
+            CubeSpec(),
+            CubeSpec(position=Vector3(D("75.000001"), D("0"), D("0"))),
+        )
+    )
+
+    with pytest.raises(GenerationError, match="5-place precision"):
+        compile_three_cubes(spec)
