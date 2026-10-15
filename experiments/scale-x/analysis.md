@@ -5,10 +5,12 @@
 The user supplied both files in `output/` on 2026-10-15. They were copied into
 this directory without modification. `SHA256SUMS` records their hashes.
 
-The filenames imply a base sphere and an X-scale variant. The user has not yet
-confirmed the exact displayed values, whether any other UI action occurred, or
-whether both saved files reopened and rendered successfully. Those facts remain
-open.
+On 2026-10-15, the user confirmed all three controls for this experiment:
+
+- X Scale was the only setting changed.
+- The displayed value changed from 50 to 25.
+- Both files reopened without warnings and rendered with the expected X-axis
+  size difference.
 
 ## Static comparison
 
@@ -38,9 +40,9 @@ byte-for-byte.
 ## Finding
 
 The pair proves that this save operation changed only token 0 of
-`Holon\1.Transform`, from `50.00000` to `25.00000`. If the user confirms that
-the only UI edit was changing X Scale from 50 to 25, the pair establishes a
-direct mapping for XenoDream X 1.220:
+`Holon\1.Transform`, from `50.00000` to `25.00000`. Together with the user's
+UI and application confirmation, the pair establishes a direct mapping for
+XenoDream X 1.220:
 
 ```text
 Holon.Transform token 0 = displayed X Scale
@@ -49,9 +51,8 @@ Holon.Transform token 0 = displayed X Scale
 That mapping is not yet generalized to other versions, holon types, groups, or
 metamorph transforms.
 
-## Required confirmation
+## Experiment outcome
 
-1. Was X Scale the only setting changed?
-2. Were the displayed values exactly 50 and 25?
-3. Did both files reopen without warnings and render with the expected X-axis
-   size difference?
+Verified. `Holon.Transform` token 0 stores the displayed X Scale for the tested
+Sphere2 holon in XenoDream X 1.220. The application accepted both files and
+rendered the expected change.
