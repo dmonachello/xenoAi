@@ -35,6 +35,13 @@ GROUP_CREATION_PAIR = (
 MIDDLE_CUBE_DELETION = (
     Path(__file__).parents[1] / "experiments" / "delete-middle-cube"
 )
+CUBE_SPHERE = Path(__file__).parents[1] / "experiments" / "cube-sphere"
+TWO_CUBE_REFERENCE = (
+    Path(__file__).parents[1]
+    / "experiments"
+    / "two-cube-positions"
+    / "two_cubesV2.xxp"
+)
 
 
 def test_scale_x_pair_has_one_observed_token_change() -> None:
@@ -524,3 +531,56 @@ def test_deleting_middle_cube_compacts_sections_but_preserves_identity() -> None
     assert values[(b"Holon\\2", b"GroupID")] == b"0"
     assert values[(b"Holon\\2", b"Type")] == b"1"
     assert values[(b"SelectionSpots", b"0")] == b"3 1 1 "
+
+
+def test_cube_sphere_changes_only_the_second_objects_constructor_records() -> None:
+    mixed_bytes = (CUBE_SPHERE / "cube_sphere.xxp").read_bytes()
+    cubes = parse_bytes(TWO_CUBE_REFERENCE.read_bytes())
+    mixed = parse_bytes(mixed_bytes)
+
+    assert len(mixed_bytes) == 4_126
+    assert sha256(mixed_bytes).hexdigest() == (
+        "bf4c03b607ed8b27af0840e0dade492f1706bdfad3f31f451df640c65e76bc85"
+    )
+    assert mixed.to_bytes() == mixed_bytes
+    assert diff_documents(cubes, mixed) == [
+        {
+            "kind": "value_changed",
+            "section": "Holon\\2",
+            "section_occurrence": 0,
+            "key": "Name",
+            "key_occurrence": 0,
+            "before": "Cube3",
+            "after": "Sphere3",
+        },
+        {
+            "kind": "value_changed",
+            "section": "Holon\\2\\MM\\0",
+            "section_occurrence": 0,
+            "key": "Style",
+            "key_occurrence": 0,
+            "before": "5",
+            "after": "1",
+        },
+        {
+            "kind": "value_changed",
+            "section": "Holon\\2\\MM\\0",
+            "section_occurrence": 0,
+            "key": "NumPars",
+            "key_occurrence": 0,
+            "before": "9",
+            "after": "12",
+        },
+        {
+            "kind": "value_changed",
+            "section": "Holon\\2\\MM\\0",
+            "section_occurrence": 0,
+            "key": "Pars",
+            "key_occurrence": 0,
+            "before": "0.0000 0 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0 ",
+            "after": (
+                "0.00000 0 0.0000 0.00000 0.00000 0.00000 0.00000 "
+                "0.0000 0.0000 0.000 0 0 "
+            ),
+        },
+    ]

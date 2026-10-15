@@ -12,10 +12,14 @@ from xenodream_xxp.generator import (
     CubeSpec,
     CubeProjectSpec,
     GenerationError,
+    ProjectSpec,
+    SphereSpec,
     ThreeCubeProjectSpec,
     Vector3,
     compile_cube,
     compile_cube_project,
+    compile_project,
+    compile_sphere,
     compile_three_cubes,
 )
 
@@ -48,6 +52,12 @@ TWO_CUBE_REFERENCE = (
 )
 TWO_CUBE_ACCEPTANCE = (
     Path(__file__).parents[1] / "experiments" / "m3-generated-two-cubes"
+)
+SPHERE_REFERENCE = (
+    Path(__file__).parents[1] / "experiments" / "scale-x" / "sphere_base.xxp"
+)
+CUBE_SPHERE_REFERENCE = (
+    Path(__file__).parents[1] / "experiments" / "cube-sphere" / "cube_sphere.xxp"
 )
 THREE_CUBE_ACCEPTANCE = (
     Path(__file__).parents[1]
@@ -324,3 +334,99 @@ def test_xenodream_resaved_generated_three_cubes_without_changes() -> None:
     assert sha256(resaved).hexdigest() == (
         "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d"
     )
+
+
+def test_default_sphere_is_byte_identical_to_verified_reference() -> None:
+    generated = compile_sphere()
+
+    assert generated == SPHERE_REFERENCE.read_bytes()
+    assert len(generated) == 3_465
+    assert sha256(generated).hexdigest() == (
+        "b1da4b2dafa99c717f3988e4dff29bec26cbab4b6e50445c49c58a4bd3e31b32"
+    )
+    assert parse_bytes(generated).to_bytes() == generated
+
+
+def test_sphere_compiler_changes_only_verified_scale_and_position_tokens() -> None:
+    spec = SphereSpec(
+        scale=Vector3(D("25"), D("50"), D("100")),
+        position=Vector3(D("-5"), D("0"), D("5")),
+    )
+
+    differences = diff_documents(
+        parse_bytes(SPHERE_REFERENCE.read_bytes()), parse_bytes(compile_sphere(spec))
+    )
+
+    assert [
+        (item["section"], item["key"], item.get("token_index"))
+        for item in differences
+    ] == [
+        ("Holon\\1", "Transform", 0),
+        ("Holon\\1", "Transform", 2),
+        ("Holon\\1", "Transform", 9),
+        ("Holon\\1", "Transform", 11),
+    ]
+
+
+def test_default_cube_sphere_project_matches_controlled_reference() -> None:
+    spec = ProjectSpec(
+        objects=(
+            CubeSpec(position=Vector3(D("-50"), D("0"), D("0"))),
+            SphereSpec(position=Vector3(D("50"), D("0"), D("0"))),
+        )
+    )
+    generated = compile_project(spec)
+
+    assert generated == CUBE_SPHERE_REFERENCE.read_bytes()
+    assert len(generated) == 4_126
+    assert sha256(generated).hexdigest() == (
+        "bf4c03b607ed8b27af0840e0dade492f1706bdfad3f31f451df640c65e76bc85"
+    )
+    assert parse_bytes(generated).to_bytes() == generated
+
+
+def test_mixed_project_changes_only_fields_verified_for_each_object() -> None:
+    spec = ProjectSpec(
+        objects=(
+            CubeSpec(
+                position=Vector3(D("-60"), D("0"), D("0")),
+                face_warp=D("0.25"),
+            ),
+            SphereSpec(
+                scale=Vector3(D("25"), D("50"), D("50")),
+                position=Vector3(D("60"), D("0"), D("0")),
+            ),
+        )
+    )
+    differences = diff_documents(
+        parse_bytes(CUBE_SPHERE_REFERENCE.read_bytes()),
+        parse_bytes(compile_project(spec)),
+    )
+
+    assert [
+        (item["section"], item["key"], item.get("token_index"))
+        for item in differences
+    ] == [
+        ("Holon\\1", "Transform", 9),
+        ("Holon\\1\\MM\\0", "Pars", 0),
+        ("Holon\\2", "Transform", 0),
+        ("Holon\\2", "Transform", 9),
+    ]
+
+
+def test_project_rejects_unprofiled_object_sequences() -> None:
+    with pytest.raises(GenerationError, match="supported object sequences"):
+        ProjectSpec(objects=(SphereSpec(), CubeSpec()))  # type: ignore[arg-type]
+
+    with pytest.raises(GenerationError, match="supported object sequences"):
+        ProjectSpec(objects=(SphereSpec(), SphereSpec()))  # type: ignore[arg-type]
+
+    with pytest.raises(GenerationError, match="supported object sequences"):
+        ProjectSpec(objects=())  # type: ignore[arg-type]
+
+
+def test_sphere_compiler_rejects_unverified_precision() -> None:
+    with pytest.raises(GenerationError, match="5-place precision"):
+        compile_sphere(
+            SphereSpec(position=Vector3(D("0.000001"), D("0"), D("0")))
+        )

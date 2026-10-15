@@ -18,8 +18,10 @@ xxp inspect samples/originals/20061109Sirps08.xxp
 xxp roundtrip samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp diff samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp generate-cube output/generated_cube.xxp
+xxp generate-sphere output/generated_sphere.xxp
 xxp generate-two-cubes output/generated_two_cubes.xxp
 xxp generate-three-cubes output/generated_three_cubes.xxp
+xxp generate-cube-sphere output/generated_cube_sphere.xxp
 ```
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
@@ -39,6 +41,13 @@ supported because they have not been established by controlled samples.
 Cube3 at X positions -50 and 50. Supply `--position X Y Z` exactly twice to
 change their positions. The Python API exposes `CubeProjectSpec` for the
 verified one, two, and three cube counts and rejects every other count.
+
+`generate-sphere` reproduces the controlled Group1 and Sphere2 project.
+`generate-cube-sphere` reproduces the controlled Group1 project containing
+Cube2 at X -50 followed by Sphere3 at X 50. The Python API exposes
+`ProjectSpec`, `CubeSpec`, and `SphereSpec`. It accepts only the five profiled
+object sequences: one to three cubes, one sphere, or cube followed by sphere.
+`SphereSpec` exposes only the verified scale and position controls.
 
 Generated files still require an open-and-render check in XenoDream. Static
 parsing and byte comparisons do not prove application acceptance.

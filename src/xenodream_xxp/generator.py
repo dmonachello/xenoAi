@@ -10,6 +10,8 @@ from typing import TypeAlias
 COMPILER_PROFILE = "xdx-1.220-cube-evidence-2026-10-15"
 TWO_CUBE_COMPILER_PROFILE = "xdx-1.220-two-cube-evidence-2026-10-15"
 THREE_CUBE_COMPILER_PROFILE = "xdx-1.220-three-cube-evidence-2026-10-15"
+SPHERE_COMPILER_PROFILE = "xdx-1.220-sphere-evidence-2026-10-15"
+CUBE_SPHERE_COMPILER_PROFILE = "xdx-1.220-cube-sphere-evidence-2026-10-15"
 
 
 class GenerationError(ValueError):
@@ -60,6 +62,20 @@ class CubeSpec:
         _require_finite_decimal(self.face_warp, "face_warp")
 
 
+@dataclass(frozen=True, slots=True)
+class SphereSpec:
+    """Verified editable fields of the tested XDX 1.220 sphere."""
+
+    scale: Vector3 = Vector3(Decimal("50"), Decimal("50"), Decimal("50"))
+    position: Vector3 = Vector3()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.scale, Vector3):
+            raise TypeError("scale must be Vector3")
+        if not isinstance(self.position, Vector3):
+            raise TypeError("position must be Vector3")
+
+
 SupportedCubes: TypeAlias = (
     tuple[CubeSpec]
     | tuple[CubeSpec, CubeSpec]
@@ -81,6 +97,40 @@ class CubeProjectSpec:
         for index, cube in enumerate(self.cubes):
             if not isinstance(cube, CubeSpec):
                 raise TypeError(f"cubes[{index}] must be CubeSpec")
+
+
+SupportedObjects: TypeAlias = (
+    tuple[CubeSpec]
+    | tuple[CubeSpec, CubeSpec]
+    | tuple[CubeSpec, CubeSpec, CubeSpec]
+    | tuple[SphereSpec]
+    | tuple[CubeSpec, SphereSpec]
+)
+
+_SUPPORTED_OBJECT_SIGNATURES = {
+    (CubeSpec,),
+    (CubeSpec, CubeSpec),
+    (CubeSpec, CubeSpec, CubeSpec),
+    (SphereSpec,),
+    (CubeSpec, SphereSpec),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectSpec:
+    """One evidence-profiled flat Group1 project."""
+
+    objects: SupportedObjects = (CubeSpec(),)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.objects, tuple):
+            raise TypeError("objects must be a tuple")
+        signature = tuple(type(item) for item in self.objects)
+        if signature not in _SUPPORTED_OBJECT_SIGNATURES:
+            raise GenerationError(
+                "supported object sequences are cube, cube/cube, "
+                "cube/cube/cube, sphere, and cube/sphere"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +169,26 @@ def compile_cube_project(spec: CubeProjectSpec | None = None) -> bytes:
     if not isinstance(project, CubeProjectSpec):
         raise TypeError("spec must be CubeProjectSpec")
     return compile_project_template(project)
+
+
+def compile_project(spec: ProjectSpec | None = None) -> bytes:
+    """Compile one supported XDX 1.220 object project."""
+
+    from ._cube_project_template import compile_project_template
+
+    project = spec if spec is not None else ProjectSpec()
+    if not isinstance(project, ProjectSpec):
+        raise TypeError("spec must be ProjectSpec")
+    return compile_project_template(project)
+
+
+def compile_sphere(spec: SphereSpec | None = None) -> bytes:
+    """Compile the verified Group1/Sphere2 project profile."""
+
+    sphere = spec if spec is not None else SphereSpec()
+    if not isinstance(sphere, SphereSpec):
+        raise TypeError("spec must be SphereSpec")
+    return compile_project(ProjectSpec(objects=(sphere,)))
 
 
 def compile_three_cubes(spec: ThreeCubeProjectSpec | None = None) -> bytes:

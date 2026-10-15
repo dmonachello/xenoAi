@@ -14,15 +14,21 @@ from .diffing import diff_documents
 from .document import parse_bytes
 from .generator import (
     COMPILER_PROFILE,
+    CUBE_SPHERE_COMPILER_PROFILE,
     CubeProjectSpec,
     CubeSpec,
     GenerationError,
+    ProjectSpec,
+    SPHERE_COMPILER_PROFILE,
+    SphereSpec,
     THREE_CUBE_COMPILER_PROFILE,
     TWO_CUBE_COMPILER_PROFILE,
     ThreeCubeProjectSpec,
     Vector3,
     compile_cube,
     compile_cube_project,
+    compile_project,
+    compile_sphere,
     compile_three_cubes,
 )
 from .report import inspect_document
@@ -100,6 +106,18 @@ def _parser() -> argparse.ArgumentParser:
         metavar=("X", "Y", "Z"),
         help="cube position; if supplied, repeat exactly two times",
     )
+
+    generate_sphere = commands.add_parser(
+        "generate-sphere",
+        help="create the verified XDX 1.220 sphere project",
+    )
+    generate_sphere.add_argument("output", type=Path)
+
+    generate_cube_sphere = commands.add_parser(
+        "generate-cube-sphere",
+        help="create the verified Cube2 and Sphere3 project",
+    )
+    generate_cube_sphere.add_argument("output", type=Path)
     return parser
 
 
@@ -228,6 +246,61 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": TWO_CUBE_COMPILER_PROFILE,
                     "cube_count": 2,
+                }
+            )
+            return 0
+
+        if args.command == "generate-sphere":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            output = compile_sphere()
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": SPHERE_COMPILER_PROFILE,
+                }
+            )
+            return 0
+
+        if args.command == "generate-cube-sphere":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            output = compile_project(
+                ProjectSpec(
+                    objects=(
+                        CubeSpec(
+                            position=Vector3(
+                                Decimal("-50"), Decimal("0"), Decimal("0")
+                            )
+                        ),
+                        SphereSpec(
+                            position=Vector3(
+                                Decimal("50"), Decimal("0"), Decimal("0")
+                            )
+                        ),
+                    )
+                )
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": CUBE_SPHERE_COMPILER_PROFILE,
                 }
             )
             return 0

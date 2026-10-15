@@ -8,6 +8,8 @@ from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import parse_bytes
 from xenodream_xxp.generator import (
     COMPILER_PROFILE,
+    CUBE_SPHERE_COMPILER_PROFILE,
+    SPHERE_COMPILER_PROFILE,
     THREE_CUBE_COMPILER_PROFILE,
     TWO_CUBE_COMPILER_PROFILE,
 )
@@ -225,3 +227,42 @@ def test_generate_two_cubes_refuses_to_overwrite(tmp_path, capsys) -> None:
     assert main(["generate-two-cubes", str(output)]) == 2
     assert output.read_bytes() == b"keep"
     assert "already exists" in capsys.readouterr().err
+
+
+def test_generate_sphere_writes_verified_reference(tmp_path, capsys) -> None:
+    output = tmp_path / "sphere.xxp"
+    reference = (
+        Path(__file__).parents[1] / "experiments" / "scale-x" / "sphere_base.xxp"
+    )
+
+    assert main(["generate-sphere", str(output)]) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["compiler_profile"] == SPHERE_COMPILER_PROFILE
+    assert output.read_bytes() == reference.read_bytes()
+
+
+def test_generate_cube_sphere_writes_controlled_reference(tmp_path, capsys) -> None:
+    output = tmp_path / "cube-sphere.xxp"
+    reference = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "cube-sphere"
+        / "cube_sphere.xxp"
+    )
+
+    assert main(["generate-cube-sphere", str(output)]) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["compiler_profile"] == CUBE_SPHERE_COMPILER_PROFILE
+    assert output.read_bytes() == reference.read_bytes()
+
+
+def test_new_generator_commands_refuse_to_overwrite(tmp_path, capsys) -> None:
+    for command in ("generate-sphere", "generate-cube-sphere"):
+        output = tmp_path / f"{command}.xxp"
+        output.write_bytes(b"keep")
+
+        assert main([command, str(output)]) == 2
+        assert output.read_bytes() == b"keep"
+        assert "already exists" in capsys.readouterr().err

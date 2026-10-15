@@ -1,4 +1,4 @@
-"""Private compiler for the verified XDX 1.220 cube project profiles."""
+"""Private compiler for verified XDX 1.220 object project profiles."""
 
 from __future__ import annotations
 
@@ -10,14 +10,38 @@ import re
 
 from .diffing import diff_documents
 from .document import Document, KeyValueRecord, parse_bytes
-from .generator import CubeProjectSpec, GenerationError, TemplateMismatchError
+from .generator import (
+    CubeProjectSpec,
+    CubeSpec,
+    GenerationError,
+    ProjectSpec,
+    SphereSpec,
+    TemplateMismatchError,
+)
+
+
+_CUBE_PARS = b"0.0000 0 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0 "
+_SPHERE_PARS = (
+    b"0.00000 0 0.0000 0.00000 0.00000 0.00000 0.00000 0.0000 "
+    b"0.0000 0.000 0 0 "
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _ObjectContract:
+    spec_type: type[CubeSpec] | type[SphereSpec]
+    name: bytes
+    source_x: bytes
+    style: bytes
+    num_pars: bytes
+    pars: bytes
 
 
 @dataclass(frozen=True, slots=True)
 class _Profile:
     resource_name: str
     sha256: str
-    source_x_positions: tuple[bytes, ...]
+    objects: tuple[_ObjectContract, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,21 +53,49 @@ class _Field:
     places: int
 
 
-_PROFILES = {
-    1: _Profile(
+def _cube(name: bytes, source_x: bytes) -> _ObjectContract:
+    return _ObjectContract(CubeSpec, name, source_x, b"5", b"9", _CUBE_PARS)
+
+
+def _sphere(name: bytes, source_x: bytes) -> _ObjectContract:
+    return _ObjectContract(SphereSpec, name, source_x, b"1", b"12", _SPHERE_PARS)
+
+
+_PROFILES: dict[tuple[type[object], ...], _Profile] = {
+    (CubeSpec,): _Profile(
         "cube_base.xxp",
         "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
-        (b"0.00000",),
+        (_cube(b"Cube2", b"0.00000"),),
     ),
-    2: _Profile(
+    (CubeSpec, CubeSpec): _Profile(
         "two_cube_positions.xxp",
         "7b0f0b57d82feb0200b320befb179143804b0d75aca85908b809d9d684ac1e2a",
-        (b"-50.00000", b"50.00000"),
+        (
+            _cube(b"Cube2", b"-50.00000"),
+            _cube(b"Cube3", b"50.00000"),
+        ),
     ),
-    3: _Profile(
+    (CubeSpec, CubeSpec, CubeSpec): _Profile(
         "three_cube_positions.xxp",
         "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d",
-        (b"-75.00000", b"0.00000", b"75.00000"),
+        (
+            _cube(b"Cube2", b"-75.00000"),
+            _cube(b"Cube3", b"0.00000"),
+            _cube(b"Cube4", b"75.00000"),
+        ),
+    ),
+    (SphereSpec,): _Profile(
+        "sphere_base.xxp",
+        "b1da4b2dafa99c717f3988e4dff29bec26cbab4b6e50445c49c58a4bd3e31b32",
+        (_sphere(b"Sphere2", b"0.00000"),),
+    ),
+    (CubeSpec, SphereSpec): _Profile(
+        "cube_sphere.xxp",
+        "bf4c03b607ed8b27af0840e0dade492f1706bdfad3f31f451df640c65e76bc85",
+        (
+            _cube(b"Cube2", b"-50.00000"),
+            _sphere(b"Sphere3", b"50.00000"),
+        ),
     ),
 }
 
@@ -66,6 +118,18 @@ def _cube_fields(index: int, source_x: bytes) -> tuple[_Field, ...]:
     )
 
 
+def _sphere_fields(index: int, source_x: bytes) -> tuple[_Field, ...]:
+    section = f"Holon\\{index}".encode("ascii")
+    return (
+        _Field(section, b"Transform", 0, b"50.00000", 5),
+        _Field(section, b"Transform", 1, b"50.00000", 5),
+        _Field(section, b"Transform", 2, b"50.00000", 5),
+        _Field(section, b"Transform", 9, source_x, 5),
+        _Field(section, b"Transform", 10, b"0.00000", 5),
+        _Field(section, b"Transform", 11, b"0.00000", 5),
+    )
+
+
 def _template_bytes(profile: _Profile) -> bytes:
     resource = files("xenodream_xxp").joinpath(
         "templates", "xdx-1.220", profile.resource_name
@@ -74,8 +138,7 @@ def _template_bytes(profile: _Profile) -> bytes:
     actual = sha256(data).hexdigest()
     if actual != profile.sha256:
         raise TemplateMismatchError(
-            f"cube project template hash mismatch: expected {profile.sha256}, "
-            f"got {actual}"
+            f"project template hash mismatch: expected {profile.sha256}, got {actual}"
         )
     return data
 
@@ -102,25 +165,28 @@ def _value(document: Document, section: bytes, key: bytes) -> bytes:
     return matches[0][1].value
 
 
-def _validate_template(document: Document, cube_count: int) -> None:
+def _validate_template(document: Document, profile: _Profile) -> None:
     expected = {
         (b"Header", b"Program"): b"XDX",
         (b"Header", b"Progversion"): b"1.220",
-        (b"Header", b"NumHolons"): str(cube_count + 1).encode("ascii"),
+        (b"Header", b"NumHolons"): str(len(profile.objects) + 1).encode("ascii"),
         (b"Holon\\0", b"ID"): b"0",
         (b"Holon\\0", b"GroupID"): b"0",
         (b"Holon\\0", b"Type"): b"0",
         (b"Holon\\0", b"Name"): b"Group1",
     }
-    for index in range(1, cube_count + 1):
+    for index, contract in enumerate(profile.objects, start=1):
         section = f"Holon\\{index}".encode("ascii")
+        metamorph = section + b"\\MM\\0"
         expected.update(
             {
                 (section, b"ID"): str(index).encode("ascii"),
                 (section, b"GroupID"): b"0",
                 (section, b"Type"): b"1",
-                (section, b"Name"): f"Cube{index + 1}".encode("ascii"),
-                (section + b"\\MM\\0", b"Style"): b"5",
+                (section, b"Name"): contract.name,
+                (metamorph, b"Style"): contract.style,
+                (metamorph, b"NumPars"): contract.num_pars,
+                (metamorph, b"Pars"): contract.pars,
             }
         )
     for (section, key), expected_value in expected.items():
@@ -210,34 +276,56 @@ def _allowed_difference(
     return False
 
 
-def compile_project_template(spec: CubeProjectSpec) -> bytes:
-    cube_count = len(spec.cubes)
-    profile = _PROFILES[cube_count]
+def _object_values(obj: CubeSpec | SphereSpec) -> tuple[Decimal, ...]:
+    if type(obj) is CubeSpec:
+        return (
+            obj.scale.x,
+            obj.scale.y,
+            obj.scale.z,
+            obj.rotation.x,
+            obj.rotation.y,
+            obj.rotation.z,
+            obj.position.x,
+            obj.position.y,
+            obj.position.z,
+            obj.color_density,
+            obj.face_warp,
+        )
+    if type(obj) is SphereSpec:
+        return (
+            obj.scale.x,
+            obj.scale.y,
+            obj.scale.z,
+            obj.position.x,
+            obj.position.y,
+            obj.position.z,
+        )
+    raise TypeError(f"unsupported object type: {type(obj).__name__}")
+
+
+def compile_project_template(spec: CubeProjectSpec | ProjectSpec) -> bytes:
+    objects = spec.cubes if isinstance(spec, CubeProjectSpec) else spec.objects
+    signature = tuple(type(obj) for obj in objects)
+    profile = _PROFILES.get(signature)
+    if profile is None:
+        raise GenerationError("no verified template for object sequence")
+
     template_data = _template_bytes(profile)
     template = parse_bytes(template_data)
-    _validate_template(template, cube_count)
+    _validate_template(template, profile)
 
-    fields_by_cube = tuple(
-        _cube_fields(index, source_x)
-        for index, source_x in enumerate(profile.source_x_positions, start=1)
+    fields_by_object = tuple(
+        _cube_fields(index, contract.source_x)
+        if contract.spec_type is CubeSpec
+        else _sphere_fields(index, contract.source_x)
+        for index, contract in enumerate(profile.objects, start=1)
     )
-    fields = tuple(field for cube_fields in fields_by_cube for field in cube_fields)
+    fields = tuple(
+        field for object_fields in fields_by_object for field in object_fields
+    )
     document = template
-    for cube, cube_fields in zip(spec.cubes, fields_by_cube):
-        values = (
-            cube.scale.x,
-            cube.scale.y,
-            cube.scale.z,
-            cube.rotation.x,
-            cube.rotation.y,
-            cube.rotation.z,
-            cube.position.x,
-            cube.position.y,
-            cube.position.z,
-            cube.color_density,
-            cube.face_warp,
-        )
-        for field, value in zip(cube_fields, values):
+    for obj, object_fields in zip(objects, fields_by_object):
+        for field, value in zip(object_fields, _object_values(obj)):
             document = _replace_field(document, field, value)
 
     unexpected = [
