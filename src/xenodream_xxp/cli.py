@@ -14,12 +14,15 @@ from .diffing import diff_documents
 from .document import parse_bytes
 from .generator import (
     COMPILER_PROFILE,
+    CubeProjectSpec,
     CubeSpec,
     GenerationError,
     THREE_CUBE_COMPILER_PROFILE,
+    TWO_CUBE_COMPILER_PROFILE,
     ThreeCubeProjectSpec,
     Vector3,
     compile_cube,
+    compile_cube_project,
     compile_three_cubes,
 )
 from .report import inspect_document
@@ -82,6 +85,20 @@ def _parser() -> argparse.ArgumentParser:
         type=Decimal,
         metavar=("X", "Y", "Z"),
         help="cube position; if supplied, repeat exactly three times",
+    )
+
+    generate_two = commands.add_parser(
+        "generate-two-cubes",
+        help="create the evidenced XDX 1.220 two-cube project",
+    )
+    generate_two.add_argument("output", type=Path)
+    generate_two.add_argument(
+        "--position",
+        nargs=3,
+        action="append",
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        help="cube position; if supplied, repeat exactly two times",
     )
     return parser
 
@@ -175,6 +192,42 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": THREE_CUBE_COMPILER_PROFILE,
                     "cube_count": 3,
+                }
+            )
+            return 0
+
+        if args.command == "generate-two-cubes":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            positions = args.position or [
+                (Decimal("-50"), Decimal("0"), Decimal("0")),
+                (Decimal("50"), Decimal("0"), Decimal("0")),
+            ]
+            if len(positions) != 2:
+                raise GenerationError(
+                    "--position must be omitted or repeated exactly 2 times"
+                )
+            output = compile_cube_project(
+                CubeProjectSpec(
+                    cubes=tuple(
+                        CubeSpec(position=Vector3(*position))
+                        for position in positions
+                    )
+                )
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": TWO_CUBE_COMPILER_PROFILE,
+                    "cube_count": 2,
                 }
             )
             return 0

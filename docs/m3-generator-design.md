@@ -108,3 +108,24 @@ type codes, names, metamorph styles, exact source values, allowed semantic
 deltas, and parser round trip. Tuple order maps only to the observed Holon 1,
 2, and 3 slots. XenoDream open, render, and resave remains a separate
 acceptance checkpoint.
+
+## Bounded cube project compiler
+
+The clean `two_cubesV2.xxp` reference fills the missing cardinality between
+the accepted one-cube and three-cube projects. The public `CubeProjectSpec`
+therefore accepts fixed tuples containing exactly one, two, or three
+`CubeSpec` values. `compile_cube_project` selects the matching hash-pinned
+template. Counts zero and four or greater fail at the type boundary.
+
+Three designs were compared. A new standalone two-cube compiler was rejected
+because it would add a third copy of the same validation and patch logic. A
+record-cloning compiler was rejected because template selection preserves
+opaque application state without promoting repeated record shapes into a
+general construction rule. The bounded profile compiler won because it
+centralizes proven mechanics while keeping one byte-exact source for every
+supported count.
+
+`compile_cube` and `compile_three_cubes` remain compatibility adapters. They
+use the bounded compiler and retain their existing byte output. The private
+compiler owns hashes, section identities, expected source tokens, number
+formatting, allowed differences, and exact round-trip validation.

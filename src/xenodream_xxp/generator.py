@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import TypeAlias
 
 
 COMPILER_PROFILE = "xdx-1.220-cube-evidence-2026-10-15"
+TWO_CUBE_COMPILER_PROFILE = "xdx-1.220-two-cube-evidence-2026-10-15"
 THREE_CUBE_COMPILER_PROFILE = "xdx-1.220-three-cube-evidence-2026-10-15"
 
 
@@ -58,6 +60,29 @@ class CubeSpec:
         _require_finite_decimal(self.face_warp, "face_warp")
 
 
+SupportedCubes: TypeAlias = (
+    tuple[CubeSpec]
+    | tuple[CubeSpec, CubeSpec]
+    | tuple[CubeSpec, CubeSpec, CubeSpec]
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CubeProjectSpec:
+    """The verified Group1 shape containing one, two, or three cubes."""
+
+    cubes: SupportedCubes = (CubeSpec(),)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.cubes, tuple):
+            raise TypeError("cubes must be a tuple")
+        if len(self.cubes) not in (1, 2, 3):
+            raise GenerationError("cube projects require exactly 1, 2, or 3 cubes")
+        for index, cube in enumerate(self.cubes):
+            if not isinstance(cube, CubeSpec):
+                raise TypeError(f"cubes[{index}] must be CubeSpec")
+
+
 @dataclass(frozen=True, slots=True)
 class ThreeCubeProjectSpec:
     """The observed Group1 project shape containing exactly three cubes."""
@@ -81,16 +106,23 @@ class ThreeCubeProjectSpec:
 def compile_cube(spec: CubeSpec | None = None) -> bytes:
     """Compile one Group1/Cube2 project from verified XDX 1.220 evidence."""
 
-    from ._cube_template import compile_template
+    cube = spec if spec is not None else CubeSpec()
+    return compile_cube_project(CubeProjectSpec(cubes=(cube,)))
 
-    return compile_template(spec if spec is not None else CubeSpec())
+
+def compile_cube_project(spec: CubeProjectSpec | None = None) -> bytes:
+    """Compile a verified Group1 project containing one to three cubes."""
+
+    from ._cube_project_template import compile_project_template
+
+    project = spec if spec is not None else CubeProjectSpec()
+    if not isinstance(project, CubeProjectSpec):
+        raise TypeError("spec must be CubeProjectSpec")
+    return compile_project_template(project)
 
 
 def compile_three_cubes(spec: ThreeCubeProjectSpec | None = None) -> bytes:
     """Compile the evidenced Group1 project containing Cube2 through Cube4."""
 
-    from ._three_cube_template import compile_three_cube_template
-
-    return compile_three_cube_template(
-        spec if spec is not None else ThreeCubeProjectSpec()
-    )
+    project = spec if spec is not None else ThreeCubeProjectSpec()
+    return compile_cube_project(CubeProjectSpec(cubes=project.cubes))

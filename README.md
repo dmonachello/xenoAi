@@ -18,6 +18,7 @@ xxp inspect samples/originals/20061109Sirps08.xxp
 xxp roundtrip samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp diff samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp generate-cube output/generated_cube.xxp
+xxp generate-two-cubes output/generated_two_cubes.xxp
 xxp generate-three-cubes output/generated_three_cubes.xxp
 ```
 
@@ -33,6 +34,11 @@ xxp generate-cube output/rotated_cube.xxp --rotation 10 20 30
 Cube2, Cube3, and Cube4 at X positions -75, 0, and 75. Supply `--position X Y Z`
 exactly three times to change their positions. Other object counts are not yet
 supported because they have not been established by controlled samples.
+
+`generate-two-cubes` reproduces the clean Group1 project containing Cube2 and
+Cube3 at X positions -50 and 50. Supply `--position X Y Z` exactly twice to
+change their positions. The Python API exposes `CubeProjectSpec` for the
+verified one, two, and three cube counts and rejects every other count.
 
 Generated files still require an open-and-render check in XenoDream. Static
 parsing and byte comparisons do not prove application acceptance.

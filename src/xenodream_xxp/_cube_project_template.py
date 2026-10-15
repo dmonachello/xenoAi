@@ -1,4 +1,4 @@
-"""Private contract for the verified XDX 1.220 cube template."""
+"""Private compiler for the verified XDX 1.220 cube project profiles."""
 
 from __future__ import annotations
 
@@ -10,12 +10,14 @@ import re
 
 from .diffing import diff_documents
 from .document import Document, KeyValueRecord, parse_bytes
-from .generator import CubeSpec, GenerationError, TemplateMismatchError
+from .generator import CubeProjectSpec, GenerationError, TemplateMismatchError
 
 
-TEMPLATE_SHA256 = (
-    "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
-)
+@dataclass(frozen=True, slots=True)
+class _Profile:
+    resource_name: str
+    sha256: str
+    source_x_positions: tuple[bytes, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,35 +29,53 @@ class _Field:
     places: int
 
 
-_SCALE = (
-    _Field(b"Holon\\1", b"Transform", 0, b"50.00000", 5),
-    _Field(b"Holon\\1", b"Transform", 1, b"50.00000", 5),
-    _Field(b"Holon\\1", b"Transform", 2, b"50.00000", 5),
-)
-_ROTATION = (
-    _Field(b"Holon\\1", b"Transform", 6, b"0.00000", 5),
-    _Field(b"Holon\\1", b"Transform", 7, b"0.00000", 5),
-    _Field(b"Holon\\1", b"Transform", 8, b"0.00000", 5),
-)
-_POSITION = (
-    _Field(b"Holon\\1", b"Transform", 9, b"0.00000", 5),
-    _Field(b"Holon\\1", b"Transform", 10, b"0.00000", 5),
-    _Field(b"Holon\\1", b"Transform", 11, b"0.00000", 5),
-)
-_COLOR_DENSITY = _Field(b"Holon\\1", b"GradDensity", None, b"1.000", 3)
-_FACE_WARP = _Field(b"Holon\\1\\MM\\0", b"Pars", 0, b"0.0000", 4)
-_FIELDS = (*_SCALE, *_ROTATION, *_POSITION, _COLOR_DENSITY, _FACE_WARP)
+_PROFILES = {
+    1: _Profile(
+        "cube_base.xxp",
+        "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
+        (b"0.00000",),
+    ),
+    2: _Profile(
+        "two_cube_positions.xxp",
+        "7b0f0b57d82feb0200b320befb179143804b0d75aca85908b809d9d684ac1e2a",
+        (b"-50.00000", b"50.00000"),
+    ),
+    3: _Profile(
+        "three_cube_positions.xxp",
+        "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d",
+        (b"-75.00000", b"0.00000", b"75.00000"),
+    ),
+}
 
 
-def _template_bytes() -> bytes:
+def _cube_fields(index: int, source_x: bytes) -> tuple[_Field, ...]:
+    section = f"Holon\\{index}".encode("ascii")
+    metamorph = section + b"\\MM\\0"
+    return (
+        _Field(section, b"Transform", 0, b"50.00000", 5),
+        _Field(section, b"Transform", 1, b"50.00000", 5),
+        _Field(section, b"Transform", 2, b"50.00000", 5),
+        _Field(section, b"Transform", 6, b"0.00000", 5),
+        _Field(section, b"Transform", 7, b"0.00000", 5),
+        _Field(section, b"Transform", 8, b"0.00000", 5),
+        _Field(section, b"Transform", 9, source_x, 5),
+        _Field(section, b"Transform", 10, b"0.00000", 5),
+        _Field(section, b"Transform", 11, b"0.00000", 5),
+        _Field(section, b"GradDensity", None, b"1.000", 3),
+        _Field(metamorph, b"Pars", 0, b"0.0000", 4),
+    )
+
+
+def _template_bytes(profile: _Profile) -> bytes:
     resource = files("xenodream_xxp").joinpath(
-        "templates", "xdx-1.220", "cube_base.xxp"
+        "templates", "xdx-1.220", profile.resource_name
     )
     data = resource.read_bytes()
     actual = sha256(data).hexdigest()
-    if actual != TEMPLATE_SHA256:
+    if actual != profile.sha256:
         raise TemplateMismatchError(
-            f"cube template hash mismatch: expected {TEMPLATE_SHA256}, got {actual}"
+            f"cube project template hash mismatch: expected {profile.sha256}, "
+            f"got {actual}"
         )
     return data
 
@@ -82,26 +102,33 @@ def _value(document: Document, section: bytes, key: bytes) -> bytes:
     return matches[0][1].value
 
 
-def _validate_template(document: Document) -> None:
+def _validate_template(document: Document, cube_count: int) -> None:
     expected = {
         (b"Header", b"Program"): b"XDX",
         (b"Header", b"Progversion"): b"1.220",
-        (b"Header", b"NumHolons"): b"2",
+        (b"Header", b"NumHolons"): str(cube_count + 1).encode("ascii"),
         (b"Holon\\0", b"ID"): b"0",
         (b"Holon\\0", b"GroupID"): b"0",
         (b"Holon\\0", b"Type"): b"0",
         (b"Holon\\0", b"Name"): b"Group1",
-        (b"Holon\\1", b"ID"): b"1",
-        (b"Holon\\1", b"GroupID"): b"0",
-        (b"Holon\\1", b"Type"): b"1",
-        (b"Holon\\1", b"Name"): b"Cube2",
-        (b"Holon\\1\\MM\\0", b"Style"): b"5",
     }
-    for (section, key), value in expected.items():
+    for index in range(1, cube_count + 1):
+        section = f"Holon\\{index}".encode("ascii")
+        expected.update(
+            {
+                (section, b"ID"): str(index).encode("ascii"),
+                (section, b"GroupID"): b"0",
+                (section, b"Type"): b"1",
+                (section, b"Name"): f"Cube{index + 1}".encode("ascii"),
+                (section + b"\\MM\\0", b"Style"): b"5",
+            }
+        )
+    for (section, key), expected_value in expected.items():
         actual = _value(document, section, key)
-        if actual != value:
+        if actual != expected_value:
             raise TemplateMismatchError(
-                f"unexpected {section!r}.{key!r}: expected {value!r}, got {actual!r}"
+                f"unexpected {section!r}.{key!r}: expected "
+                f"{expected_value!r}, got {actual!r}"
             )
 
 
@@ -148,11 +175,7 @@ def _replace_field(document: Document, field: _Field, value: Decimal) -> Documen
             raise TemplateMismatchError(
                 f"unexpected source token for {field.section!r}.{field.key!r}"
             )
-        new_value = (
-            record.value[: token.start()]
-            + replacement
-            + record.value[token.end() :]
-        )
+        new_value = record.value[: token.start()] + replacement + record.value[token.end() :]
 
     separator = record.content.find(b"=")
     if separator < 0:
@@ -167,11 +190,13 @@ def _replace_field(document: Document, field: _Field, value: Decimal) -> Documen
     return Document(tuple(records))
 
 
-def _allowed_difference(difference: dict[str, object]) -> bool:
-    for field in _FIELDS:
-        section = field.section.decode("ascii")
-        key = field.key.decode("ascii")
-        if difference.get("section") != section or difference.get("key") != key:
+def _allowed_difference(
+    difference: dict[str, object], fields: tuple[_Field, ...]
+) -> bool:
+    for field in fields:
+        if difference.get("section") != field.section.decode("ascii"):
+            continue
+        if difference.get("key") != field.key.decode("ascii"):
             continue
         if field.token_index is None:
             if difference.get("kind") == "value_changed":
@@ -185,27 +210,41 @@ def _allowed_difference(difference: dict[str, object]) -> bool:
     return False
 
 
-def compile_template(spec: CubeSpec) -> bytes:
-    template_data = _template_bytes()
+def compile_project_template(spec: CubeProjectSpec) -> bytes:
+    cube_count = len(spec.cubes)
+    profile = _PROFILES[cube_count]
+    template_data = _template_bytes(profile)
     template = parse_bytes(template_data)
-    _validate_template(template)
+    _validate_template(template, cube_count)
 
+    fields_by_cube = tuple(
+        _cube_fields(index, source_x)
+        for index, source_x in enumerate(profile.source_x_positions, start=1)
+    )
+    fields = tuple(field for cube_fields in fields_by_cube for field in cube_fields)
     document = template
-    for field, value in zip(_SCALE, (spec.scale.x, spec.scale.y, spec.scale.z)):
-        document = _replace_field(document, field, value)
-    for field, value in zip(
-        _ROTATION, (spec.rotation.x, spec.rotation.y, spec.rotation.z)
-    ):
-        document = _replace_field(document, field, value)
-    for field, value in zip(
-        _POSITION, (spec.position.x, spec.position.y, spec.position.z)
-    ):
-        document = _replace_field(document, field, value)
-    document = _replace_field(document, _COLOR_DENSITY, spec.color_density)
-    document = _replace_field(document, _FACE_WARP, spec.face_warp)
+    for cube, cube_fields in zip(spec.cubes, fields_by_cube):
+        values = (
+            cube.scale.x,
+            cube.scale.y,
+            cube.scale.z,
+            cube.rotation.x,
+            cube.rotation.y,
+            cube.rotation.z,
+            cube.position.x,
+            cube.position.y,
+            cube.position.z,
+            cube.color_density,
+            cube.face_warp,
+        )
+        for field, value in zip(cube_fields, values):
+            document = _replace_field(document, field, value)
 
-    differences = diff_documents(template, document)
-    unexpected = [item for item in differences if not _allowed_difference(item)]
+    unexpected = [
+        item
+        for item in diff_documents(template, document)
+        if not _allowed_difference(item, fields)
+    ]
     if unexpected:
         raise TemplateMismatchError(f"compiler changed unsupported fields: {unexpected}")
 

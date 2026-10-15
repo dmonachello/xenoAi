@@ -81,3 +81,20 @@ XenoDream performed no observable file normalization.
 
 Application status: accepted for the observed Group1 plus three cube sibling
 profile. Other object counts and group shapes remain untested.
+
+## Two-cube static result
+
+The `xdx-1.220-two-cube-evidence-2026-10-15` profile reproduces the clean
+two-cube reference byte for byte:
+
+```text
+bytes: 4103
+sha256: 7b0f0b57d82feb0200b320befb179143804b0d75aca85908b809d9d684ac1e2a
+```
+
+The output has Group1 with Cube2 and Cube3 at X positions -50 and 50. Static
+tests verify the exact reference bytes, identities, group links, per-cube
+field isolation, deterministic output, and parser round trip.
+
+Application status: generated and statically verified. XenoDream open, render,
+and resave acceptance is pending for `output/m3_generated_two_cubes.xxp`.
