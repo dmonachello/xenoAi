@@ -13,8 +13,8 @@ xxp = "xenodream_xxp.cli:main"
 
 [tool.pytest.ini_options]
 addopts = "-ra"
+pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

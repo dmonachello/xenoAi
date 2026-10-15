@@ -17,4 +17,7 @@ E015	versioning	The reference declares Progversion 1.007 while the located manua
 E016	materials	The reference has Materials, Material\\0, and Material\\0\\Layer\\0 sections; it has no Material\\1 section	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified and corrects handoff summary
 E017	repeated keys	No key repeats within the same section in the reference sample	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
 E018	validity	Successful parsing or byte round-trip does not establish that XenoDream accepts an edited file	XenoDreamX_Codex_Handoff.md	project constraint	high	open until application test
-
+E019	round-trip	Parsing and serializing the unchanged reference produces 19,797 bytes with the original SHA-256	tests/test_document.py; output/roundtrip.xxp	automated test plus real CLI run	high	verified for this sample
+E020	report	The implemented report finds 26 holons, 38 sections, 925 key/value records, two camera sections, and three material-related sections	tests/test_report.py; src/xenodream_xxp/report.py	automated test plus real CLI run	high	verified for this sample
+E021	metamorph	The only metamorph-named holon key in this sample is PostMetas, whose value is 0 in all 26 holons	docs/observed-schema.md	direct sample observation	high	verified naming and values only
+E022	type codes	Type 0 may denote a group and Type 2 may denote an iterator, based on names and current official category documentation	samples/originals/20061109Sirps08.xxp; https://www.xenodream.com/xdxobjectsui.htm	cross-version hypothesis	low	needs controlled samples or version-matched documentation
