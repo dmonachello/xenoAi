@@ -14,12 +14,15 @@ experiment broadens its scope.
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 9 | X Position | `experiments/position-x/` | Verified write and readback: changing 0 to 25 changed token 9, and the reopened Sphere2 panel displayed Position 25, 0, 0. `SelectionSpots.0` also changed for an unknown reason. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 10 | Y Position | `experiments/position-y/` | Verified write and readback: changing 0 to 25 changed token 10, and the reopened Sphere2 panel displayed Position 0, 25, 0. `SelectionSpots.0` also changed for an unknown reason. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 11 | Z Position | `experiments/position-z/` | Verified write and readback: changing 0 to 25 changed token 11, and the reopened Sphere2 panel displayed Position 0, 0, 25. `SelectionSpots.0` also changed for an unknown reason. |
+| 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 6 | X Rotation | `experiments/rotation-x/` | Verified clean write and readback: changing 0 to 30 changed only token 6, and the Cube2 panel displayed Rotation 30, 0, 0. |
 
 The first three transform tokens are now verified as X, Y, and Z Scale for the
 tested sphere context.
 
 Transform tokens 9 through 11 are now verified as X, Y, and Z Position at the
 file and UI levels for the tested sphere context.
+
+Transform token 6 is verified as X Rotation for the tested cube context.
 
 ## Rendered geometry effects
 
@@ -31,3 +34,4 @@ file and UI levels for the tested sphere context.
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 9, changed from 0 to 25 | Moves the sphere along X | `experiments/position-x/` | Verified by the saved token, selected Sphere2 controls, and displaced preview geometry. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 10, changed from 0 to 25 | Moves the sphere along Y | `experiments/position-y/` | Verified by the saved token, selected Sphere2 controls, and displaced preview geometry. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 11, changed from 0 to 25 | Moves the sphere along Z | `experiments/position-z/` | File and UI mapping verified. Front-view preview is consistent with a depth change; no quantitative depth check was made. |
+| 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 6, changed from 0 to 30 | Rotates the cube around X | `experiments/rotation-x/` | Verified by the clean saved delta, selected Cube2 controls, and visibly rotated preview geometry. |
