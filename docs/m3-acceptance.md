@@ -68,5 +68,16 @@ The output has Group1 with Cube2, Cube3, and Cube4 at X positions -75, 0, and
 per-sibling field isolation, deterministic output, and lossless parser round
 trip.
 
-Application status: generated and statically verified. XenoDream open, render,
-and resave acceptance is pending.
+## Three-cube application result
+
+Accepted on 2026-10-15. XenoDream opened the generated project and showed
+Group1 containing Cube2, Cube3, and Cube4. The scene view showed three
+positioned cube bounds, and the preview rendered three objects.
+
+The resaved file is byte-identical to the generated file. Both are 4,826 bytes
+and have SHA-256
+`caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d`.
+XenoDream performed no observable file normalization.
+
+Application status: accepted for the observed Group1 plus three cube sibling
+profile. Other object counts and group shapes remain untested.

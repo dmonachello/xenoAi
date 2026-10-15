@@ -54,7 +54,7 @@ Face Warp only for the tested Cube metamorph record with `Style=5`.
 | --- | --- | --- | --- |
 | 1.220 | Adding empty Group3 changed `Header.NumHolons` from 2 to 3 and added `Holon\2` with `ID=2`, `GroupID=2`, `Type=0`, and `Name=Group3`. | `experiments/group-creation/` | Verified for the tested save. The two existing holons remained unchanged. |
 | 1.220 | Cube2 has `GroupID=0` and appears under Group1, whose `ID=0`. Empty Group3 has `ID=2`, `GroupID=2`, and appears separately. | `experiments/group-creation/` | Supports child `GroupID` matching the containing group `ID`; broader hierarchy behavior remains provisional. |
-| 1.220 | A project with Group1 and Cube2, Cube3, and Cube4 uses `NumHolons=4`; sibling IDs are 1, 2, and 3, each has `GroupID=0`, `Type=1`, and an adjacent `MM\0` block. | `experiments/three-cube-positions/` | Verified for this three-sibling save. Arbitrary counts and naming rules remain unproven. |
+| 1.220 | A project with Group1 and Cube2, Cube3, and Cube4 uses `NumHolons=4`; sibling IDs are 1, 2, and 3, each has `GroupID=0`, `Type=1`, and an adjacent `MM\0` block. | `experiments/three-cube-positions/`; `experiments/m3-generated-three-cubes/` | Verified for this three-sibling shape and accepted after generated open, render, and byte-identical resave. Arbitrary counts and naming rules remain unproven. |
 
 ## Rendered geometry effects
 

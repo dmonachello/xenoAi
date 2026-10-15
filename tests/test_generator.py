@@ -38,6 +38,11 @@ THREE_CUBE_REFERENCE = (
     / "three-cube-positions"
     / "3_cube_positions.xxp"
 )
+THREE_CUBE_ACCEPTANCE = (
+    Path(__file__).parents[1]
+    / "experiments"
+    / "m3-generated-three-cubes"
+)
 D = Decimal
 
 
@@ -212,3 +217,16 @@ def test_three_cube_compiler_rejects_rounding_on_later_cube() -> None:
 
     with pytest.raises(GenerationError, match="5-place precision"):
         compile_three_cubes(spec)
+
+
+def test_xenodream_resaved_generated_three_cubes_without_changes() -> None:
+    generated = (THREE_CUBE_ACCEPTANCE / "m3_generated_three_cubes.xxp").read_bytes()
+    resaved = (
+        THREE_CUBE_ACCEPTANCE / "m3_generated_three_cubes_resaved.xxp"
+    ).read_bytes()
+
+    assert generated == resaved == compile_three_cubes()
+    assert len(generated) == 4_826
+    assert sha256(resaved).hexdigest() == (
+        "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d"
+    )
