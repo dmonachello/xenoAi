@@ -4,7 +4,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from xenodream_xxp.diffing import diff_documents
-from xenodream_xxp.document import parse_bytes
+from xenodream_xxp.document import KeyValueRecord, SectionRecord, parse_bytes
 
 
 PAIR = Path(__file__).parents[1] / "experiments" / "scale-x"
@@ -31,6 +31,9 @@ FACE_WARP_PAIR = (
 )
 GROUP_CREATION_PAIR = (
     Path(__file__).parents[1] / "experiments" / "group-creation"
+)
+MIDDLE_CUBE_DELETION = (
+    Path(__file__).parents[1] / "experiments" / "delete-middle-cube"
 )
 
 
@@ -488,3 +491,36 @@ def test_empty_group_creation_adds_one_holon_without_changing_existing_ones() ->
     assert added_values["GroupID"] == "2"
     assert added_values["Type"] == "0"
     assert added_values["Name"] == "Group3"
+
+
+def test_deleting_middle_cube_compacts_sections_but_preserves_identity() -> None:
+    data = (MIDDLE_CUBE_DELETION / "two_cubes.xxp").read_bytes()
+    document = parse_bytes(data)
+
+    assert len(data) == 4_103
+    assert sha256(data).hexdigest() == (
+        "010462dd1d78043c37ac5f306bd1ce16d167ca35b72b98b09228949023ca7809"
+    )
+    assert document.to_bytes() == data
+
+    sections = {
+        record.name
+        for record in document.records
+        if isinstance(record, SectionRecord)
+    }
+    assert b"Holon\\2" in sections
+    assert b"Holon\\2\\MM\\0" in sections
+    assert b"Holon\\3" not in sections
+    assert b"Holon\\3\\MM\\0" not in sections
+
+    values = {
+        (record.section, record.key): record.value
+        for record in document.records
+        if isinstance(record, KeyValueRecord)
+    }
+    assert values[(b"Header", b"NumHolons")] == b"3"
+    assert values[(b"Holon\\2", b"ID")] == b"3"
+    assert values[(b"Holon\\2", b"Name")] == b"Cube4"
+    assert values[(b"Holon\\2", b"GroupID")] == b"0"
+    assert values[(b"Holon\\2", b"Type")] == b"1"
+    assert values[(b"SelectionSpots", b"0")] == b"3 1 1 "
