@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 
 from xenodream_xxp.cli import main
+from xenodream_xxp.diffing import diff_documents
+from xenodream_xxp.document import parse_bytes
+from xenodream_xxp.generator import COMPILER_PROFILE
 
 
 SAMPLE = (
@@ -53,3 +56,62 @@ def test_diff_exit_codes_and_json(tmp_path, capsys) -> None:
     assert differences[0]["section"] == "Header"
     assert differences[0]["key"] == "Author"
 
+
+def test_generate_cube_writes_verified_default(tmp_path, capsys) -> None:
+    output = tmp_path / "generated.xxp"
+    baseline = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "group-creation"
+        / "cube_base.xxp"
+    )
+
+    assert main(["generate-cube", str(output)]) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["compiler_profile"] == COMPILER_PROFILE
+    assert output.read_bytes() == baseline.read_bytes()
+
+
+def test_generate_cube_refuses_to_overwrite(tmp_path, capsys) -> None:
+    output = tmp_path / "existing.xxp"
+    output.write_bytes(b"keep")
+
+    assert main(["generate-cube", str(output)]) == 2
+    assert output.read_bytes() == b"keep"
+    assert "already exists" in capsys.readouterr().err
+
+
+def test_generate_cube_applies_verified_cli_controls(tmp_path, capsys) -> None:
+    output = tmp_path / "changed.xxp"
+    baseline = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "group-creation"
+        / "cube_base.xxp"
+    )
+
+    assert main(
+        [
+            "generate-cube",
+            str(output),
+            "--scale",
+            "25",
+            "50",
+            "50",
+            "--face-warp",
+            "0.25",
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    differences = diff_documents(
+        parse_bytes(baseline.read_bytes()), parse_bytes(output.read_bytes())
+    )
+    assert [
+        (item["section"], item["key"], item.get("token_index"))
+        for item in differences
+    ] == [
+        ("Holon\\1", "Transform", 0),
+        ("Holon\\1\\MM\\0", "Pars", 0),
+    ]

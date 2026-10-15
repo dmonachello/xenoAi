@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from hashlib import sha256
+from pathlib import Path
+
+import pytest
+
+from xenodream_xxp.diffing import diff_documents
+from xenodream_xxp.document import parse_bytes
+from xenodream_xxp.generator import CubeSpec, GenerationError, Vector3, compile_cube
+
+
+BASE = (
+    Path(__file__).parents[1]
+    / "experiments"
+    / "group-creation"
+    / "cube_base.xxp"
+)
+D = Decimal
+
+
+def test_default_cube_is_byte_identical_to_verified_template() -> None:
+    expected = BASE.read_bytes()
+    generated = compile_cube()
+
+    assert generated == expected
+    assert sha256(generated).hexdigest() == (
+        "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+    )
+    assert parse_bytes(generated).to_bytes() == generated
+
+
+def test_compiler_changes_only_verified_cube_fields() -> None:
+    spec = CubeSpec(
+        scale=Vector3(D("25"), D("50"), D("100")),
+        rotation=Vector3(D("10"), D("20"), D("30")),
+        position=Vector3(D("-5"), D("0"), D("5")),
+        color_density=D("0.5"),
+        face_warp=D("0.25"),
+    )
+
+    generated = compile_cube(spec)
+    differences = diff_documents(parse_bytes(BASE.read_bytes()), parse_bytes(generated))
+
+    assert [
+        (item["section"], item["key"], item.get("token_index"))
+        for item in differences
+    ] == [
+        ("Holon\\1", "Transform", 0),
+        ("Holon\\1", "Transform", 2),
+        ("Holon\\1", "Transform", 6),
+        ("Holon\\1", "Transform", 7),
+        ("Holon\\1", "Transform", 8),
+        ("Holon\\1", "Transform", 9),
+        ("Holon\\1", "Transform", 11),
+        ("Holon\\1", "GradDensity", None),
+        ("Holon\\1\\MM\\0", "Pars", 0),
+    ]
+    assert generated.count(b"\r\n") == 194
+    assert b"\n" not in generated.replace(b"\r\n", b"")
+    assert compile_cube(spec) == generated
+
+
+def test_compiler_rejects_non_decimal_and_non_finite_values() -> None:
+    with pytest.raises(TypeError, match="must be Decimal"):
+        Vector3(1, D("0"), D("0"))  # type: ignore[arg-type]
+
+    with pytest.raises(GenerationError, match="must be finite"):
+        CubeSpec(face_warp=D("NaN"))
+
+
+def test_compiler_rejects_values_that_need_rounding() -> None:
+    spec = CubeSpec(position=Vector3(D("0.000001"), D("0"), D("0")))
+
+    with pytest.raises(GenerationError, match="5-place precision"):
+        compile_cube(spec)

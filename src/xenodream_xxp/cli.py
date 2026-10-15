@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -11,6 +12,13 @@ from typing import Sequence
 
 from .diffing import diff_documents
 from .document import parse_bytes
+from .generator import (
+    COMPILER_PROFILE,
+    CubeSpec,
+    GenerationError,
+    Vector3,
+    compile_cube,
+)
 from .report import inspect_document
 
 
@@ -30,6 +38,34 @@ def _parser() -> argparse.ArgumentParser:
     diff = commands.add_parser("diff", help="compare keys and value tokens")
     diff.add_argument("before", type=Path)
     diff.add_argument("after", type=Path)
+
+    generate = commands.add_parser(
+        "generate-cube", help="create a deterministic XDX 1.220 cube project"
+    )
+    generate.add_argument("output", type=Path)
+    generate.add_argument(
+        "--scale",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("50"), Decimal("50"), Decimal("50")),
+    )
+    generate.add_argument(
+        "--rotation",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
+    generate.add_argument(
+        "--position",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
+    generate.add_argument("--color-density", type=Decimal, default=Decimal("1"))
+    generate.add_argument("--face-warp", type=Decimal, default=Decimal("0"))
     return parser
 
 
@@ -64,6 +100,34 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 0 if source == output else 1
 
+        if args.command == "generate-cube":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            output = compile_cube(
+                CubeSpec(
+                    scale=Vector3(*args.scale),
+                    rotation=Vector3(*args.rotation),
+                    position=Vector3(*args.position),
+                    color_density=args.color_density,
+                    face_warp=args.face_warp,
+                )
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": COMPILER_PROFILE,
+                }
+            )
+            return 0
+
         before = parse_bytes(args.before.read_bytes())
         after = parse_bytes(args.after.read_bytes())
         differences = diff_documents(before, after)
@@ -76,11 +140,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             }
         )
         return 1 if differences else 0
-    except OSError as error:
+    except (OSError, GenerationError) as error:
         print(str(error), file=sys.stderr)
         return 2
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
