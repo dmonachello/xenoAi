@@ -29,6 +29,9 @@ COLOR_DENSITY_PAIR = Path(__file__).parents[1] / "experiments" / "color-density"
 FACE_WARP_PAIR = (
     Path(__file__).parents[1] / "experiments" / "metamorph-face-warp"
 )
+GROUP_CREATION_PAIR = (
+    Path(__file__).parents[1] / "experiments" / "group-creation"
+)
 
 
 def test_scale_x_pair_has_one_observed_token_change() -> None:
@@ -447,3 +450,41 @@ def test_cube_face_warp_pair_has_one_observed_token_change() -> None:
             "after": "0.2500",
         }
     ]
+
+
+def test_empty_group_creation_adds_one_holon_without_changing_existing_ones() -> None:
+    base_bytes = (GROUP_CREATION_PAIR / "cube_base.xxp").read_bytes()
+    changed_bytes = (GROUP_CREATION_PAIR / "cube_two_groups.xxp").read_bytes()
+    base = parse_bytes(base_bytes)
+    changed = parse_bytes(changed_bytes)
+
+    assert sha256(base_bytes).hexdigest() == (
+        "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+    )
+    assert sha256(changed_bytes).hexdigest() == (
+        "c207830dcb70a1a05b44f583cb3199752e634803ad9035296c6da7b1c8b53b4e"
+    )
+    assert len(base_bytes) == 3_377
+    assert len(changed_bytes) == 3_982
+    assert base.to_bytes() == base_bytes
+    assert changed.to_bytes() == changed_bytes
+
+    differences = diff_documents(base, changed)
+    assert len(differences) == 35
+    assert differences[0] == {
+        "kind": "value_changed",
+        "section": "Header",
+        "section_occurrence": 0,
+        "key": "NumHolons",
+        "key_occurrence": 0,
+        "before": "2",
+        "after": "3",
+    }
+    added = differences[1:]
+    assert all(item["kind"] == "key_added" for item in added)
+    assert all(item["section"] == "Holon\\2" for item in added)
+    added_values = {item["key"]: item["after"] for item in added}
+    assert added_values["ID"] == "2"
+    assert added_values["GroupID"] == "2"
+    assert added_values["Type"] == "0"
+    assert added_values["Name"] == "Group3"
