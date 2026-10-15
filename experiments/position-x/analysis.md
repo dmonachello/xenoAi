@@ -7,7 +7,9 @@ being asked to start from `sphere_base.xxp` and change only the selected
 `Sphere2` X Position from 0 to 25. Both files were copied here without
 modification. `SHA256SUMS` records their hashes.
 
-No screenshot or explicit reopen/render result accompanied this file.
+The initial file submission had no screenshot. The user then reopened the
+project and supplied a screenshot with `Sphere2` selected. Its Position controls
+read `25, 0, 0`, and the preview showed the sphere displaced along X.
 
 ## Static comparison
 
@@ -33,9 +35,10 @@ removes 65 bytes.
 
 ## Experiment outcome
 
-The controlled-save correlation supports `Holon\1.Transform` token 9 as X
-Position for this `Sphere2` holon in XenoDream X 1.220. Application readback
-and rendered movement remain unverified.
+Verified in the tested context. `Holon\1.Transform` token 9 stores X Position
+for this `Sphere2` holon in XenoDream X 1.220. The saved token, reopened
+Position controls, and preview displacement all agree on the change from 0 to
+25.
 
 `SelectionSpots.0` changed to the same value found in the Y-scale and Z-scale
 experiments. Its meaning remains unknown.
