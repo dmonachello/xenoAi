@@ -10,6 +10,9 @@ corrected the application result. The first screenshot after reopen showed
 `Group1` selected with Scale values `100, 100, 100`. A second screenshot with
 `Sphere2` selected showed Scale values `25, 50, 50`. This confirms that the
 saved token persisted and appeared in the intended child holon's X Scale UI.
+The user then confirmed that the reopened project always rendered the scaled
+shape. Selecting the sphere changed its viewport color between white and
+yellow, but did not change its geometry.
 
 ## Static comparison
 
@@ -41,7 +44,8 @@ byte-for-byte.
 The pair proves that the save operation changed only token 0 of
 `Holon\1.Transform`, from `50.00000` to `25.00000`. The selected-child
 screenshot proves that XenoDream 1.220 reads that token back as `Sphere2` X
-Scale. It does not yet prove that the reopened render changed shape.
+Scale. The user's render observation confirms that the reopened application
+applies the saved scale to the sphere geometry.
 
 ```text
 Holon.Transform token 0 = displayed X Scale
@@ -52,8 +56,9 @@ metamorph transforms.
 
 ## Experiment outcome
 
-Partially verified. The first three `Holon\1.Transform` tokens match the
+Verified in the tested context. The first three `Holon\1.Transform` tokens match the
 displayed `Sphere2` Scale triplet in this observed file. The controlled change
 verifies token 0 as persisted X Scale 25 after reopening. Tokens 1 and 2 remain
-candidates for Y and Z Scale. The rendered geometry effect remains open because
-the user previously reported that the variant looked unchanged.
+candidates for Y and Z Scale. XenoDream rendered the scaled shape both before
+and after selection. The white/yellow selection highlight is a UI observation,
+not a persisted format mapping.

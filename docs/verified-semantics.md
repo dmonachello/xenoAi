@@ -15,4 +15,6 @@ both at 50, but no controlled edit has isolated those tokens yet.
 
 ## Rendered geometry effects
 
-No transform-token effect has yet been verified by a before-and-after render.
+| Version | Context | Format location | Effect | Evidence | Status |
+| --- | --- | --- | --- | --- | --- |
+| 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 0, changed from 50 to 25 | Reduces X Scale of the sphere | `experiments/scale-x/` | Verified after save, reopen, UI readback, and render observation. Selection changed only the white/yellow viewport highlight. |
