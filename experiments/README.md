@@ -18,8 +18,9 @@ stored in the file.
    results. Screenshots are useful but optional.
 
 Do not hand-edit either `.xxp` file. File timestamps and names can differ. The
-structural diff will identify every content change, including any extra values
-that XenoDream updates while saving. If the save changes unrelated data, the
-next experiment will add a no-change Save As control before drawing semantic
-conclusions.
+structural diff identifies added, removed, and changed key/value records, down
+to changed whitespace-separated tokens. A syntax-only change such as ordering
+or line endings is reported as `raw_bytes_changed`, without a more specific
+location. If the save changes unrelated data, the next experiment will add a
+no-change Save As control before drawing semantic conclusions.
 

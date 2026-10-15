@@ -73,6 +73,24 @@ def test_classifies_records_without_discarding_unrecognized_lines() -> None:
     assert key_value.value == b"a=b"
 
 
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        b"[missing-close",
+        b"missing-open]",
+        b"arbitrary text without a separator",
+    ],
+)
+def test_preserves_malformed_records_inside_a_document(malformed: bytes) -> None:
+    source = b"[Valid]\r\nBefore=1\r\n" + malformed + b"\r\nAfter=2\r\n"
+
+    document = parse_bytes(source)
+
+    assert document.to_bytes() == source
+    assert isinstance(document.records[2], RawRecord)
+    assert document.records[2].content == malformed
+
+
 def test_reference_sample_roundtrips_byte_for_byte() -> None:
     source = SAMPLE.read_bytes()
 
@@ -82,4 +100,3 @@ def test_reference_sample_roundtrips_byte_for_byte() -> None:
     assert len(document.records) == 1001
     assert len(document.sections) == 38
     assert max(len(record.content) for record in document.records) == 3018
-
