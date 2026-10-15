@@ -14,6 +14,7 @@ X_POSITION_PAIR = Path(__file__).parents[1] / "experiments" / "position-x"
 Y_POSITION_PAIR = Path(__file__).parents[1] / "experiments" / "position-y"
 Z_POSITION_PAIR = Path(__file__).parents[1] / "experiments" / "position-z"
 X_ROTATION_PAIR = Path(__file__).parents[1] / "experiments" / "rotation-x"
+Y_ROTATION_PAIR = Path(__file__).parents[1] / "experiments" / "rotation-y"
 GROUP_Y_ROTATION_PAIR = (
     Path(__file__).parents[1] / "experiments" / "rotation-y-group"
 )
@@ -232,6 +233,34 @@ def test_x_rotation_pair_has_one_observed_token_change() -> None:
             "key": "Transform",
             "key_occurrence": 0,
             "token_index": 6,
+            "before": "0.00000",
+            "after": "30.00000",
+        }
+    ]
+
+
+def test_y_rotation_pair_has_one_observed_token_change() -> None:
+    base_bytes = (Y_ROTATION_PAIR / "cube_base.xxp").read_bytes()
+    rotated_bytes = (Y_ROTATION_PAIR / "cube_y_rotation2.xxp").read_bytes()
+    base = parse_bytes(base_bytes)
+    rotated = parse_bytes(rotated_bytes)
+
+    assert sha256(base_bytes).hexdigest() == (
+        "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+    )
+    assert sha256(rotated_bytes).hexdigest() == (
+        "a9386cf00d4bfc6e253b8fa48d72f6338d7660d77eb56f3a86f50d541f1e8dc3"
+    )
+    assert base.to_bytes() == base_bytes
+    assert rotated.to_bytes() == rotated_bytes
+    assert diff_documents(base, rotated) == [
+        {
+            "kind": "value_token_changed",
+            "section": "Holon\\1",
+            "section_occurrence": 0,
+            "key": "Transform",
+            "key_occurrence": 0,
+            "token_index": 7,
             "before": "0.00000",
             "after": "30.00000",
         }
