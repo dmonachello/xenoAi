@@ -269,3 +269,79 @@ def test_new_generator_commands_refuse_to_overwrite(tmp_path, capsys) -> None:
         assert main([command, str(output)]) == 2
         assert output.read_bytes() == b"keep"
         assert "already exists" in capsys.readouterr().err
+
+
+def test_generate_row_writes_accepted_cube_sphere_profile(tmp_path, capsys) -> None:
+    output = tmp_path / "row.xxp"
+    reference = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "cube-sphere"
+        / "cube_sphere.xxp"
+    )
+
+    assert main(
+        [
+            "generate-row",
+            str(output),
+            "cube",
+            "sphere",
+            "--spacing",
+            "100",
+        ]
+    ) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["recipe"] == "centered-x-row"
+    assert result["objects"] == ["cube", "sphere"]
+    assert result["spacing"] == "100"
+    assert output.read_bytes() == reference.read_bytes()
+
+
+def test_generate_row_applies_center_and_rejects_unsupported_sequence(
+    tmp_path, capsys
+) -> None:
+    centered = tmp_path / "centered.xxp"
+    assert main(
+        [
+            "generate-row",
+            str(centered),
+            "cube",
+            "cube",
+            "--spacing",
+            "80",
+            "--center",
+            "20",
+            "10",
+            "-5",
+        ]
+    ) == 0
+    capsys.readouterr()
+    data = centered.read_bytes()
+    assert b"-20.00000 10.00000 -5.00000 " in data
+    assert b"60.00000 10.00000 -5.00000 " in data
+
+    unsupported = tmp_path / "unsupported.xxp"
+    assert main(
+        [
+            "generate-row",
+            str(unsupported),
+            "sphere",
+            "cube",
+            "--spacing",
+            "100",
+        ]
+    ) == 2
+    assert not unsupported.exists()
+    assert "supported object sequences" in capsys.readouterr().err
+
+
+def test_generate_row_refuses_to_overwrite(tmp_path, capsys) -> None:
+    output = tmp_path / "existing-row.xxp"
+    output.write_bytes(b"keep")
+
+    assert main(
+        ["generate-row", str(output), "cube", "--spacing", "100"]
+    ) == 2
+    assert output.read_bytes() == b"keep"
+    assert "already exists" in capsys.readouterr().err

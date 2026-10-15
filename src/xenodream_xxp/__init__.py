@@ -20,6 +20,7 @@ from .generator import (
     compile_sphere,
     compile_three_cubes,
 )
+from .recipes import centered_x_row
 
 __all__ = [
     "CubeSpec",
@@ -40,6 +41,7 @@ __all__ = [
     "compile_project",
     "compile_sphere",
     "compile_three_cubes",
+    "centered_x_row",
     "parse_bytes",
     "parse_file",
 ]

@@ -22,6 +22,7 @@ xxp generate-sphere output/generated_sphere.xxp
 xxp generate-two-cubes output/generated_two_cubes.xxp
 xxp generate-three-cubes output/generated_three_cubes.xxp
 xxp generate-cube-sphere output/generated_cube_sphere.xxp
+xxp generate-row output/generated_row.xxp cube sphere --spacing 100
 ```
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
@@ -48,6 +49,26 @@ Cube2 at X -50 followed by Sphere3 at X 50. The Python API exposes
 `ProjectSpec`, `CubeSpec`, and `SphereSpec`. It accepts only the five profiled
 object sequences: one to three cubes, one sphere, or cube followed by sphere.
 `SphereSpec` exposes only the verified scale and position controls.
+
+`generate-row` places a supported object sequence at equal intervals on the X
+axis. The row is centered at the origin by default. Use `--center X Y Z` to
+move the row. The command accepts the same five object sequences as
+`ProjectSpec` and rejects every other sequence.
+
+The Python API returns a project so callers can inspect or combine it before
+compilation:
+
+```python
+from decimal import Decimal
+
+from xenodream_xxp import CubeSpec, SphereSpec, centered_x_row, compile_project
+
+project = centered_x_row(
+    (CubeSpec(), SphereSpec()),
+    spacing=Decimal("100"),
+)
+data = compile_project(project)
+```
 
 Generated files still require an open-and-render check in XenoDream. Static
 parsing and byte comparisons do not prove application acceptance.

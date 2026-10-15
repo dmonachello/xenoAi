@@ -32,6 +32,7 @@ from .generator import (
     compile_three_cubes,
 )
 from .report import inspect_document
+from .recipes import centered_x_row
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -118,6 +119,26 @@ def _parser() -> argparse.ArgumentParser:
         help="create the verified Cube2 and Sphere3 project",
     )
     generate_cube_sphere.add_argument("output", type=Path)
+
+    generate_row = commands.add_parser(
+        "generate-row",
+        help="place a supported object sequence in a centered X-axis row",
+    )
+    generate_row.add_argument("output", type=Path)
+    generate_row.add_argument(
+        "objects",
+        nargs="+",
+        choices=("cube", "sphere"),
+        help="ordered object sequence",
+    )
+    generate_row.add_argument("--spacing", type=Decimal, required=True)
+    generate_row.add_argument(
+        "--center",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
     return parser
 
 
@@ -301,6 +322,36 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "bytes": len(output),
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": CUBE_SPHERE_COMPILER_PROFILE,
+                }
+            )
+            return 0
+
+        if args.command == "generate-row":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            object_types = {"cube": CubeSpec, "sphere": SphereSpec}
+            objects = tuple(object_types[name]() for name in args.objects)
+            project = centered_x_row(
+                objects,
+                spacing=args.spacing,
+                center=Vector3(*args.center),
+            )
+            output = compile_project(project)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "recipe": "centered-x-row",
+                    "objects": args.objects,
+                    "spacing": str(args.spacing),
+                    "center": [str(value) for value in args.center],
                 }
             )
             return 0
