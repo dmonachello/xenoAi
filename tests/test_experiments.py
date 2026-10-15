@@ -25,6 +25,7 @@ GROUP_Z_ROTATION_PAIR = (
 GROUP_COLOR_DENSITY_PAIR = (
     Path(__file__).parents[1] / "experiments" / "color-density-group"
 )
+COLOR_DENSITY_PAIR = Path(__file__).parents[1] / "experiments" / "color-density"
 
 
 def test_scale_x_pair_has_one_observed_token_change() -> None:
@@ -379,6 +380,35 @@ def test_group_color_density_pair_has_one_observed_value_change() -> None:
         {
             "kind": "value_changed",
             "section": "Holon\\0",
+            "section_occurrence": 0,
+            "key": "GradDensity",
+            "key_occurrence": 0,
+            "before": "1.000",
+            "after": "0.500",
+        }
+    ]
+
+
+def test_cube_color_density_pair_has_one_observed_value_change() -> None:
+    base_bytes = (COLOR_DENSITY_PAIR / "cube_base.xxp").read_bytes()
+    changed_bytes = (
+        COLOR_DENSITY_PAIR / "cube_color_density2.xxp"
+    ).read_bytes()
+    base = parse_bytes(base_bytes)
+    changed = parse_bytes(changed_bytes)
+
+    assert sha256(base_bytes).hexdigest() == (
+        "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+    )
+    assert sha256(changed_bytes).hexdigest() == (
+        "87e2fb7169b01d4361840d844fb2c1e4003c872c6a9e5d7eccd28981aa9728e7"
+    )
+    assert base.to_bytes() == base_bytes
+    assert changed.to_bytes() == changed_bytes
+    assert diff_documents(base, changed) == [
+        {
+            "kind": "value_changed",
+            "section": "Holon\\1",
             "section_occurrence": 0,
             "key": "GradDensity",
             "key_occurrence": 0,
