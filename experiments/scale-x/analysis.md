@@ -5,12 +5,11 @@
 The user supplied both files in `output/` on 2026-10-15. They were copied into
 this directory without modification. `SHA256SUMS` records their hashes.
 
-On 2026-10-15, the user confirmed all three controls for this experiment:
-
-- X Scale was the only setting changed.
-- The displayed value changed from 50 to 25.
-- Both files reopened without warnings and rendered with the expected X-axis
-  size difference.
+On 2026-10-15, the user initially confirmed the requested controls, then
+corrected the application result. The X Scale UI edit was from 50 to 25, but
+the saved variant rendered as before when reopened. A screenshot after reopen
+showed `Group1` selected with Scale values `100, 100, 100`. It did not show the
+child `Sphere2` values.
 
 ## Static comparison
 
@@ -39,10 +38,10 @@ byte-for-byte.
 
 ## Finding
 
-The pair proves that this save operation changed only token 0 of
-`Holon\1.Transform`, from `50.00000` to `25.00000`. Together with the user's
-UI and application confirmation, the pair establishes a direct mapping for
-XenoDream X 1.220:
+The pair proves that the save operation changed only token 0 of
+`Holon\1.Transform`, from `50.00000` to `25.00000`. This is strong evidence
+that the UI writes X Scale to that token for the tested holon. It does not yet
+prove that XenoDream applies that token to the rendered sphere after reopening.
 
 ```text
 Holon.Transform token 0 = displayed X Scale
@@ -53,6 +52,10 @@ metamorph transforms.
 
 ## Experiment outcome
 
-Verified. `Holon.Transform` token 0 stores the displayed X Scale for the tested
-Sphere2 holon in XenoDream X 1.220. The application accepted both files and
-rendered the expected change.
+Inconclusive. The wire-field correlation is verified, but the geometry effect
+is not. The screenshot shows the parent group's transform, so it cannot tell us
+whether `Sphere2` read back as `25, 50, 50` or reset to `50, 50, 50`.
+
+The next check must select `Sphere2` after separately reopening each file and
+record its three Scale values. That distinguishes a retained-but-inactive
+parameter from a value that XenoDream ignores or resets while loading.
