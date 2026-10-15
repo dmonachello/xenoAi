@@ -3,3 +3,4 @@ ts	phase	decision	why	evidence	result
 2026-10-15T17:57:44Z	M0	Preserved the supplied file under samples/originals without changing the root copy	Original evidence must never be overwritten	samples/SHA256SUMS	SHA-256 copies match
 2026-10-15T17:57:44Z	M0	Separated direct observations, official documentation, and open hypotheses	Version 1.007 sample facts and version 1.302 manual statements have different scope	docs/format-evidence.tsv	initial evidence map recorded
 2026-10-15T17:57:44Z	design	Chose an ordered raw-record document model with interpretation layered above it	Preserving byte slices keeps unknown syntax and formatting lossless	docs/workflow.md	ready for failing tests
+2026-10-15T18:03:00Z	M1 red	Added preservation, report, structural diff, and CLI tests before implementation	The failure must demonstrate that the required capability is absent rather than hidden by existing code	tests/; pytest -q	4 collection errors: xenodream_xxp missing
