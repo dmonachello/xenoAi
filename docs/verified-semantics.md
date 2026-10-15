@@ -16,6 +16,7 @@ experiment broadens its scope.
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 11 | Z Position | `experiments/position-z/` | Verified write and readback: changing 0 to 25 changed token 11, and the reopened Sphere2 panel displayed Position 0, 0, 25. `SelectionSpots.0` also changed for an unknown reason. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 6 | X Rotation | `experiments/rotation-x/` | Verified clean write and readback: changing 0 to 30 changed only token 6, and the Cube2 panel displayed Rotation 30, 0, 0. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 7 | Y Rotation | `experiments/rotation-y/` | Verified clean write and readback: changing 0 to 30 changed only token 7, and the selected Cube2 panel displayed Rotation 0, 30, 0. |
+| 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 8 | Z Rotation | `experiments/rotation-z/` | Verified clean write and readback: changing 0 to 30 changed only token 8, and the selected Cube2 panel displayed Rotation 0, 0, 30. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 7 | Y Rotation | `experiments/rotation-y-group/` | Verified clean write and readback: changing 0 to 30 changed only token 7, and the selected Group1 panel displayed Rotation 0, 30, 0. This does not verify the Cube2 child. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 8 | Z Rotation | `experiments/rotation-z-group/` | Verified clean write and readback: changing 0 to 30 changed only token 8, and the selected Group1 panel displayed Rotation 0, 0, 30. This does not verify the Cube2 child. |
 
@@ -31,7 +32,10 @@ Transform token 7 is independently verified as Y Rotation in the tested cube
 and group contexts.
 
 Transform token 8 is verified as Z Rotation for the tested group context. Its
-meaning on a constructor holon remains untested.
+meaning on a constructor holon is independently verified by the cube test.
+
+Transform tokens 6 through 8 are now verified as X, Y, and Z Rotation for the
+tested cube context.
 
 ## Rendered geometry effects
 
@@ -45,5 +49,6 @@ meaning on a constructor holon remains untested.
 | 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 11, changed from 0 to 25 | Moves the sphere along Z | `experiments/position-z/` | File and UI mapping verified. Front-view preview is consistent with a depth change; no quantitative depth check was made. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 6, changed from 0 to 30 | Rotates the cube around X | `experiments/rotation-x/` | Verified by the clean saved delta, selected Cube2 controls, and visibly rotated preview geometry. |
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 7, changed from 0 to 30 | Rotates the cube around Y | `experiments/rotation-y/` | Verified by the clean saved delta, selected Cube2 controls, and visibly rotated preview geometry. |
+| 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 8, changed from 0 to 30 | Rotates the cube around Z | `experiments/rotation-z/` | Verified by the clean saved delta, selected Cube2 controls, and visibly rotated front-view geometry. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 7, changed from 0 to 30 | Rotates the group around Y | `experiments/rotation-y-group/` | File and UI mapping verified. The preview is consistent with a Y rotation, but no independent geometry measurement was made. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 8, changed from 0 to 30 | Rotates the group around Z | `experiments/rotation-z-group/` | Verified by the clean saved delta, selected Group1 controls, and visibly rotated front-view geometry. |
