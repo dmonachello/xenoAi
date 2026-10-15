@@ -17,6 +17,9 @@ BASE = (
     / "group-creation"
     / "cube_base.xxp"
 )
+ACCEPTANCE = (
+    Path(__file__).parents[1] / "experiments" / "m3-generated-cube"
+)
 D = Decimal
 
 
@@ -75,3 +78,14 @@ def test_compiler_rejects_values_that_need_rounding() -> None:
 
     with pytest.raises(GenerationError, match="5-place precision"):
         compile_cube(spec)
+
+
+def test_xenodream_resaved_generated_cube_without_byte_changes() -> None:
+    generated = (ACCEPTANCE / "m3_generated_cube.xxp").read_bytes()
+    resaved = (ACCEPTANCE / "m3_generated_cube_resaved.xxp").read_bytes()
+
+    assert generated == resaved == compile_cube()
+    assert len(generated) == 3_377
+    assert sha256(resaved).hexdigest() == (
+        "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+    )
