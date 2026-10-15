@@ -15,6 +15,12 @@ experiment broadens its scope.
 The first three transform tokens are now verified as X, Y, and Z Scale for the
 tested sphere context.
 
+## Pending file-to-UI mappings
+
+| Version | Context | Format location | Candidate meaning | Evidence | Missing check |
+| --- | --- | --- | --- | --- | --- |
+| 1.220 | `Holon\1`, `Type=1`, `Name=Sphere2` | `Transform` token 9 | X Position | `experiments/position-x/` | Reopen the file, select Sphere2, confirm Position 25, 0, 0 and visible movement. |
+
 ## Rendered geometry effects
 
 | Version | Context | Format location | Effect | Evidence | Status |
