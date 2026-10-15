@@ -19,6 +19,7 @@ experiment broadens its scope.
 | 1.220 | `Holon\1`, `Type=1`, `Name=Cube2` | `Transform` token 8 | Z Rotation | `experiments/rotation-z/` | Verified clean write and readback: changing 0 to 30 changed only token 8, and the selected Cube2 panel displayed Rotation 0, 0, 30. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 7 | Y Rotation | `experiments/rotation-y-group/` | Verified clean write and readback: changing 0 to 30 changed only token 7, and the selected Group1 panel displayed Rotation 0, 30, 0. This does not verify the Cube2 child. |
 | 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `Transform` token 8 | Z Rotation | `experiments/rotation-z-group/` | Verified clean write and readback: changing 0 to 30 changed only token 8, and the selected Group1 panel displayed Rotation 0, 0, 30. This does not verify the Cube2 child. |
+| 1.220 | `Holon\0`, `Type=0`, `Name=Group1` | `GradDensity` | Color Density | `experiments/color-density-group/` | Verified clean write and readback: changing the UI control from 1.000 to 0.500 changed only this field. The rendering calculation remains undocumented. |
 
 The first three transform tokens are now verified as X, Y, and Z Scale for the
 tested sphere context.
