@@ -11,6 +11,7 @@ PAIR = Path(__file__).parents[1] / "experiments" / "scale-x"
 Y_PAIR = Path(__file__).parents[1] / "experiments" / "scale-y"
 Z_PAIR = Path(__file__).parents[1] / "experiments" / "scale-z"
 X_POSITION_PAIR = Path(__file__).parents[1] / "experiments" / "position-x"
+Y_POSITION_PAIR = Path(__file__).parents[1] / "experiments" / "position-y"
 
 
 def test_scale_x_pair_has_one_observed_token_change() -> None:
@@ -133,6 +134,36 @@ def test_x_position_pair_records_transform_and_selection_spot_changes() -> None:
         "key": "Transform",
         "key_occurrence": 0,
         "token_index": 9,
+        "before": "0.00000",
+        "after": "25.00000",
+    }
+    assert differences[1]["kind"] == "value_changed"
+    assert differences[1]["section"] == "SelectionSpots"
+    assert differences[1]["after"] == "3 1 1 "
+
+
+def test_y_position_pair_records_transform_and_selection_spot_changes() -> None:
+    base_bytes = (Y_POSITION_PAIR / "sphere_base.xxp").read_bytes()
+    moved_bytes = (Y_POSITION_PAIR / "sphere_y_position.xxp").read_bytes()
+    base = parse_bytes(base_bytes)
+    moved = parse_bytes(moved_bytes)
+
+    assert sha256(base_bytes).hexdigest() == (
+        "b1da4b2dafa99c717f3988e4dff29bec26cbab4b6e50445c49c58a4bd3e31b32"
+    )
+    assert sha256(moved_bytes).hexdigest() == (
+        "af358ddcaad971ecaf3cc1e1b3f913ef3c1231f8faf986a62b113dc02eeaf037"
+    )
+    assert base.to_bytes() == base_bytes
+    assert moved.to_bytes() == moved_bytes
+    differences = diff_documents(base, moved)
+    assert differences[0] == {
+        "kind": "value_token_changed",
+        "section": "Holon\\1",
+        "section_occurrence": 0,
+        "key": "Transform",
+        "key_occurrence": 0,
+        "token_index": 10,
         "before": "0.00000",
         "after": "25.00000",
     }
