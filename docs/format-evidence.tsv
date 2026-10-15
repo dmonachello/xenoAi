@@ -1,0 +1,20 @@
+id	format_area	claim	evidence	evidence_kind	confidence	status
+E001	file	The reference file is 19,797 bytes and has SHA-256 0f9a2a22f23b5ba587548285f8cb9821a0ebb1814920c7955296e0f8c6095bae	samples/SHA256SUMS	direct sample observation	high	verified
+E002	encoding	All bytes in the reference are 7-bit ASCII and no NUL bytes occur	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E003	line endings	The reference has 1,001 CRLF terminators, no bare LF or CR, and ends with CRLF	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E004	syntax	The reference contains 38 section records, 925 key/value records, 38 blank records, and no other record form	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E005	syntax	The longest observed physical line is 3,018 bytes including key and equals sign	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E006	holons	Header NumHolons is 26 and sections Holon\\0 through Holon\\25 each occur once	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E007	holons	Holon\\0 has Type 0; Holon\\1 through Holon\\25 have Type 2	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E008	transform	Every observed Holon section has a Transform value with 12 whitespace-separated numeric tokens	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified token shape only
+E009	transform	The meanings and coordinate order of the 12 Transform tokens are not established	docs/format-evidence.tsv	absence of controlled evidence	low	open
+E010	metamorph	Header MaxMMPars is 12; UPars, VPars, and WPars occur in every Holon section and each has four numeric tokens in this sample	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified token shape only
+E011	metamorph	No per-token meaning for UPars, VPars, or WPars is established	docs/format-evidence.tsv	absence of controlled evidence	low	open
+E012	official docs	XenoDream X parameter files are text files with extension .xxp	https://xenodream.com/downloads/XDX1302Help.pdf page 36	official XenoDream X 1.302 manual	high	documented for v1.302
+E013	official docs	Official documentation describes holons as constructors, iterators, groups, group links, and constructor links	https://www.xenodream.com/xdxobjectsui.htm	official product documentation	high	documented current behavior
+E014	official docs	Official documentation says holons can have up to six metamorphs, each with up to 12 parameters and its own transforms	https://www.xenodream.com/xdxobjectsui.htm	official product documentation	high	documented current behavior
+E015	versioning	The reference declares Progversion 1.007 while the located manual documents 1.302	samples/originals/20061109Sirps08.xxp; https://xenodream.com/downloads.htm	sample plus official website	high	version mismatch recorded
+E016	materials	The reference has Materials, Material\\0, and Material\\0\\Layer\\0 sections; it has no Material\\1 section	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified and corrects handoff summary
+E017	repeated keys	No key repeats within the same section in the reference sample	samples/originals/20061109Sirps08.xxp	direct sample observation	high	verified for this sample
+E018	validity	Successful parsing or byte round-trip does not establish that XenoDream accepts an edited file	XenoDreamX_Codex_Handoff.md	project constraint	high	open until application test
+

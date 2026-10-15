@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-10-15T17:57:44Z	frame	Limited M0 and M1 to syntax preservation and literal structural reporting	One sample cannot establish undocumented numeric semantics	docs/workflow.md	completion predicates written
+2026-10-15T17:57:44Z	M0	Preserved the supplied file under samples/originals without changing the root copy	Original evidence must never be overwritten	samples/SHA256SUMS	SHA-256 copies match
+2026-10-15T17:57:44Z	M0	Separated direct observations, official documentation, and open hypotheses	Version 1.007 sample facts and version 1.302 manual statements have different scope	docs/format-evidence.tsv	initial evidence map recorded
+2026-10-15T17:57:44Z	design	Chose an ordered raw-record document model with interpretation layered above it	Preserving byte slices keeps unknown syntax and formatting lossless	docs/workflow.md	ready for failing tests
