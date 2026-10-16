@@ -35,6 +35,7 @@ from .generator import (
 from .report import inspect_document
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
+from .solidify import SolidifySettings, solidify_binary_stl
 from .mutation import CenteredRowMutation, ObjectMutation, SeededVariation
 from .workspace import FabricationConstraints, ProjectWorkspace
 
@@ -60,6 +61,18 @@ def _parser() -> argparse.ArgumentParser:
         "validate-stl", help="inspect binary STL structure and basic topology"
     )
     validate_stl.add_argument("input", type=Path)
+
+    solidify_stl = commands.add_parser(
+        "solidify-stl",
+        help="create a thicker derived STL while retaining the native source",
+    )
+    solidify_stl.add_argument("input", type=Path)
+    solidify_stl.add_argument("output", type=Path)
+    solidify_stl.add_argument("--amount-mm", type=Decimal, required=True)
+    solidify_stl.add_argument(
+        "--voxel-mm", type=Decimal, default=Decimal("0.5")
+    )
+    solidify_stl.add_argument("--max-voxels", type=int, default=30_000_000)
 
     generate = commands.add_parser(
         "generate-cube", help="create a deterministic XDX 1.220 cube project"
@@ -435,6 +448,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             result["printability_established"] = False
             _print_json(result)
             return 0 if result["basic_mesh_valid"] else 1
+
+        if args.command == "solidify-stl":
+            report = solidify_binary_stl(
+                args.input,
+                args.output,
+                SolidifySettings(
+                    amount_mm=args.amount_mm,
+                    voxel_mm=args.voxel_mm,
+                    max_voxels=args.max_voxels,
+                ),
+            )
+            _print_json(asdict(report))
+            return 0
 
         if args.command == "generate-cube":
             if args.output.exists():

@@ -22,6 +22,12 @@ from .generator import (
 )
 from .recipes import centered_x_row
 from .mesh import StlReport, inspect_binary_stl
+from .solidify import (
+    SolidifyError,
+    SolidifyReport,
+    SolidifySettings,
+    solidify_binary_stl,
+)
 from .mutation import (
     CenteredRowMutation,
     MutationError,
@@ -63,6 +69,9 @@ __all__ = [
     "SPHERE_COMPILER_PROFILE",
     "SphereSpec",
     "StlReport",
+    "SolidifyError",
+    "SolidifyReport",
+    "SolidifySettings",
     "THREE_CUBE_COMPILER_PROFILE",
     "TWO_CUBE_COMPILER_PROFILE",
     "ThreeCubeProjectSpec",
@@ -75,6 +84,7 @@ __all__ = [
     "centered_x_row",
     "apply_verified_mutation",
     "inspect_binary_stl",
+    "solidify_binary_stl",
     "parse_bytes",
     "parse_file",
 ]

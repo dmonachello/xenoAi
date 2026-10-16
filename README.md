@@ -24,6 +24,8 @@ xxp inspect samples/originals/20061109Sirps08.xxp
 xxp roundtrip samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp diff samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp validate-stl output/model.stl
+xxp solidify-stl output/model.stl output/model-solid.stl `
+  --amount-mm 1.0 --voxel-mm 0.5
 xxp generate-cube output/generated_cube.xxp
 xxp generate-sphere output/generated_sphere.xxp
 xxp generate-two-cubes output/generated_two_cubes.xxp
@@ -37,10 +39,16 @@ xxp generate-row output/generated_row.xxp cube sphere --spacing 100
 Build the command without requiring Python on the test machine:
 
 ```powershell
-python -m pip install -e ".[build]"
+python -m pip install -e ".[build,fabrication]"
 python scripts/build_xenosculpt.py
 dist\xenosculpt.exe --help
 ```
+
+Install `.[fabrication]` before running from Python or include those dependencies
+when building the standalone executable. `solidify-stl` adds geometric material
+to a derived STL. It leaves the editable native project and source mesh alone.
+The amount and voxel size are millimetres. The operation is not slicer infill,
+and a successful result is not by itself a printability guarantee.
 
 The executable exposes the same evidence-backed commands as `xxp`, including
 native project generation, persistent project revisions, controlled mutations,

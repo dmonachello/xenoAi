@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-16",
+  "xenodream_version": "1.220",
+  "source": {
+    "path": "output/smoke_test.xxp",
+    "sha256": "867c233ff23db36b2fbae330762656c48bfc96cc4fc9b718484280ceb7425278"
+  },
+  "probe": {
+    "object": "Cube2",
+    "field": "Holon\\1.Density",
+    "values": ["-0.5000", "0.0000", "0.5000"],
+    "only_native_delta": "Holon\\1.Density"
+  },
+  "exports": {
+    "baseline": {
+      "sha256": "0b9f4a6276a7b068a555f769d451a96f49a2d43fb85cf27f6de9cec43bed7981",
+      "triangle_count": 27108,
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "max_dimension_mm": 95.83915603160858,
+      "signed_volume_mm3": 196456.90519318226
+    },
+    "baseline_repeat": {
+      "sha256": "0edf1a286f49ed5802a7a2325010bb33742e93475f4bc6ae075e9119290f4de2",
+      "triangle_count": 27108,
+      "connected_components": 1,
+      "max_dimension_mm": 95.83915603160858,
+      "signed_volume_mm3": 196456.87767912023
+    },
+    "density_plus_0_5": {
+      "sha256": "87168390571cfd3ae1f89f989e488299cabf1e8073b399c40782df38de97a395",
+      "triangle_count": 27108,
+      "connected_components": 1,
+      "max_dimension_mm": 95.83915603160858,
+      "signed_volume_mm3": 196457.11407206714
+    },
+    "density_minus_0_5": {
+      "sha256": "7b68625e24718082f7b14d86107229b7067bab56aa83ec8369349ccd2d79ee1d",
+      "triangle_count": 27108,
+      "connected_components": 1,
+      "max_dimension_mm": 95.83915603160858,
+      "signed_volume_mm3": 196456.5177929031
+    }
+  },
+  "surface_comparison": {
+    "baseline_repeat_hausdorff_mm": 2.192850146005458,
+    "density_plus_0_5_hausdorff_mm": 2.1928519332722836,
+    "density_minus_0_5_hausdorff_mm": 2.1659471019897487
+  },
+  "interpretation": "Relative Density did not produce a geometric change distinguishable from XenoDream's run-to-run meshing variation in this Cube/Sphere scene. It is not used as a solidify control."
+}

@@ -218,16 +218,43 @@
         {"address": "0x77b92c", "evidence_id": "ev_f3adc785b40bb21cd85068016ae80a2a91c027f3a8ed525e0d578734c68ed264"}
       ],
       "generator_implication": "Use the behavior as a mutation-policy reference while keeping a separate seeded and versioned algorithm within verified stored fields; do not expose unresolved Sphere metamorph ranges."
+    },
+    {
+      "id": "R024",
+      "topic": "relative_density_as_solidification",
+      "relationship": "UNRESOLVED",
+      "interpretation": "The Relative Density UI stores a double-valued per-holon field, but -0.5, 0, and +0.5 exports of the tested Cube/Sphere scene did not produce geometry changes distinguishable from repeated-export variation.",
+      "confidence": "medium",
+      "manual_evidence": ["Holon.Density", "active_holon_relative_density_ui"],
+      "binary_evidence": [
+        {"address": "0x77f488", "evidence_id": "ev_ff7594f445c3ff7f64e6372fa6e69230af7f9ec927a4b897ea3b1c5e5929fd41"},
+        {"address": "0x5e36d0", "evidence_id": "ev_b0b700e0448547c3810d6992ffda1524bf0de53cf607a96183f40604b8451a3d"},
+        {"artifact": "evidence/runtime/solidify-density-probe-summary.json"}
+      ],
+      "generator_implication": "Do not map Relative Density to solidification. Trace its evaluator use and test a discriminating iterative scene first."
+    },
+    {
+      "id": "R025",
+      "topic": "external_geometric_solidification",
+      "relationship": "EXTENDS",
+      "interpretation": "A 1 mm voxel offset increased the tested native-exported mesh volume by 22449.674 mm3 while retaining one closed, consistently wound, edge-manifold component.",
+      "confidence": "high",
+      "manual_evidence": ["accepted_cube_sphere_native_project", "R019", "R020", "R021"],
+      "binary_evidence": [
+        {"artifact": "docs/m8-solidification.md"},
+        {"artifact": "output/solidify-probes/smoke-solid-1mm-v2.stl", "sha256": "b5b86c55c88f264dd4d6fb9b84755badb7f6eaca7bca6749979eadea874f00ad"}
+      ],
+      "generator_implication": "Offer solidification only as a derived physical mesh with explicit millimetre and voxel controls. Preserve the editable XXP and keep printability unestablished."
     }
   ],
   "unresolved_priorities": [
     "closed_volumetric_operation_registry",
     "constructor_and_metamorph_parameter_descriptors",
     "mesh_tessellation_controls",
-    "physical_unit_mapping",
     "manifold_predicate_coverage",
     "hierarchy_identity_and_references",
-    "automated_application_invocation",
-    "external_printability_validation_pipeline"
+    "minimum_feature_and_wall_thickness_measurement",
+    "self_intersection_detection",
+    "process_specific_support_and_tolerance_validation"
   ]
 }
