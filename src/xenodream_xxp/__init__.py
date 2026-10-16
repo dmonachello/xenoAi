@@ -21,6 +21,7 @@ from .generator import (
     compile_three_cubes,
 )
 from .recipes import centered_x_row
+from .mesh import StlReport, inspect_binary_stl
 
 __all__ = [
     "CubeSpec",
@@ -32,6 +33,7 @@ __all__ = [
     "ProjectSpec",
     "SPHERE_COMPILER_PROFILE",
     "SphereSpec",
+    "StlReport",
     "THREE_CUBE_COMPILER_PROFILE",
     "TWO_CUBE_COMPILER_PROFILE",
     "ThreeCubeProjectSpec",
@@ -42,6 +44,7 @@ __all__ = [
     "compile_sphere",
     "compile_three_cubes",
     "centered_x_row",
+    "inspect_binary_stl",
     "parse_bytes",
     "parse_file",
 ]

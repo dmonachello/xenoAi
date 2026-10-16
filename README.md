@@ -17,6 +17,7 @@ python scripts/verify_reference.py
 xxp inspect samples/originals/20061109Sirps08.xxp
 xxp roundtrip samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp diff samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
+xxp validate-stl output/model.stl
 xxp generate-cube output/generated_cube.xxp
 xxp generate-sphere output/generated_sphere.xxp
 xxp generate-two-cubes output/generated_two_cubes.xxp
@@ -24,6 +25,21 @@ xxp generate-three-cubes output/generated_three_cubes.xxp
 xxp generate-cube-sphere output/generated_cube_sphere.xxp
 xxp generate-row output/generated_row.xxp cube sphere --spacing 100
 ```
+
+## Standalone Windows executable
+
+Build the command without requiring Python on the test machine:
+
+```powershell
+python -m pip install -e ".[build]"
+python scripts/build_xenosculpt.py
+dist\xenosculpt.exe --help
+```
+
+The executable currently exposes the same evidence-backed commands as `xxp`,
+including native project generation and `validate-stl`. A higher-level scene
+description and mutation interface will build on this executable; they are not
+part of the current M5 calibration checkpoint.
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
 overwrite an existing path. Verified controls can be supplied explicitly:
@@ -83,6 +99,7 @@ STL through the application's Batch Export room:
 python -m pip install -e ".[automation]"
 python scripts/run_xenodream_batch_stl.py `
   output/generated_cube.xxp tmp/mesh-run `
+  --stl-max-dimension-mm 250 --mesh-size-percent 50 `
   --report evidence/runtime/mesh-run.json
 ```
 
@@ -93,12 +110,20 @@ source hashes and process activity, and refuses output collisions. XenoDream
 the runner gives the disposable project a unique name and relocates only that
 newly created STL from XenoDream's default output directory.
 
+`--stl-max-dimension-mm` accepts XenoDream's recovered range of 10 through
+10,000 mm. `--mesh-size-percent` accepts 1 through 100 and controls linear
+sampling resolution. For the calibrated cube, doubling that percentage
+multiplies triangle count by approximately four without changing physical
+bounds. The runner records requested, displayed, and persisted settings and
+rejects a nominal success if XenoDream did not apply them.
+
 The report validates binary STL structure, finite coordinates, degeneracy,
-edge incidence, winding consistency, connected components, bounds, and signed
-volume. These checks do not establish physical units, minimum wall thickness,
-self-intersection freedom, support requirements, or fabrication suitability.
-An exported STL must not be called printable solely because this command
-succeeds.
+edge incidence, winding consistency, connected components, dimensions, and
+signed volume. Native STL coordinates are millimetres. These checks do not
+establish minimum wall thickness, self-intersection freedom, support
+requirements, or fabrication suitability. An exported STL must not be called
+printable solely because this command succeeds. See
+`docs/m5-physical-calibration.md` for the static and runtime evidence.
 
 Generated files belong under `output/`. Never overwrite files under
 `samples/originals/`.

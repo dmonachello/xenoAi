@@ -13,6 +13,7 @@ xxp = "xenodream_xxp.cli:main"
 
 [project.optional-dependencies]
 automation = ["pywinauto==0.6.9"]
+build = ["pyinstaller==6.22.3"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

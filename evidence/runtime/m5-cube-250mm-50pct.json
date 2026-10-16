@@ -1,0 +1,432 @@
+{
+  "cleanup_confirmed": true,
+  "completion_windows": [],
+  "elapsed_seconds": 53.62,
+  "error": null,
+  "input": {
+    "disposable": "C:\\Users\\dmona\\xenoAi\\output\\m5-cal-250-50\\xdx_m5-cal-250-50.xxp",
+    "disposable_sha256_after": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
+    "disposable_sha256_before": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
+    "source": "C:\\Users\\dmona\\xenoAi\\output\\m3_generated_cube_resaved.xxp",
+    "source_sha256_after": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
+    "source_sha256_before": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+  },
+  "mesh_export_settings": {
+    "control_display_after_input": {
+      "mesh_size_percent": 25,
+      "stl_max_dimension_mm": 250
+    },
+    "coordinate_unit": "millimetre",
+    "persisted_after": {
+      "mesh_size_percent": 50,
+      "stl_max_dimension_mm": 250
+    },
+    "persisted_before": {
+      "mesh_size_percent": 25,
+      "stl_max_dimension_mm": 250
+    },
+    "requested": {
+      "mesh_size_percent": 50,
+      "stl_max_dimension_mm": 250
+    }
+  },
+  "outcome": "succeeded",
+  "output_directory": "C:\\Users\\dmona\\xenoAi\\output\\m5-cal-250-50\\mesh",
+  "owned_pid": 11200,
+  "preexisting_visible_xenodream_pids": [
+    14496
+  ],
+  "progress_log": "C:\\Users\\dmona\\xenoAi\\output\\m5-cal-250-50\\progress.jsonl",
+  "relocated_from": "C:\\Users\\dmona\\Documents\\XenoDreamX\\xdx_m5-cal-250-50.stl",
+  "samples": [
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 63.188,
+      "elapsed_seconds": 7.584,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 83.312,
+      "elapsed_seconds": 8.585,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 106.188,
+      "elapsed_seconds": 9.587,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 129.391,
+      "elapsed_seconds": 10.588,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 152.906,
+      "elapsed_seconds": 11.589,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 176.5,
+      "elapsed_seconds": 12.591,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 199.609,
+      "elapsed_seconds": 13.592,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 222.938,
+      "elapsed_seconds": 14.593,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 245.859,
+      "elapsed_seconds": 15.595,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 268.531,
+      "elapsed_seconds": 16.596,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 292.109,
+      "elapsed_seconds": 17.597,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 315.719,
+      "elapsed_seconds": 18.598,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 339.344,
+      "elapsed_seconds": 19.599,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 362.672,
+      "elapsed_seconds": 20.601,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 386.312,
+      "elapsed_seconds": 21.602,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 410.031,
+      "elapsed_seconds": 22.603,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 433.844,
+      "elapsed_seconds": 23.604,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 457.047,
+      "elapsed_seconds": 24.606,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 480.141,
+      "elapsed_seconds": 25.607,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 503.188,
+      "elapsed_seconds": 26.608,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 526.859,
+      "elapsed_seconds": 27.609,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 550.234,
+      "elapsed_seconds": 28.61,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 573.5,
+      "elapsed_seconds": 29.612,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 595.609,
+      "elapsed_seconds": 30.613,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 618.828,
+      "elapsed_seconds": 31.614,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 642.094,
+      "elapsed_seconds": 32.616,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 665.609,
+      "elapsed_seconds": 33.617,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 689.266,
+      "elapsed_seconds": 34.618,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 712.875,
+      "elapsed_seconds": 35.619,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 736.359,
+      "elapsed_seconds": 36.621,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 759.156,
+      "elapsed_seconds": 37.622,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 782.188,
+      "elapsed_seconds": 38.623,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 805.297,
+      "elapsed_seconds": 39.624,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 828.203,
+      "elapsed_seconds": 40.625,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 851.188,
+      "elapsed_seconds": 41.626,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 874.922,
+      "elapsed_seconds": 42.627,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 898.562,
+      "elapsed_seconds": 43.628,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 922.172,
+      "elapsed_seconds": 44.63,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 946.0,
+      "elapsed_seconds": 45.631,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 969.547,
+      "elapsed_seconds": 46.632,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 992.656,
+      "elapsed_seconds": 47.633,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 1005.078,
+      "elapsed_seconds": 48.635,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 1006.25,
+      "elapsed_seconds": 49.636,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 1007.25,
+      "elapsed_seconds": 50.639,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Select Files...",
+      "cpu_seconds": 1008.297,
+      "elapsed_seconds": 51.641,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    }
+  ],
+  "schema": "xenodream-batch-stl/v2",
+  "stl": {
+    "boundary_edges": 0,
+    "bounds_max": [
+      244.25595092773438,
+      244.25595092773438,
+      244.25595092773438
+    ],
+    "bounds_min": [
+      4.49404764175415,
+      4.49404764175415,
+      4.49404764175415
+    ],
+    "bytes": 5529484,
+    "connected_components": 1,
+    "degenerate_triangles": 0,
+    "dimensions": [
+      239.76190328598022,
+      239.76190328598022,
+      239.76190328598022
+    ],
+    "inconsistent_winding_edges": 0,
+    "max_dimension": 239.76190328598022,
+    "non_manifold_edges": 0,
+    "path": "C:\\Users\\dmona\\xenoAi\\output\\m5-cal-250-50\\mesh\\xdx_m5-cal-250-50.stl",
+    "sha256": "a81254d3c14bae0c7e21737e898e7df7610d41117d34cd6c74a5520939df014f",
+    "signed_volume": 13781576.223004743,
+    "triangle_count": 110588
+  }
+}

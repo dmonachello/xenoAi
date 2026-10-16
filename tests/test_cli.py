@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import struct
 
 from xenodream_xxp.cli import main
 from xenodream_xxp.diffing import diff_documents
@@ -61,6 +62,27 @@ def test_diff_exit_codes_and_json(tmp_path, capsys) -> None:
     differences = json.loads(capsys.readouterr().out)["differences"]
     assert differences[0]["section"] == "Header"
     assert differences[0]["key"] == "Author"
+
+
+def test_validate_stl_reports_boundary_mesh_without_claiming_printability(
+    tmp_path, capsys
+) -> None:
+    path = tmp_path / "triangle.stl"
+    triangle = struct.pack(
+        "<12fH",
+        0, 0, 1,
+        0, 0, 0,
+        1, 0, 0,
+        0, 1, 0,
+        0,
+    )
+    path.write_bytes(b"test".ljust(80, b"\0") + struct.pack("<I", 1) + triangle)
+
+    assert main(["validate-stl", str(path)]) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result["basic_mesh_valid"] is False
+    assert result["boundary_edges"] == 3
+    assert result["printability_established"] is False
 
 
 def test_generate_cube_writes_verified_default(tmp_path, capsys) -> None:

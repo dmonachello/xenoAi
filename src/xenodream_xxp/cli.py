@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 from decimal import Decimal
 from hashlib import sha256
 import json
@@ -33,10 +34,11 @@ from .generator import (
 )
 from .report import inspect_document
 from .recipes import centered_x_row
+from .mesh import inspect_binary_stl
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="xxp")
+    parser = argparse.ArgumentParser(prog="xenosculpt")
     commands = parser.add_subparsers(dest="command", required=True)
 
     inspect_command = commands.add_parser("inspect", help="print a JSON structure report")
@@ -51,6 +53,11 @@ def _parser() -> argparse.ArgumentParser:
     diff = commands.add_parser("diff", help="compare keys and value tokens")
     diff.add_argument("before", type=Path)
     diff.add_argument("after", type=Path)
+
+    validate_stl = commands.add_parser(
+        "validate-stl", help="inspect binary STL structure and basic topology"
+    )
+    validate_stl.add_argument("input", type=Path)
 
     generate = commands.add_parser(
         "generate-cube", help="create a deterministic XDX 1.220 cube project"
@@ -172,6 +179,23 @@ def main(argv: Sequence[str] | None = None) -> int:
                 }
             )
             return 0 if source == output else 1
+
+        if args.command == "validate-stl":
+            report = inspect_binary_stl(args.input)
+            result = asdict(report)
+            result["basic_mesh_valid"] = all(
+                (
+                    report.degenerate_triangles == 0,
+                    report.boundary_edges == 0,
+                    report.non_manifold_edges == 0,
+                    report.inconsistent_winding_edges == 0,
+                    report.connected_components == 1,
+                    report.signed_volume != 0,
+                )
+            )
+            result["printability_established"] = False
+            _print_json(result)
+            return 0 if result["basic_mesh_valid"] else 1
 
         if args.command == "generate-cube":
             if args.output.exists():
@@ -368,7 +392,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             }
         )
         return 1 if differences else 0
-    except (OSError, GenerationError) as error:
+    except (OSError, ValueError) as error:
         print(str(error), file=sys.stderr)
         return 2
 

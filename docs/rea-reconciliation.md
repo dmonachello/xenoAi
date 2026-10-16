@@ -305,3 +305,25 @@ still unknown. The current checker also does not detect self-intersections,
 minimum feature thickness, unsupported regions, or process-specific tolerance
 failures. See `evidence/runtime/batch-export-20261016-47.json` and
 cross-validation row R019.
+
+## M5 physical calibration reconciliation
+
+The earlier uncertainty about STL units and export scale is resolved for
+XenoDream X 1.220. The embedded Mesh Export form labels its maximum dimension
+control `STL Max Size (mm)`, with a recovered range of 10–10,000 and default of
+250. Dispatcher `0x7d9054` passes that value to STL writer `0x7d0220`, whose
+coordinate scale is the requested maximum divided by the evaluated mesh's
+largest extent.
+
+Controlled exports confirm the code trace. Changing 125 mm to 250 mm doubled
+the measured cube span from 119.881 mm to 239.762 mm without changing triangle
+count. At 250 mm, Mesh Size values of 25%, 50%, and 100% produced 27,644,
+110,588, and 442,364 triangles respectively, without changing bounds. Each
+mesh passed the existing basic closed-manifold checks.
+
+This **EXTENDS** the manual work and R019. It does not contradict the earlier
+239.762 figure; that value was the measured geometry inside the now-identified
+250 mm export envelope. It also establishes that physical scale and mesh
+resolution are independent controls for the tested model. See
+`docs/m5-physical-calibration.md`, cross-validation rows R020–R022, and
+`evidence/runtime/m5-cube-calibration-summary.json`.

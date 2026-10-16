@@ -48,6 +48,8 @@ def test_inspect_binary_stl_reports_structure_and_bounds(tmp_path: Path) -> None
     assert result.bytes == 134
     assert result.bounds_min == (0.0, 0.0, 0.0)
     assert result.bounds_max == (1.0, 1.0, 0.0)
+    assert result.dimensions == (1.0, 1.0, 0.0)
+    assert result.max_dimension == 1.0
     assert result.degenerate_triangles == 0
     assert result.boundary_edges == 3
     assert result.non_manifold_edges == 0
@@ -116,3 +118,34 @@ def test_classify_timeout_uses_recent_cpu_or_output_activity() -> None:
 
     assert runtime_export.classify_timeout(stalled) == "timed_out_stalled"
     assert runtime_export.classify_timeout(active) == "timed_out_active"
+
+
+def test_mesh_export_settings_use_recovered_defaults() -> None:
+    settings = runtime_export.MeshExportSettings()
+
+    assert settings.stl_max_dimension_mm == 250
+    assert settings.mesh_size_percent == 50
+
+
+@pytest.mark.parametrize(
+    "field,value,message",
+    [
+        ("stl_max_dimension_mm", 9, "between 10 and 10000"),
+        ("stl_max_dimension_mm", 10_001, "between 10 and 10000"),
+        ("mesh_size_percent", 0, "between 1 and 100"),
+        ("mesh_size_percent", 101, "between 1 and 100"),
+    ],
+)
+def test_mesh_export_settings_enforce_recovered_bounds(
+    field: str, value: int, message: str
+) -> None:
+    arguments = {field: value}
+
+    with pytest.raises(ValueError, match=message):
+        runtime_export.MeshExportSettings(**arguments)
+
+
+@pytest.mark.parametrize("value", [True, 25.0, "25"])
+def test_mesh_export_settings_require_integers(value: object) -> None:
+    with pytest.raises(TypeError, match="must be an integer"):
+        runtime_export.MeshExportSettings(mesh_size_percent=value)

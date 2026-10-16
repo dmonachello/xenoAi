@@ -1,0 +1,92 @@
+{
+  "claims": {
+    "coordinate_unit": "millimetre",
+    "mesh_size_controls_linear_sampling_resolution": true,
+    "stl_max_dimension_controls_physical_scale": true
+  },
+  "comparisons": [
+    {
+      "kind": "physical_scale",
+      "left_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-125mm-50pct-b.json",
+      "measured_ratio": 2.0,
+      "relative_error": 0.0,
+      "requested_ratio": 2.0,
+      "right_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-50pct.json"
+    },
+    {
+      "expected_surface_ratio": 4.0,
+      "kind": "mesh_resolution",
+      "left_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-25pct-c.json",
+      "relative_error": 0.0001085226450585619,
+      "right_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-50pct.json",
+      "sampling_ratio": 2.0,
+      "triangle_ratio": 4.000434090580234
+    },
+    {
+      "expected_surface_ratio": 16.0,
+      "kind": "mesh_resolution",
+      "left_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-25pct-c.json",
+      "relative_error": 0.0001356533063232579,
+      "right_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-100pct-c.json",
+      "sampling_ratio": 4.0,
+      "triangle_ratio": 16.002170452901172
+    },
+    {
+      "expected_surface_ratio": 4.0,
+      "kind": "mesh_resolution",
+      "left_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-50pct.json",
+      "relative_error": 2.7127717292962927e-05,
+      "right_report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-100pct-c.json",
+      "sampling_ratio": 2.0,
+      "triangle_ratio": 4.000108510869172
+    }
+  ],
+  "run_count": 4,
+  "runs": [
+    {
+      "boundary_edges": 0,
+      "connected_components": 1,
+      "measured_max_dimension_mm": 119.88095164299011,
+      "mesh_size_percent": 50,
+      "non_manifold_edges": 0,
+      "report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-125mm-50pct-b.json",
+      "report_sha256": "ac684db15257e3d9642d2a4f104b8a2ffedad459a8ebc9358656f894809233b3",
+      "stl_max_dimension_mm": 125,
+      "triangle_count": 110588
+    },
+    {
+      "boundary_edges": 0,
+      "connected_components": 1,
+      "measured_max_dimension_mm": 239.76190328598022,
+      "mesh_size_percent": 25,
+      "non_manifold_edges": 0,
+      "report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-25pct-c.json",
+      "report_sha256": "e71989c2953d5bbcf662ba530342dd5fec66ed5b7eb03eb1a7dfaa492c3791b3",
+      "stl_max_dimension_mm": 250,
+      "triangle_count": 27644
+    },
+    {
+      "boundary_edges": 0,
+      "connected_components": 1,
+      "measured_max_dimension_mm": 239.76190328598022,
+      "mesh_size_percent": 50,
+      "non_manifold_edges": 0,
+      "report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-50pct.json",
+      "report_sha256": "024f41d61ba4c7b0f5c192d0d22c1287b2cc207b08ac223a068f2f1522f3134d",
+      "stl_max_dimension_mm": 250,
+      "triangle_count": 110588
+    },
+    {
+      "boundary_edges": 0,
+      "connected_components": 1,
+      "measured_max_dimension_mm": 239.76190328598022,
+      "mesh_size_percent": 100,
+      "non_manifold_edges": 0,
+      "report": "C:\\Users\\dmona\\xenoAi\\evidence\\runtime\\m5-cube-250mm-100pct-c.json",
+      "report_sha256": "01a8b9d591b9a7889be83340421d5dd5af8ff98744b4d0d340c65993ccedfce6",
+      "stl_max_dimension_mm": 250,
+      "triangle_count": 442364
+    }
+  ],
+  "schema": "xenodream-mesh-calibration/v1"
+}

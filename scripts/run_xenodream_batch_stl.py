@@ -8,35 +8,40 @@ run. It does not change the native project generator.
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
-import math
 import os
 from pathlib import Path
 import re
 import shutil
-import struct
 import sys
 import time
 from typing import Callable, Iterator
 
+from xenodream_xxp.mesh import StlReport, inspect_binary_stl
 
-@dataclass(frozen=True)
-class StlReport:
-    path: str
-    bytes: int
-    sha256: str
-    triangle_count: int
-    bounds_min: tuple[float, float, float]
-    bounds_max: tuple[float, float, float]
-    degenerate_triangles: int
-    boundary_edges: int
-    non_manifold_edges: int
-    inconsistent_winding_edges: int
-    connected_components: int
-    signed_volume: float
+
+@dataclass(frozen=True, slots=True)
+class MeshExportSettings:
+    """Evidence-backed controls on XenoDream X's batch mesh export form."""
+
+    stl_max_dimension_mm: int = 250
+    mesh_size_percent: int = 50
+
+    def __post_init__(self) -> None:
+        if isinstance(self.stl_max_dimension_mm, bool) or not isinstance(
+            self.stl_max_dimension_mm, int
+        ):
+            raise TypeError("stl_max_dimension_mm must be an integer")
+        if not 10 <= self.stl_max_dimension_mm <= 10_000:
+            raise ValueError("stl_max_dimension_mm must be between 10 and 10000")
+        if isinstance(self.mesh_size_percent, bool) or not isinstance(
+            self.mesh_size_percent, int
+        ):
+            raise TypeError("mesh_size_percent must be an integer")
+        if not 1 <= self.mesh_size_percent <= 100:
+            raise ValueError("mesh_size_percent must be between 1 and 100")
 
 
 def _hash_path(path: Path) -> str:
@@ -45,110 +50,6 @@ def _hash_path(path: Path) -> str:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def inspect_binary_stl(path: Path) -> StlReport:
-    data = path.read_bytes()
-    if len(data) < 84:
-        raise ValueError("binary STL is shorter than its 84-byte header")
-    triangle_count = struct.unpack_from("<I", data, 80)[0]
-    if triangle_count == 0:
-        raise ValueError("binary STL contains zero triangles")
-    expected = 84 + 50 * triangle_count
-    if len(data) != expected:
-        raise ValueError(
-            f"binary STL length mismatch: expected {expected}, found {len(data)}"
-        )
-
-    minimum = [math.inf, math.inf, math.inf]
-    maximum = [-math.inf, -math.inf, -math.inf]
-    degenerate = 0
-    edge_counts: Counter[
-        tuple[tuple[float, float, float], tuple[float, float, float]]
-    ] = Counter()
-    edge_directions: Counter[
-        tuple[tuple[float, float, float], tuple[float, float, float]]
-    ] = Counter()
-    parent: dict[tuple[float, float, float], tuple[float, float, float]] = {}
-    signed_volume = 0.0
-
-    def find(vertex: tuple[float, float, float]) -> tuple[float, float, float]:
-        parent.setdefault(vertex, vertex)
-        root = vertex
-        while parent[root] != root:
-            root = parent[root]
-        while parent[vertex] != vertex:
-            next_vertex = parent[vertex]
-            parent[vertex] = root
-            vertex = next_vertex
-        return root
-
-    def union(
-        first: tuple[float, float, float], second: tuple[float, float, float]
-    ) -> None:
-        first_root = find(first)
-        second_root = find(second)
-        if first_root != second_root:
-            parent[second_root] = first_root
-
-    offset = 84
-    for _ in range(triangle_count):
-        values = struct.unpack_from("<12fH", data, offset)
-        coordinates = values[3:12]
-        if not all(math.isfinite(value) for value in coordinates):
-            raise ValueError("binary STL contains a non-finite vertex coordinate")
-        vertices = tuple(
-            tuple(coordinates[index : index + 3]) for index in range(0, 9, 3)
-        )
-        for vertex in vertices:
-            for axis, value in enumerate(vertex):
-                minimum[axis] = min(minimum[axis], value)
-                maximum[axis] = max(maximum[axis], value)
-        a, b, c = vertices
-        ab = tuple(b[index] - a[index] for index in range(3))
-        ac = tuple(c[index] - a[index] for index in range(3))
-        cross = (
-            ab[1] * ac[2] - ab[2] * ac[1],
-            ab[2] * ac[0] - ab[0] * ac[2],
-            ab[0] * ac[1] - ab[1] * ac[0],
-        )
-        if sum(value * value for value in cross) == 0.0:
-            degenerate += 1
-        signed_volume += (
-            a[0] * (b[1] * c[2] - b[2] * c[1])
-            + a[1] * (b[2] * c[0] - b[0] * c[2])
-            + a[2] * (b[0] * c[1] - b[1] * c[0])
-        ) / 6.0
-        union(a, b)
-        union(b, c)
-        for start, end in ((a, b), (b, c), (c, a)):
-            edge = (start, end) if start < end else (end, start)
-            edge_counts[edge] += 1
-            edge_directions[edge] += 1 if start < end else -1
-        offset += 50
-
-    boundary_edges = sum(count == 1 for count in edge_counts.values())
-    non_manifold_edges = sum(count > 2 for count in edge_counts.values())
-    inconsistent_winding_edges = sum(
-        edge_counts[edge] == 2 and abs(balance) == 2
-        for edge, balance in edge_directions.items()
-    )
-    connected_components = len({find(vertex) for vertex in parent})
-
-    return StlReport(
-        path=str(path.resolve()),
-        bytes=len(data),
-        sha256=sha256(data).hexdigest(),
-        triangle_count=triangle_count,
-        bounds_min=tuple(minimum),
-        bounds_max=tuple(maximum),
-        degenerate_triangles=degenerate,
-        boundary_edges=boundary_edges,
-        non_manifold_edges=non_manifold_edges,
-        inconsistent_winding_edges=inconsistent_winding_edges,
-        connected_components=connected_components,
-        signed_volume=signed_volume,
-    )
 
 
 def classify_timeout(samples: list[dict[str, object]], window_seconds: float = 60) -> str:
@@ -398,36 +299,19 @@ if os.name == "nt":
         _owned(dialog, pid)
         window = Desktop(backend="win32").window(handle=dialog)
         edit = window.child_window(class_name="Edit", control_id=1148).wrapper_object()
-        address_bar = window.child_window(
-            class_name="ToolbarWindow32", control_id=1001
-        ).wrapper_object()
         open_button = window.child_window(
             class_name="Button", title="&Open"
         ).wrapper_object()
-        source_text = source.name
         cursor = GetCursorPos()
         try:
             edit.click_input()
             edit.type_keys("^a{BACKSPACE}")
-            edit.type_keys(str(source.parent), with_spaces=True, pause=0.01)
+            edit.type_keys(str(source), with_spaces=True, pause=0.01)
             _wait_for(
-                lambda: edit if edit.window_text() == str(source.parent) else None,
+                lambda: edit if edit.window_text() == str(source) else None,
                 10,
-                "complete source directory entry",
+                "complete source path entry",
             )
-            open_button.click()
-            _wait_for(
-                lambda: address_bar
-                if str(source.parent).casefold() in address_bar.window_text().casefold()
-                else None,
-                10,
-                "batch source directory navigation",
-            )
-            uia_window = Desktop(backend="uia").window(handle=dialog)
-            item = uia_window.child_window(
-                title=source_text, control_type="ListItem"
-            ).wrapper_object()
-            item.select()
             open_button.click()
         finally:
             SetCursorPos(cursor)
@@ -545,7 +429,39 @@ if os.name == "nt":
         _send(tab, WM_LBUTTONUP, 0, packed)
 
 
-    def _configure_and_start(process: OwnedProcess, main: int, output: Path, source: Path) -> int:
+    def _replace_spin_value(hwnd: int, value: int, label: str) -> int:
+        from pywinauto import Desktop
+        from win32api import GetCursorPos, SetCursorPos
+
+        control = Desktop(backend="win32").window(handle=hwnd)
+        cursor = GetCursorPos()
+        try:
+            control.click_input()
+            control.type_keys("^a{BACKSPACE}")
+            control.type_keys(str(value))
+            control.type_keys("{TAB}")
+        finally:
+            SetCursorPos(cursor)
+        observed_text = _text(hwnd).strip()
+        try:
+            observed = int(observed_text)
+        except ValueError as exception:
+            raise RuntimeError(
+                f"XenoDream returned non-integer {label}: {observed_text!r}"
+            ) from exception
+        # TDragSpinEdit updates its Value property from keyboard input but can
+        # leave its HWND text stale until the form is recreated. The persisted
+        # values are checked after the owned process closes.
+        return observed
+
+
+    def _configure_and_start(
+        process: OwnedProcess,
+        main: int,
+        output: Path,
+        source: Path,
+        settings: MeshExportSettings,
+    ) -> tuple[int, dict[str, int]]:
         _choose_mesh_export(process, main)
 
         def mesh_room() -> int | None:
@@ -557,6 +473,13 @@ if os.name == "nt":
             return matches[0] if len(matches) == 1 else None
 
         room = int(_wait_for(mesh_room, 10, "Mesh Export room"))
+        saving_group = _find(
+            _children(room), process.pid,
+            class_name="TGroupBox", caption="Saving Files",
+        )
+        stl_dimension = _find(
+            _children(saving_group), process.pid, class_name="TDragSpinEdit"
+        )
         batch_header = _find(
             _children(room), process.pid, class_name="TPanel", caption=" Batch"
         )
@@ -574,6 +497,22 @@ if os.name == "nt":
         source_button = _find(
             controls, process.pid, class_name="TToggleButton", caption="Select Files..."
         )
+        mesh_size = _find(
+            controls, process.pid, class_name="TDragSpinEdit"
+        )
+
+        observed_settings = {
+            "stl_max_dimension_mm": _replace_spin_value(
+                stl_dimension,
+                settings.stl_max_dimension_mm,
+                "STL maximum dimension (mm)",
+            ),
+            "mesh_size_percent": _replace_spin_value(
+                mesh_size,
+                settings.mesh_size_percent,
+                "batch mesh size (%)",
+            ),
+        }
 
         output_text = str(output.resolve()) + os.sep
         from pywinauto import Desktop
@@ -638,7 +577,7 @@ if os.name == "nt":
                 f"timed out waiting for batch start; owned top windows: {top_state!r}"
             ) from exception
         user32.ShowWindow(main, SW_MINIMIZE)
-        return source_button
+        return source_button, observed_settings
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -648,6 +587,22 @@ def _write_json(path: Path, value: object) -> None:
     temporary.replace(path)
 
 
+def _read_mesh_export_preferences() -> dict[str, int] | None:
+    path = Path.home() / "Documents" / "XenoDreamX" / "XenoDreamX.ini"
+    if not path.is_file():
+        return None
+    wanted = {"STLMaxDim": "stl_max_dimension_mm", "BatchProgSize": "mesh_size_percent"}
+    found: dict[str, int] = {}
+    for line in path.read_text(encoding="latin-1").splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key in wanted:
+            try:
+                found[wanted[key]] = int(value.strip())
+            except ValueError:
+                return None
+    return found if set(found) == set(wanted.values()) else None
+
+
 def run_export(
     executable: Path,
     source: Path,
@@ -655,6 +610,7 @@ def run_export(
     report_path: Path,
     timeout_seconds: float,
     poll_seconds: float,
+    settings: MeshExportSettings = MeshExportSettings(),
 ) -> dict[str, object]:
     if os.name != "nt":
         raise RuntimeError("XenoDream automation requires Windows")
@@ -699,7 +655,9 @@ def run_export(
     error: str | None = None
     stl: StlReport | None = None
     relocated_from: str | None = None
+    observed_settings: dict[str, int] | None = None
     cleanup_confirmed = False
+    persisted_settings_before = _read_mesh_export_preferences()
     started = time.monotonic()
     try:
         process = OwnedProcess(executable, disposable, run_directory)
@@ -725,8 +683,8 @@ def run_export(
             _click(close)
             _wait_for(lambda: main if user32.IsWindowEnabled(main) else None, 10, "tip close")
 
-        run_button = _configure_and_start(
-            process, main, output_directory, disposable
+        run_button, observed_settings = _configure_and_start(
+            process, main, output_directory, disposable, settings
         )
         outcome = "running"
         stable_signature: tuple[int, int] | None = None
@@ -811,12 +769,15 @@ def run_export(
 
     source_after = _hash_path(source)
     disposable_after = _hash_path(disposable)
+    persisted_settings_after = _read_mesh_export_preferences()
     if source_after != source_before or disposable_after != disposable_before:
         outcome = "source_changed"
     if not cleanup_confirmed:
         outcome = "cleanup_failed"
+    if outcome == "succeeded" and persisted_settings_after != asdict(settings):
+        outcome = "settings_not_applied"
     report: dict[str, object] = {
-        "schema": "xenodream-batch-stl/v1",
+        "schema": "xenodream-batch-stl/v2",
         "outcome": outcome,
         "error": error,
         "owned_pid": process.pid if process is not None else None,
@@ -830,6 +791,13 @@ def run_export(
             "disposable_sha256_after": disposable_after,
         },
         "output_directory": str(output_directory.resolve()),
+        "mesh_export_settings": {
+            "requested": asdict(settings),
+            "control_display_after_input": observed_settings,
+            "persisted_before": persisted_settings_before,
+            "persisted_after": persisted_settings_after,
+            "coordinate_unit": "millimetre",
+        },
         "stl": asdict(stl) if stl is not None else None,
         "relocated_from": relocated_from,
         "samples": samples,
@@ -853,9 +821,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--timeout-seconds", type=float, default=600)
     parser.add_argument("--poll-seconds", type=float, default=1)
+    parser.add_argument("--stl-max-dimension-mm", type=int, default=250)
+    parser.add_argument("--mesh-size-percent", type=int, default=50)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
+        settings = MeshExportSettings(
+            stl_max_dimension_mm=args.stl_max_dimension_mm,
+            mesh_size_percent=args.mesh_size_percent,
+        )
         report = run_export(
             args.executable,
             args.source,
@@ -863,6 +837,7 @@ def main(argv: list[str] | None = None) -> int:
             args.report,
             args.timeout_seconds,
             args.poll_seconds,
+            settings,
         )
     except (OSError, RuntimeError, ValueError) as error:
         print(str(error), file=sys.stderr)
