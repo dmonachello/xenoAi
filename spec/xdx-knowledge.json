@@ -245,6 +245,20 @@
         {"artifact": "output/solidify-probes/smoke-solid-1mm-v2.stl", "sha256": "b5b86c55c88f264dd4d6fb9b84755badb7f6eaca7bca6749979eadea874f00ad"}
       ],
       "generator_implication": "Offer solidification only as a derived physical mesh with explicit millimetre and voxel controls. Preserve the editable XXP and keep printability unestablished."
+    },
+    {
+      "id": "R026",
+      "topic": "metamorph_operation_labels_and_registry",
+      "relationship": "EXTENDS",
+      "interpretation": "Embedded XenoDream help names the displayed Sphere and Cube parameter families. A versioned read-only registry reconciles those labels with accepted Style and NumPars records while assigning a persisted token meaning only to verified Cube Face Warp token zero.",
+      "confidence": "high_for_displayed_labels_and_verified_records_medium_for_historical_candidates",
+      "manual_evidence": ["E049", "accepted_cube_style_5", "accepted_sphere_style_1", "E078", "E079"],
+      "binary_evidence": [
+        {"string": "0x5ab225", "evidence_id": "ev_efa19f5db81600802d1c2f5702dfca8b2fbf10004049dd0762d364d11ed1fd51"},
+        {"strings": ["0x5ac1d7", "0x5ac406"], "evidence_id": "ev_cc6c86595d0c629c2d607820f56726f213cf9bb5d3046f0e5c35c157341f151e"},
+        {"artifact": "src/xenodream_xxp/data/xdx-1.220-metamorph-registry.json"}
+      ],
+      "generator_implication": "Use the registry for lossless semantic inspection and binary targeting. Do not enable new operation writes until descriptor population, persisted token bindings, ranges, and native mesh behavior are verified."
     }
   ],
   "unresolved_priorities": [

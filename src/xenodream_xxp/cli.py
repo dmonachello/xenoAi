@@ -33,6 +33,7 @@ from .generator import (
     compile_three_cubes,
 )
 from .report import inspect_document
+from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
 from .solidify import SolidifySettings, solidify_binary_stl
@@ -46,6 +47,12 @@ def _parser() -> argparse.ArgumentParser:
 
     inspect_command = commands.add_parser("inspect", help="print a JSON structure report")
     inspect_command.add_argument("input", type=Path)
+
+    inspect_metamorph_command = commands.add_parser(
+        "inspect-metamorphs",
+        help="print persisted metamorph stacks with evidence-scoped meanings",
+    )
+    inspect_metamorph_command.add_argument("input", type=Path)
 
     roundtrip = commands.add_parser(
         "roundtrip", help="parse and write an unchanged byte-identical copy"
@@ -411,6 +418,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "inspect":
             document = parse_bytes(args.input.read_bytes())
             _print_json(inspect_document(document))
+            return 0
+
+        if args.command == "inspect-metamorphs":
+            document = parse_bytes(args.input.read_bytes())
+            _print_json(inspect_metamorphs(document))
             return 0
 
         if args.command == "roundtrip":

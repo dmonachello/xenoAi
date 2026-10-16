@@ -21,6 +21,7 @@ python -m pip install -e .
 pytest
 python scripts/verify_reference.py
 xxp inspect samples/originals/20061109Sirps08.xxp
+xxp inspect-metamorphs samples/originals/20061109Sirps08.xxp
 xxp roundtrip samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp diff samples/originals/20061109Sirps08.xxp output/roundtrip.xxp
 xxp validate-stl output/model.stl
@@ -98,6 +99,14 @@ versioned by this project. It changes only verified physical-form fields:
 Cube/Sphere scale and position, Cube rotation, and Cube Face Warp. It does not
 claim to reproduce XenoDream's native dice or infer undocumented parameter
 ranges.
+
+`inspect-metamorphs` reports every persisted `Holon\N\MM\M` block, its Style,
+declared and observed parameter counts, operation-registry match, and individual
+raw tokens. It labels a token only when its stored meaning is verified. Native
+UI labels whose token order remains unknown appear separately as displayed
+parameter names. Candidate families such as Cylinder, Torus, Pipe, RoundCube,
+Cog, SpiralShell, and Crystal are identification leads, not writable generator
+operations.
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
 overwrite an existing path. Verified controls can be supplied explicitly:

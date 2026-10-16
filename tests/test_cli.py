@@ -30,6 +30,24 @@ def test_inspect_prints_json(capsys) -> None:
     assert report["header"]["Program"] == ["XDX"]
 
 
+def test_inspect_metamorphs_prints_evidence_scoped_stack(capsys) -> None:
+    sample = (
+        Path(__file__).parents[1]
+        / "src"
+        / "xenodream_xxp"
+        / "templates"
+        / "xdx-1.220"
+        / "cube_base.xxp"
+    )
+
+    assert main(["inspect-metamorphs", str(sample)]) == 0
+
+    report = json.loads(capsys.readouterr().out)
+    assert report["metamorph_count"] == 1
+    assert report["metamorphs"][0]["operation"]["name"] == "Cube"
+    assert report["metamorphs"][0]["parameters"][0]["name"] == "Face Warp"
+
+
 def test_roundtrip_writes_identical_file(tmp_path, capsys) -> None:
     output = tmp_path / "copy.xxp"
 

@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "target": {
+    "product": "XenoDream X",
+    "format_version": "1.220",
+    "executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e"
+  },
+  "policy": {
+    "candidate_names_do_not_authorize_writes": true,
+    "displayed_parameter_order_is_not_token_order": true,
+    "unknown_tokens_remain_unmapped": true
+  },
+  "operations": [
+    {
+      "style": 1,
+      "name": "Sphere",
+      "role": "constructor",
+      "status": "verified_record_family",
+      "confidence": "high",
+      "format_versions": ["1.220"],
+      "verified_num_pars": [12],
+      "displayed_parameter_names": [
+        "Warp", "Warp Shape", "Waist", "Ovoid", "Sharpness", "Bilobe",
+        "Shear", "Shear Bias", "XZ Curve", "Taper X", "Taper Type",
+        "Taper Shape"
+      ],
+      "token_bindings": [],
+      "evidence": [
+        "experiments/m4-generated-sphere",
+        "REA string 0x5ab225",
+        "evidence/corpus/xdx-corpus-inventory.json"
+      ]
+    },
+    {
+      "style": 5,
+      "name": "Cube",
+      "role": "constructor",
+      "status": "verified_record_family",
+      "confidence": "high",
+      "format_versions": ["1.220"],
+      "verified_num_pars": [9],
+      "displayed_parameter_names": [
+        "Face Warp", "Face Shape", "Face Curve", "Inset", "Edge Warp",
+        "Crop Face", "Corner Crush", "Face Squeeze", "Face Choice"
+      ],
+      "token_bindings": [
+        {
+          "token_index": 0,
+          "name": "Face Warp",
+          "status": "verified",
+          "evidence": ["E049", "experiments/metamorph-face-warp"]
+        }
+      ],
+      "evidence": [
+        "experiments/m3-generated-cube",
+        "REA strings 0x5ac1d7 and 0x5ac406",
+        "evidence/corpus/xdx-corpus-inventory.json"
+      ]
+    },
+    {
+      "style": 6,
+      "name": "RoundCube",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    },
+    {
+      "style": 13,
+      "name": "Cylinder",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    },
+    {
+      "style": 42,
+      "name": "Torus",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    },
+    {
+      "style": 11,
+      "name": "Pipe",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    },
+    {
+      "style": 62,
+      "name": "Cog",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    },
+    {
+      "style": 65,
+      "name": "SpiralShell",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    },
+    {
+      "style": 72,
+      "name": "Crystal",
+      "role": "candidate_constructor",
+      "status": "historical_corpus_candidate",
+      "confidence": "medium",
+      "format_versions": [],
+      "verified_num_pars": [],
+      "displayed_parameter_names": [],
+      "token_bindings": [],
+      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+    }
+  ]
+}

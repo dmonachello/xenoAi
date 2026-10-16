@@ -22,6 +22,7 @@ from .generator import (
 )
 from .recipes import centered_x_row
 from .mesh import StlReport, inspect_binary_stl
+from .metamorph import inspect_metamorphs, load_metamorph_registry
 from .solidify import (
     SolidifyError,
     SolidifyReport,
@@ -84,6 +85,8 @@ __all__ = [
     "centered_x_row",
     "apply_verified_mutation",
     "inspect_binary_stl",
+    "inspect_metamorphs",
+    "load_metamorph_registry",
     "solidify_binary_stl",
     "parse_bytes",
     "parse_file",

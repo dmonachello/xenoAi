@@ -14,6 +14,7 @@ from .document import (
     RawRecord,
     SectionRecord,
 )
+from .metamorph import inspect_metamorphs
 
 
 def _text(value: bytes) -> str:
@@ -123,5 +124,5 @@ def inspect_document(document: Document) -> dict[str, Any]:
         "holons": holons,
         "cameras": cameras,
         "material_sections": material_sections,
+        "metamorphs": inspect_metamorphs(document),
     }
-
