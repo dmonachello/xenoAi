@@ -18,6 +18,7 @@ from xenodream_xxp.mutation import (
     CenteredRowMutation,
     MutationError,
     ObjectMutation,
+    SeededVariation,
     apply_verified_mutation,
 )
 
@@ -111,3 +112,41 @@ def test_row_mutation_positions_supported_objects_and_preserves_other_fields() -
     assert b"0.2500 0 0.0000" in result.data
     assert b"40.00000 40.00000 40.00000" in result.data
     assert all(item["key"] == "Transform" for item in result.differences)
+
+
+def test_seeded_variation_is_repeatable_and_changes_only_physical_fields() -> None:
+    source = compile_project(
+        ProjectSpec(objects=(CubeSpec(), SphereSpec()))
+    )
+    operation = SeededVariation(seed=20261016, strength=D("0.5"))
+
+    first = apply_verified_mutation(source, operation)
+    second = apply_verified_mutation(source, operation)
+
+    assert first.changed is True
+    assert first.data == second.data
+    assert first.differences == second.differences
+    assert first.object_names == ("Cube2", "Sphere3")
+    assert parse_bytes(first.data).to_bytes() == first.data
+    assert {
+        (item["section"], item["key"], item.get("token_index"))
+        for item in first.differences
+    } <= {
+        *{
+            (section, "Transform", token)
+            for section in ("Holon\\1", "Holon\\2")
+            for token in range(12)
+            if token in (0, 1, 2, 6, 7, 8, 9, 10, 11)
+        },
+        ("Holon\\1\\MM\\0", "Pars", 0),
+    }
+    assert all(item["key"] != "GradDensity" for item in first.differences)
+
+
+def test_seeded_variation_validates_seed_and_strength() -> None:
+    with pytest.raises(MutationError, match="seed"):
+        SeededVariation(seed=-1)
+    with pytest.raises(MutationError, match="strength"):
+        SeededVariation(seed=1, strength=D("0"))
+    with pytest.raises(MutationError, match="strength"):
+        SeededVariation(seed=1, strength=D("1.01"))

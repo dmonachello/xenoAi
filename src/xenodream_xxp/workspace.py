@@ -22,6 +22,7 @@ from .mutation import (
     CenteredRowMutation,
     MutationResult,
     ObjectMutation,
+    SeededVariation,
     VerifiedOperation,
     apply_verified_mutation,
 )
@@ -166,6 +167,12 @@ def _operation_details(operation: VerifiedOperation) -> dict[str, object]:
             "type": "centered-row",
             "spacing": str(operation.spacing),
             "center": vector(operation.center),
+        }
+    if isinstance(operation, SeededVariation):
+        return {
+            "type": "seeded-variation-v1",
+            "seed": operation.seed,
+            "strength": str(operation.strength),
         }
     raise TypeError("unsupported verified operation")
 

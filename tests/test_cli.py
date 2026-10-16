@@ -434,6 +434,36 @@ def test_project_cli_creates_mutates_branches_and_exports(tmp_path, capsys) -> N
     assert b"25.00000 50.00000 100.00000" in output.read_bytes()
 
 
+def test_project_cli_creates_seeded_variation(tmp_path, capsys) -> None:
+    source = tmp_path / "source.xxp"
+    workspace = tmp_path / "sculpture.xsp"
+    source.write_bytes(
+        (
+            Path(__file__).parents[1]
+            / "experiments"
+            / "group-creation"
+            / "cube_base.xxp"
+        ).read_bytes()
+    )
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "project", "evolve", str(workspace),
+            "--seed", "17", "--strength", "0.5",
+            "--message", "seeded variation",
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["created"] is True
+    assert result["revision"]["operation"] == "seeded-variation-v1"
+    assert result["revision"]["details"]["seed"] == 17
+    assert result["revision"]["details"]["strength"] == "0.5"
+    assert result["differences"]
+
+
 def test_project_cli_import_and_log(tmp_path, capsys) -> None:
     source = tmp_path / "source.xxp"
     workspace = tmp_path / "sculpture.xsp"

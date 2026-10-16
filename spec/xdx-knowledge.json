@@ -205,6 +205,19 @@
         {"function": "0x7da994", "evidence_id": "ev_84194281904adfe092366677bf6bf721f78c029d9e1430b8aa7459317a6fc151"}
       ],
       "generator_implication": "Automate the existing form with Windows UI Automation instead of claiming a CLI or injecting private messages."
+    },
+    {
+      "id": "R023",
+      "topic": "active_metamorph_randomizer",
+      "relationship": "EXTENDS",
+      "interpretation": "The native dice distinguishes numeric and discrete parameters, probabilistically retains stored defaults, center-weights signed numeric samples, clamps and rounds through descriptor metadata, writes the active parameter array, and marks the project dirty.",
+      "confidence": "high",
+      "manual_evidence": ["sphere_12_token_pars", "user_observed_sphere_dice_result", "E049"],
+      "binary_evidence": [
+        {"address": "0x77b4c4", "evidence_id": "ev_70b1e6e6efa70faed2fb6c6b8006b9d114bea3948f53f80889e5a05ca1de7362"},
+        {"address": "0x77b92c", "evidence_id": "ev_f3adc785b40bb21cd85068016ae80a2a91c027f3a8ed525e0d578734c68ed264"}
+      ],
+      "generator_implication": "Use the behavior as a mutation-policy reference while keeping a separate seeded and versioned algorithm within verified stored fields; do not expose unresolved Sphere metamorph ranges."
     }
   ],
   "unresolved_priorities": [

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from decimal import Decimal, DecimalException
+from decimal import Decimal, DecimalException, ROUND_HALF_EVEN
+import random
 import re
 from typing import TypeAlias
 
@@ -70,7 +71,25 @@ class CenteredRowMutation:
             raise TypeError("center must be Vector3")
 
 
-VerifiedOperation: TypeAlias = ObjectMutation | CenteredRowMutation
+@dataclass(frozen=True, slots=True)
+class SeededVariation:
+    """Derive one repeatable physical-form variation from the current model."""
+
+    seed: int
+    strength: Decimal = Decimal("0.35")
+
+    def __post_init__(self) -> None:
+        if isinstance(self.seed, bool) or not isinstance(self.seed, int):
+            raise TypeError("seed must be an integer")
+        if self.seed < 0 or self.seed > 2**64 - 1:
+            raise MutationError("seed must be between 0 and 2^64-1")
+        if not isinstance(self.strength, Decimal):
+            raise TypeError("strength must be Decimal")
+        if not self.strength.is_finite() or not Decimal("0") < self.strength <= 1:
+            raise MutationError("strength must be finite and greater than 0 through 1")
+
+
+VerifiedOperation: TypeAlias = ObjectMutation | CenteredRowMutation | SeededVariation
 
 
 @dataclass(frozen=True, slots=True)
@@ -218,6 +237,145 @@ def _set_vector(
     return document
 
 
+def _decimal_token(
+    document: Document, section: bytes, key: bytes, token_index: int
+) -> Decimal:
+    tokens = _value(document, section, key).split()
+    if token_index >= len(tokens):
+        raise MutationError(f"missing token {token_index} in {section!r}.{key!r}")
+    try:
+        value = Decimal(tokens[token_index].decode("ascii"))
+    except (DecimalException, UnicodeDecodeError) as error:
+        raise MutationError(
+            f"{section!r}.{key!r} token {token_index} is not a decimal"
+        ) from error
+    if not value.is_finite():
+        raise MutationError(f"{section!r}.{key!r} token {token_index} is not finite")
+    return value
+
+
+def _read_vector(
+    document: Document, section: bytes, indices: tuple[int, int, int]
+) -> Vector3:
+    return Vector3(
+        *(
+            _decimal_token(document, section, b"Transform", token_index)
+            for token_index in indices
+        )
+    )
+
+
+def _quantized(value: Decimal, places: int) -> Decimal:
+    return value.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_EVEN)
+
+
+class _VariationSampler:
+    def __init__(self, seed: int, strength: Decimal) -> None:
+        self.random = random.Random(seed)
+        self.strength = strength
+
+    def _unit(self) -> Decimal:
+        first = self.random.random() - self.random.random()
+        second = self.random.random() - self.random.random()
+        return Decimal(repr(first * second))
+
+    def value(
+        self,
+        current: Decimal,
+        amplitude: Decimal,
+        preserve_probability: Decimal,
+        *,
+        minimum: Decimal | None = None,
+        maximum: Decimal | None = None,
+        places: int = 5,
+    ) -> Decimal:
+        if Decimal(repr(self.random.random())) < preserve_probability:
+            return current
+        value = current + self._unit() * amplitude * self.strength
+        if minimum is not None:
+            value = max(minimum, value)
+        if maximum is not None:
+            value = min(maximum, value)
+        return _quantized(value, places)
+
+
+def _apply_seeded_variation(
+    document: Document,
+    operation: SeededVariation,
+    objects: tuple[_ObjectRecord, ...],
+) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+    sampler = _VariationSampler(operation.seed, operation.strength)
+    allowed: set[tuple[str, str, int | None]] = set()
+    names: list[str] = []
+    for obj in objects:
+        field_count = 10 if obj.kind == "cube" else 6
+        preserve_probability = min(
+            Decimal("0.9"), Decimal("0.033") * max(0, field_count - 2)
+        )
+        scale = _read_vector(document, obj.section, (0, 1, 2))
+        position = _read_vector(document, obj.section, (9, 10, 11))
+        new_scale = Vector3(
+            *(
+                sampler.value(
+                    component,
+                    abs(component),
+                    preserve_probability,
+                    minimum=Decimal("0.01"),
+                )
+                for component in (scale.x, scale.y, scale.z)
+            )
+        )
+        characteristic_size = max(
+            Decimal("1"), abs(scale.x), abs(scale.y), abs(scale.z)
+        )
+        new_position = Vector3(
+            *(
+                sampler.value(component, characteristic_size, preserve_probability)
+                for component in (position.x, position.y, position.z)
+            )
+        )
+        if obj.kind == "cube":
+            rotation = _read_vector(document, obj.section, (6, 7, 8))
+            new_rotation = Vector3(
+                *(
+                    sampler.value(
+                        component, Decimal("45"), preserve_probability
+                    )
+                    for component in (rotation.x, rotation.y, rotation.z)
+                )
+            )
+            face_warp = _decimal_token(
+                document, obj.section + b"\\MM\\0", b"Pars", 0
+            )
+            new_face_warp = sampler.value(
+                face_warp,
+                Decimal("0.25"),
+                preserve_probability,
+                minimum=Decimal("0"),
+                maximum=Decimal("0.25"),
+                places=4,
+            )
+            exact = ObjectMutation(
+                obj.name,
+                scale=new_scale,
+                rotation=new_rotation,
+                position=new_position,
+                face_warp=new_face_warp,
+            )
+        else:
+            exact = ObjectMutation(
+                obj.name,
+                scale=new_scale,
+                position=new_position,
+            )
+        document, changed_names, changed_allowed = _apply_object_mutation(
+            document, exact, objects
+        )
+        names.extend(changed_names)
+        allowed.update(changed_allowed)
+    return document, tuple(names), allowed
+
+
 def _apply_object_mutation(
     document: Document, operation: ObjectMutation, objects: tuple[_ObjectRecord, ...]
 ) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
@@ -283,8 +441,10 @@ def _apply_row_mutation(
 def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> MutationResult:
     """Apply one verified operation while preserving every unrelated byte."""
 
-    if not isinstance(operation, (ObjectMutation, CenteredRowMutation)):
-        raise TypeError("operation must be ObjectMutation or CenteredRowMutation")
+    if not isinstance(operation, (ObjectMutation, CenteredRowMutation, SeededVariation)):
+        raise TypeError(
+            "operation must be ObjectMutation, CenteredRowMutation, or SeededVariation"
+        )
     original = parse_bytes(data)
     if original.to_bytes() != data:
         raise MutationError("input failed exact parser round trip")
@@ -292,8 +452,12 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
     objects = _objects(original)
     if isinstance(operation, ObjectMutation):
         mutated, names, allowed = _apply_object_mutation(original, operation, objects)
-    else:
+    elif isinstance(operation, CenteredRowMutation):
         mutated, names, allowed = _apply_row_mutation(original, operation, objects)
+    else:
+        mutated, names, allowed = _apply_seeded_variation(
+            original, operation, objects
+        )
 
     differences = tuple(diff_documents(original, mutated))
     unexpected = []

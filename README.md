@@ -64,12 +64,14 @@ xenosculpt project mutate sculpture.xsp --object Cube2 `
 xenosculpt project branch sculpture.xsp alternate --checkout
 xenosculpt project mutate sculpture.xsp --object Cube2 `
   --face-warp 0.25 --message "warp the faces"
+xenosculpt project evolve sculpture.xsp --seed 17 --strength 0.5 `
+  --message "seeded physical-form variation"
 xenosculpt project compare sculpture.xsp main alternate
 xenosculpt project checkout sculpture.xsp main
 xenosculpt project export sculpture.xsp output/restored-main.xxp
 ```
 
-Other commands are `project status`, `project log`, `project row`, and
+Other commands are `project status`, `project log`, `project row`, `project evolve`, and
 `project import`. Import records a model edited manually in XenoDream as a new
 revision. Checkout accepts a branch name or an unambiguous revision prefix.
 Export refuses to overwrite an existing file.
@@ -79,6 +81,15 @@ generator. Cubes support scale, rotation, position, color density, and Face
 Warp. Spheres support scale and position. A requested edit outside those rules
 is rejected. Every mutation audits its structural diff and preserves all
 unrelated bytes.
+
+`project evolve` derives a repeatable variation from the current revision.
+The same source revision, seed, and strength produce identical native bytes.
+Its center-weighted sampling is informed by XenoDream's recovered metamorph
+randomizer, while its mutation envelopes and PRNG are deliberately owned and
+versioned by this project. It changes only verified physical-form fields:
+Cube/Sphere scale and position, Cube rotation, and Cube Face Warp. It does not
+claim to reproduce XenoDream's native dice or infer undocumented parameter
+ranges.
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
 overwrite an existing path. Verified controls can be supplied explicitly:

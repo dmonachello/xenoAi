@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from xenodream_xxp.generator import CubeSpec, Vector3, compile_cube
-from xenodream_xxp.mutation import CenteredRowMutation, ObjectMutation
+from xenodream_xxp.mutation import CenteredRowMutation, ObjectMutation, SeededVariation
 from xenodream_xxp.workspace import (
     FabricationConstraints,
     ProjectWorkspace,
@@ -146,6 +146,23 @@ def test_row_operation_is_recorded_as_typed_revision(tmp_path) -> None:
     assert result.revision.operation == "centered-row"
     assert result.revision.details["spacing"] == "20"
     assert result.revision.details["center"] == ["10", "5", "0"]
+
+
+def test_seeded_variation_records_reproducibility_details(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+
+    result = workspace.apply(
+        SeededVariation(seed=17, strength=D("0.5")),
+        message="seeded variation",
+    )
+
+    assert result.created is True
+    assert result.revision.operation == "seeded-variation-v1"
+    assert result.revision.details == {
+        "type": "seeded-variation-v1",
+        "seed": 17,
+        "strength": "0.5",
+    }
 
 
 def test_rejects_invalid_workspace_and_constraints(tmp_path) -> None:

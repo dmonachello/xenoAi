@@ -27,6 +27,7 @@ from .mutation import (
     MutationError,
     MutationResult,
     ObjectMutation,
+    SeededVariation,
     apply_verified_mutation,
 )
 from .workspace import (
@@ -49,6 +50,7 @@ __all__ = [
     "MutationError",
     "MutationResult",
     "ObjectMutation",
+    "SeededVariation",
     "ApplyResult",
     "ArtifactInfo",
     "FabricationConstraints",

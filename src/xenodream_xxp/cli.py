@@ -35,7 +35,7 @@ from .generator import (
 from .report import inspect_document
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
-from .mutation import CenteredRowMutation, ObjectMutation
+from .mutation import CenteredRowMutation, ObjectMutation, SeededVariation
 from .workspace import FabricationConstraints, ProjectWorkspace
 
 
@@ -202,6 +202,17 @@ def _parser() -> argparse.ArgumentParser:
     project_row.add_argument("--message", required=True)
     project_row.add_argument("--prompt")
 
+    project_evolve = project_commands.add_parser(
+        "evolve", help="derive a deterministic physical-form variation"
+    )
+    project_evolve.add_argument("workspace", type=Path)
+    project_evolve.add_argument("--seed", type=int, required=True)
+    project_evolve.add_argument(
+        "--strength", type=Decimal, default=Decimal("0.35")
+    )
+    project_evolve.add_argument("--message", required=True)
+    project_evolve.add_argument("--prompt")
+
     project_branch = project_commands.add_parser(
         "branch", help="create a branch at a revision or the current HEAD"
     )
@@ -307,6 +318,22 @@ def _handle_project(args: argparse.Namespace) -> int:
     if args.project_command == "row":
         result = workspace.apply(
             CenteredRowMutation(args.spacing, Vector3(*args.center)),
+            message=args.message,
+            prompt=args.prompt,
+        )
+        _print_json(
+            {
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "differences": []
+                if result.mutation is None
+                else result.mutation.differences,
+            }
+        )
+        return 0
+    if args.project_command == "evolve":
+        result = workspace.apply(
+            SeededVariation(args.seed, args.strength),
             message=args.message,
             prompt=args.prompt,
         )
