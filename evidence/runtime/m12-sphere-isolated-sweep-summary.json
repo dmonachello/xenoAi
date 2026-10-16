@@ -1,0 +1,44 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-evidence/v1",
+  "plan": "experiments/metamorph-sweeps/sphere-isolated-v1.json",
+  "settings": {
+    "stl_max_dimension_mm": 100,
+    "mesh_size_percent": 25
+  },
+  "execution": {
+    "jobs": 11,
+    "successful_jobs": 11,
+    "jobs_requiring_retry": {
+      "sharpness-positive": ["automation_failed", "succeeded"],
+      "bilobe-positive": ["settings_not_applied", "succeeded"]
+    }
+  },
+  "baseline": {
+    "replicates": 2,
+    "triangle_count": 21662,
+    "triangle_count_span": 0,
+    "absolute_volume_span": 0.14571276388596743,
+    "dimension_spans": [
+      0.010204076766967773,
+      0.0000035762786865234375,
+      0.020404577255249023
+    ]
+  },
+  "ranked_results": [
+    {"parameter": "Ovoid", "value": "2.8", "impact_score": 0.8284549512746054, "triangle_delta": -830, "absolute_volume_delta": -382426.5657008176, "dimensions_mm": [39.8839545249939, 95.01131176948547, 39.875951290130615], "basic_topology_valid": true},
+    {"parameter": "Shear", "value": "8", "impact_score": 0.3206978487122502, "triangle_delta": -1160, "absolute_volume_delta": -148038.6793777686, "dimensions_mm": [84.23180508613586, 95.86225175857544, 84.23180508613586], "basic_topology_valid": true},
+    {"parameter": "Warp", "value": "10", "impact_score": 0.3141349778957273, "triangle_delta": -714, "absolute_volume_delta": -145009.16504673642, "dimensions_mm": [84.45210003852844, 94.92229270935059, 84.45916390419006], "basic_topology_valid": true},
+    {"parameter": "Waist", "value": "12", "impact_score": 0.19984698305717538, "triangle_delta": -1526, "absolute_volume_delta": -92252.20427331614, "dimensions_mm": [96.12845718860626, 85.94104433059692, 96.11845326423645], "basic_topology_valid": true},
+    {"parameter": "Taper X", "value": "-28", "impact_score": 0.1923371433484269, "triangle_delta": -1700, "absolute_volume_delta": -88785.55565909552, "dimensions_mm": [95.90202522277832, 95.79721558094025, 95.78819441795349], "basic_topology_valid": true},
+    {"parameter": "XZ Curve", "value": "-20", "impact_score": 0.15379921361623, "triangle_delta": 1122, "absolute_volume_delta": 70995.90023603517, "dimensions_mm": [95.90475821495056, 95.90001249313354, 95.90475821495056], "basic_topology_valid": true},
+    {"parameter": "Bilobe", "value": "5", "impact_score": 0.049783346809198235, "triangle_delta": 850, "absolute_volume_delta": -20697.52029839036, "dimensions_mm": [91.13029837608337, 91.14149260520935, 94.73002576828003], "basic_topology_valid": true},
+    {"parameter": "Sharpness", "value": "2", "impact_score": 0.00010637204791803182, "triangle_delta": 0, "absolute_volume_delta": -2.042565049021505, "dimensions_mm": [95.90475821495056, 95.90475821495056, 95.89455771446228], "basic_topology_valid": true},
+    {"parameter": "Shear Bias", "value": "100", "impact_score": 0.0000708806388115584, "triangle_delta": 0, "absolute_volume_delta": -0.20110716664930806, "dimensions_mm": [95.90475821495056, 95.8945541381836, 95.89796042442322], "basic_topology_valid": true}
+  ],
+  "claims": {
+    "native_structure_valid": true,
+    "evaluates_to_3d_geometry": true,
+    "basic_mesh_predicates_pass": true,
+    "fabrication_suitable": false
+  }
+}

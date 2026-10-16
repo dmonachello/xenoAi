@@ -1,0 +1,387 @@
+"""Run a resumable, evidence-scoped XenoDream metamorph mesh sweep."""
+
+from __future__ import annotations
+
+import argparse
+from collections.abc import Callable
+from dataclasses import asdict
+from hashlib import sha256
+import json
+from pathlib import Path
+import re
+import sys
+from typing import Any
+
+from probe_metamorph_mesh import ProbeError, build_variant
+from run_xenodream_batch_stl import MeshExportSettings, run_export
+
+
+SCHEMA = "xenosculpt-metamorph-sweep-plan/v1"
+MANIFEST_SCHEMA = "xenosculpt-metamorph-sweep/v1"
+SUMMARY_SCHEMA = "xenosculpt-metamorph-sweep-summary/v1"
+DEFAULT_EXECUTABLE = Path(
+    r"C:\Program Files (x86)\XenoDream Software\XenoDreamX\XenoDreamX.exe"
+)
+Exporter = Callable[
+    [Path, Path, Path, Path, float, float, MeshExportSettings],
+    dict[str, object],
+]
+
+
+class SweepError(ValueError):
+    pass
+
+
+def _digest(data: bytes) -> str:
+    return sha256(data).hexdigest()
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise SweepError(f"expected a JSON object in {path}")
+    return value
+
+
+def _case_id(value: object) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"[a-z0-9][a-z0-9-]*", value) is None:
+        raise SweepError("case ids must contain lowercase letters, digits, and hyphens")
+    return value
+
+
+def load_plan(path: Path) -> dict[str, Any]:
+    plan = _read_json(path)
+    if plan.get("schema") != SCHEMA:
+        raise SweepError("unsupported sweep plan schema")
+    if plan.get("operation") != "Sphere":
+        raise SweepError("the current sweep supports only Sphere")
+    if isinstance(plan.get("holon"), bool) or not isinstance(plan.get("holon"), int):
+        raise SweepError("holon must be an integer")
+    replicates = plan.get("baseline_replicates")
+    if isinstance(replicates, bool) or not isinstance(replicates, int) or replicates < 2:
+        raise SweepError("baseline_replicates must be an integer of at least 2")
+    cases = plan.get("cases")
+    if not isinstance(cases, list) or not cases:
+        raise SweepError("cases must be a non-empty list")
+    ids: set[str] = set()
+    parameters: set[str] = set()
+    for case in cases:
+        if not isinstance(case, dict):
+            raise SweepError("each case must be an object")
+        identifier = _case_id(case.get("id"))
+        parameter = case.get("parameter")
+        value = case.get("value")
+        evidence = case.get("source")
+        if identifier in ids:
+            raise SweepError(f"duplicate case id {identifier!r}")
+        if not isinstance(parameter, str) or not parameter:
+            raise SweepError(f"case {identifier!r} needs a parameter")
+        if parameter.casefold() in parameters:
+            raise SweepError(f"duplicate parameter {parameter!r}")
+        if not isinstance(value, str) or not value:
+            raise SweepError(f"case {identifier!r} needs a string value")
+        if not isinstance(evidence, str) or not evidence:
+            raise SweepError(f"case {identifier!r} needs a source citation")
+        ids.add(identifier)
+        parameters.add(parameter.casefold())
+    source = plan.get("source")
+    if not isinstance(source, str) or not source:
+        raise SweepError("source must be a path string")
+    return plan
+
+
+def _write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def prepare_sweep(
+    plan_path: Path,
+    output_directory: Path,
+    settings: MeshExportSettings,
+) -> dict[str, Any]:
+    plan_bytes = plan_path.read_bytes()
+    plan = load_plan(plan_path)
+    source_path = (plan_path.parent / plan["source"]).resolve(strict=True)
+    source = source_path.read_bytes()
+    manifest_path = output_directory / "manifest.json"
+    if manifest_path.exists():
+        manifest = _read_json(manifest_path)
+        if manifest.get("schema") != MANIFEST_SCHEMA:
+            raise SweepError("existing output has an unsupported manifest")
+        if manifest.get("plan", {}).get("sha256") != _digest(plan_bytes):
+            raise SweepError("existing output belongs to a different sweep plan")
+        if manifest.get("source", {}).get("sha256") != _digest(source):
+            raise SweepError("sweep source changed after preparation")
+        if manifest.get("settings") != asdict(settings):
+            raise SweepError("existing output uses different mesh settings")
+        for job in manifest["jobs"]:
+            path = output_directory / job["file"]
+            if not path.is_file() or _digest(path.read_bytes()) != job["sha256"]:
+                raise SweepError(f"prepared variant is missing or changed: {path}")
+        return manifest
+    if output_directory.exists() and any(output_directory.iterdir()):
+        raise SweepError(f"output directory is not empty: {output_directory}")
+    output_directory.mkdir(parents=True, exist_ok=True)
+    variants = output_directory / "variants"
+    variants.mkdir()
+    jobs: list[dict[str, Any]] = []
+    for index in range(plan["baseline_replicates"]):
+        identifier = f"baseline-{index + 1}"
+        file_name = f"variants/{identifier}.xxp"
+        (output_directory / file_name).write_bytes(source)
+        jobs.append(
+            {
+                "id": identifier,
+                "kind": "baseline",
+                "file": file_name,
+                "sha256": _digest(source),
+                "diff": [],
+            }
+        )
+    for case in plan["cases"]:
+        try:
+            data, facts = build_variant(
+                source, plan["holon"], case["parameter"], case["value"]
+            )
+        except ProbeError as error:
+            raise SweepError(f"case {case['id']}: {error}") from error
+        file_name = f"variants/{case['id']}.xxp"
+        (output_directory / file_name).write_bytes(data)
+        jobs.append(
+            {
+                "id": case["id"],
+                "kind": "case",
+                "parameter": case["parameter"],
+                "requested": case["value"],
+                "selection_source": case["source"],
+                "file": file_name,
+                "sha256": _digest(data),
+                "diff": facts["diff"],
+                "persisted": facts["persisted"],
+            }
+        )
+    manifest = {
+        "schema": MANIFEST_SCHEMA,
+        "plan": {"path": str(plan_path.resolve()), "sha256": _digest(plan_bytes)},
+        "source": {"path": str(source_path), "sha256": _digest(source)},
+        "operation": plan["operation"],
+        "holon": plan["holon"],
+        "settings": asdict(settings),
+        "jobs": jobs,
+        "claims": {"native_acceptance": False, "printable": False},
+    }
+    _write_json(manifest_path, manifest)
+    return manifest
+
+
+def _successful_report(path: Path, digest: str) -> dict[str, Any] | None:
+    if not path.is_file():
+        return None
+    report = _read_json(path)
+    if (
+        report.get("outcome") == "succeeded"
+        and report.get("input", {}).get("source_sha256_before") == digest
+        and isinstance(report.get("stl"), dict)
+    ):
+        return report
+    return None
+
+
+def _topology_valid(stl: dict[str, Any]) -> bool:
+    return (
+        stl["connected_components"] == 1
+        and stl["boundary_edges"] == 0
+        and stl["non_manifold_edges"] == 0
+        and stl["inconsistent_winding_edges"] == 0
+        and stl["degenerate_triangles"] == 0
+        and stl["signed_volume"] != 0
+    )
+
+
+def summarize_sweep(
+    manifest: dict[str, Any], output_directory: Path
+) -> dict[str, Any]:
+    completed: list[dict[str, Any]] = []
+    missing: list[str] = []
+    execution: list[dict[str, Any]] = []
+    for job in manifest["jobs"]:
+        reports = sorted((output_directory / "runs" / job["id"]).glob("attempt-*/report.json"))
+        report_values = [_read_json(path) for path in reports]
+        execution.append(
+            {
+                "id": job["id"],
+                "attempts": len(report_values),
+                "outcomes": [report.get("outcome") for report in report_values],
+            }
+        )
+        report = next(
+            (
+                candidate
+                for path in reports
+                if (candidate := _successful_report(path, job["sha256"])) is not None
+            ),
+            None,
+        )
+        if report is None:
+            missing.append(job["id"])
+        else:
+            completed.append({"job": job, "report": report})
+    baselines = [item for item in completed if item["job"]["kind"] == "baseline"]
+    baseline = baselines[0]["report"]["stl"] if baselines else None
+    baseline_variation = None
+    if baselines:
+        meshes = [item["report"]["stl"] for item in baselines]
+        baseline_variation = {
+            "replicates": len(meshes),
+            "triangle_count_span": max(x["triangle_count"] for x in meshes)
+            - min(x["triangle_count"] for x in meshes),
+            "absolute_volume_span": max(abs(x["signed_volume"]) for x in meshes)
+            - min(abs(x["signed_volume"]) for x in meshes),
+            "dimension_spans": [
+                max(x["dimensions"][axis] for x in meshes)
+                - min(x["dimensions"][axis] for x in meshes)
+                for axis in range(3)
+            ],
+        }
+    results = []
+    if baseline is not None:
+        for item in completed:
+            if item["job"]["kind"] != "case":
+                continue
+            stl = item["report"]["stl"]
+            dimension_delta = [
+                stl["dimensions"][axis] - baseline["dimensions"][axis]
+                for axis in range(3)
+            ]
+            volume_delta = abs(stl["signed_volume"]) - abs(baseline["signed_volume"])
+            dimension_fraction = max(
+                abs(dimension_delta[axis]) / baseline["dimensions"][axis]
+                for axis in range(3)
+            )
+            volume_fraction = abs(volume_delta) / abs(baseline["signed_volume"])
+            observed_effects = []
+            if baseline_variation is not None:
+                if (
+                    abs(stl["triangle_count"] - baseline["triangle_count"])
+                    > baseline_variation["triangle_count_span"]
+                ):
+                    observed_effects.append("triangle_count")
+                if abs(volume_delta) > baseline_variation["absolute_volume_span"]:
+                    observed_effects.append("absolute_volume")
+                if any(
+                    abs(dimension_delta[axis])
+                    > baseline_variation["dimension_spans"][axis]
+                    for axis in range(3)
+                ):
+                    observed_effects.append("dimensions")
+            results.append(
+                {
+                    "id": item["job"]["id"],
+                    "parameter": item["job"]["parameter"],
+                    "requested": item["job"]["requested"],
+                    "persisted": item["job"]["persisted"],
+                    "selection_source": item["job"]["selection_source"],
+                    "source_sha256": item["job"]["sha256"],
+                    "stl_sha256": stl["sha256"],
+                    "dimensions": stl["dimensions"],
+                    "triangle_count": stl["triangle_count"],
+                    "absolute_volume": abs(stl["signed_volume"]),
+                    "delta": {
+                        "dimensions": dimension_delta,
+                        "triangle_count": stl["triangle_count"]
+                        - baseline["triangle_count"],
+                        "absolute_volume": volume_delta,
+                    },
+                    "impact_score": max(dimension_fraction, volume_fraction),
+                    "changes_exceeding_observed_baseline": observed_effects,
+                    "basic_topology_valid": _topology_valid(stl),
+                }
+            )
+    results.sort(key=lambda item: (-item["impact_score"], item["id"]))
+    return {
+        "schema": SUMMARY_SCHEMA,
+        "complete": not missing,
+        "missing_jobs": missing,
+        "execution": execution,
+        "settings": manifest["settings"],
+        "baseline": baseline,
+        "baseline_variation": baseline_variation,
+        "ranked_results": results,
+        "all_basic_topology_valid": bool(results)
+        and all(item["basic_topology_valid"] for item in results),
+        "printable": False,
+    }
+
+
+def run_sweep(
+    plan_path: Path,
+    output_directory: Path,
+    *,
+    executable: Path = DEFAULT_EXECUTABLE,
+    attempts: int = 2,
+    timeout_seconds: float = 150,
+    poll_seconds: float = 1,
+    settings: MeshExportSettings = MeshExportSettings(100, 25),
+    exporter: Exporter = run_export,
+) -> dict[str, Any]:
+    if attempts < 1:
+        raise SweepError("attempts must be at least 1")
+    manifest = prepare_sweep(plan_path, output_directory, settings)
+    for job in manifest["jobs"]:
+        job_root = output_directory / "runs" / job["id"]
+        prior = sorted(job_root.glob("attempt-*/report.json"))
+        if any(_successful_report(path, job["sha256"]) for path in prior):
+            continue
+        first_attempt = len(prior) + 1
+        for attempt in range(first_attempt, attempts + 1):
+            run_directory = job_root / f"attempt-{attempt:03d}"
+            report_path = run_directory / "report.json"
+            exporter(
+                executable,
+                output_directory / job["file"],
+                run_directory,
+                report_path,
+                timeout_seconds,
+                poll_seconds,
+                settings,
+            )
+            if _successful_report(report_path, job["sha256"]) is not None:
+                break
+    summary = summarize_sweep(manifest, output_directory)
+    _write_json(output_directory / "summary.json", summary)
+    return summary
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("plan", type=Path)
+    parser.add_argument("output_directory", type=Path)
+    parser.add_argument("--executable", type=Path, default=DEFAULT_EXECUTABLE)
+    parser.add_argument("--attempts", type=int, default=2)
+    parser.add_argument("--timeout-seconds", type=float, default=150)
+    parser.add_argument("--stl-max-dimension-mm", type=int, default=100)
+    parser.add_argument("--mesh-size-percent", type=int, default=25)
+    args = parser.parse_args(argv)
+    try:
+        summary = run_sweep(
+            args.plan,
+            args.output_directory,
+            executable=args.executable,
+            attempts=args.attempts,
+            timeout_seconds=args.timeout_seconds,
+            settings=MeshExportSettings(
+                args.stl_max_dimension_mm, args.mesh_size_percent
+            ),
+        )
+    except (OSError, RuntimeError, ProbeError, SweepError, ValueError) as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0 if summary["complete"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -305,6 +305,20 @@
         {"artifact": "evidence/runtime/m11-metamorph-probe-summary.json"}
       ],
       "generator_implication": "An evidence-gated mutation layer may use these verified mappings with native evaluation and mesh scoring. Do not claim fabrication suitability."
+    },
+    {
+      "id": "R030",
+      "topic": "sphere_isolated_metamorph_effects",
+      "relationship": "CONFIRMS+EXTENDS",
+      "interpretation": "Nine one-token Sphere variants selected from installed presets or observed native behavior evaluated through XenoDream. Ovoid, Shear, Warp, Waist, Taper X, XZ Curve, and Bilobe produced clear mesh changes while retaining one component and the current basic topology predicates.",
+      "confidence": "high_for_tested_isolated_values",
+      "manual_evidence": ["R027", "R028", "R029", "installed_XDXSystem.xmm_Sphere_presets"],
+      "binary_evidence": [
+        {"artifact": "docs/m12-sphere-metamorph-sweep.md"},
+        {"artifact": "evidence/runtime/m12-sphere-isolated-sweep-summary.json"},
+        {"artifact": "experiments/metamorph-sweeps/sphere-isolated-v1.json"}
+      ],
+      "generator_implication": "Use the strong connected effects as candidates for an interaction sweep and later evidence-gated Sphere mutation. Continue native evaluation and mesh scoring, and keep fabrication suitability false."
     }
   ],
   "unresolved_priorities": [
