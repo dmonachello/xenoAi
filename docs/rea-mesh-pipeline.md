@@ -158,3 +158,12 @@ job. Wait for the `Cancel Batch` caption to return to `Run Batch` and for the
 output file to stabilize. Hash the source before and after, validate STL count
 and length, then run independent mesh checks. Do not inject message `0x801b`
 and do not save the source project.
+
+This experiment is complete. The final supervised run is recorded in
+`evidence/runtime/batch-export-20261016-47.json` and reconciliation row R019.
+XenoDream evaluated the accepted generated cube and exported 110,588 binary
+STL triangles. Independent checks found one closed, consistently wound
+edge-manifold component with no degenerate triangles. The next mesh work is to
+recover physical scale and sampling controls, add self-intersection and
+thickness analysis, and repeat the automated path for more sophisticated
+procedural models.

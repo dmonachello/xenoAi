@@ -1,0 +1,35 @@
+{
+  "schema": "xenodream-stl-repeat-comparison/v1",
+  "source_xxp_sha256": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
+  "runs": [
+    {
+      "stl_sha256": "ca0d9029147b26feb6287cfd5c36fd26b4698c1eb785c7c863b36f28321b4099",
+      "bytes": 5529484,
+      "triangle_count": 110588,
+      "bounds_min": [4.49404764175415, 4.49404764175415, 4.49404764175415],
+      "bounds_max": [244.25595092773438, 244.25595092773438, 244.25595092773438],
+      "signed_volume": 13781575.980563665,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "stl_sha256": "c35afa2ddd051178b223f9a07a3ae2d45e5dbaee311657df654638b7cf8d6f73",
+      "bytes": 5529484,
+      "triangle_count": 110588,
+      "bounds_min": [4.49404764175415, 4.49404764175415, 4.49404764175415],
+      "bounds_max": [244.25595092773438, 244.25595092773438, 244.25595092773438],
+      "signed_volume": 13781576.081655288,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "connected_components": 1
+    }
+  ],
+  "interpretation": "Repeated exports preserve triangle count, bounds, and measured topology but are not byte-deterministic. The small signed-volume difference indicates floating-point output variation.",
+  "limitations": [
+    "The comparison does not establish the source of the floating-point variation.",
+    "No vertex-correspondence or Hausdorff-distance comparison was performed."
+  ]
+}

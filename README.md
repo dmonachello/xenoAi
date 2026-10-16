@@ -73,5 +73,32 @@ data = compile_project(project)
 Generated files still require an open-and-render check in XenoDream. Static
 parsing and byte comparisons do not prove application acceptance.
 
+## Experimental mesh acceptance
+
+On Windows with XenoDream X 1.220 installed, the supervised runner can load a
+generated project in a fresh, isolated XenoDream process and export binary
+STL through the application's Batch Export room:
+
+```powershell
+python -m pip install -e ".[automation]"
+python scripts/run_xenodream_batch_stl.py `
+  output/generated_cube.xxp tmp/mesh-run `
+  --report evidence/runtime/mesh-run.json
+```
+
+The runner never attaches to an existing XenoDream process. It uses a Windows
+Job Object to guarantee cleanup, works from a disposable source copy, records
+source hashes and process activity, and refuses output collisions. XenoDream
+1.220 ignores programmatic edits to its visible batch destination field, so
+the runner gives the disposable project a unique name and relocates only that
+newly created STL from XenoDream's default output directory.
+
+The report validates binary STL structure, finite coordinates, degeneracy,
+edge incidence, winding consistency, connected components, bounds, and signed
+volume. These checks do not establish physical units, minimum wall thickness,
+self-intersection freedom, support requirements, or fabrication suitability.
+An exported STL must not be called printable solely because this command
+succeeds.
+
 Generated files belong under `output/`. Never overwrite files under
 `samples/originals/`.

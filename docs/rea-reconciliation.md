@@ -267,3 +267,41 @@ before source selection, minimize the automation window after batch start, and
 enforce a cleanup timeout. It must also capture progress text and process CPU
 time so that a slow evaluation can be distinguished from a deadlock. See
 `evidence/runtime/batch-export-20261016-01.json` and cross-validation row R018.
+
+## Supervised batch-export reconciliation
+
+The fresh-process runner completed the next experiment successfully. It used
+the accepted one-cube project with SHA-256
+`fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0`,
+entered XenoDream's native **Cancel Batch** state, generated a binary STL, and
+cleaned up only the process it created. The existing XenoDream process remained
+responsive and outside the runner's Windows Job Object. Both the original and
+disposable project hashes were unchanged.
+
+This **CONFIRMS** the manual conclusion that the generated cube is a valid
+XenoDream model that evaluates as three-dimensional geometry. It **EXTENDS**
+the manual work by proving an automated native-model-to-mesh path. The final
+run produced 110,588 triangles in 50.6 seconds. Independent inspection found
+finite coordinates, no degenerate triangles, no boundary edges, no edges with
+more than two incident faces, no winding conflicts, one connected component,
+and nonzero signed volume.
+
+The first failed automation result, R018, is not contradicted: it was explicitly
+unresolved. The installed help and decompiled handler explain the corrected
+workflow. Mesh Batch Export starts when the file-selection dialog returns;
+there is no separate Run Batch action. Handler `0x7d57a4` changes that same
+toggle to **Cancel Batch** and enters state machine `0x7da994`.
+
+One application quirk remains. XenoDream ignored programmatic changes to the
+visible batch destination field and wrote to its configured default folder.
+The runner therefore uses a unique disposable filename, refuses a preexisting
+default-output collision, and relocates only the matching newly created STL
+into its isolated output directory. This behavior is recorded rather than
+treated as a general format rule.
+
+The result does not prove fabrication suitability. STL coordinates span about
+`239.762` units on each axis, but the physical unit and export scale source are
+still unknown. The current checker also does not detect self-intersections,
+minimum feature thickness, unsupported regions, or process-specific tolerance
+failures. See `evidence/runtime/batch-export-20261016-47.json` and
+cross-validation row R019.
