@@ -34,3 +34,16 @@ file as the sphere template.
 
 Application status: accepted for the default sphere and the tested Cube2 plus
 Sphere3 profile. The `SelectionSpots` meaning remains unknown.
+
+## Packaged executable smoke test
+
+On 2026-10-16, the packaged `dist/xenosculpt.exe` generated a Cube-then-Sphere
+row with spacing 90. The resulting `output/smoke_test.xxp` is 4,126 bytes with
+SHA-256
+`867c233ff23db36b2fbae330762656c48bfc96cc4fc9b718484280ceb7425278`.
+
+Static inspection records Cube2 at X = -45 and Sphere3 at X = 45. XenoDream X
+1.220 opened the project, displayed the expected Group1/Cube2/Sphere3
+hierarchy, and rendered both objects. This confirms application acceptance of
+the packaged executable's custom row placement. No resave comparison or mesh
+printability claim was made in this test.
