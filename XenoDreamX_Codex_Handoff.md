@@ -2,10 +2,10 @@
 
 > Status: historical starting specification. The current project direction is
 > [docs/project-direction.md](docs/project-direction.md). Where the documents
-> conflict, the current direction governs. In particular, REA/Ghidra and
-> automated application testing now replace repeated manual discovery, physical
-> fabrication is the primary outcome, and the system must preserve project
-> state across conversational mutations.
+> conflict, the current direction governs. In particular, REA/Ghidra, other
+> suitable investigation tools, and automated application testing now replace
+> repeated manual discovery. Physical fabrication is the primary outcome, and
+> the system must preserve project state across conversational mutations.
 
 ## Codex handoff | 2026-10-15
 

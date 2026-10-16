@@ -5,7 +5,7 @@ Date: 2026-10-16
 This document defines the current direction. It preserves the existing
 XenoDream generator and its evidence. It replaces the original handoff only
 where that handoff treats manual experiments as the main discovery method or
-REA as optional.
+systematic executable investigation as merely optional.
 
 ## Goal
 
@@ -18,6 +18,35 @@ fabricate.
 MoI3D, ComfyUI, and HueForge are later candidates. Do not build a generic
 multi-application framework until the XenoDream implementation reveals which
 parts are genuinely reusable.
+
+## Investigation tool policy
+
+Use whichever lawful and technically appropriate tools best answer the current
+question or advance the fabrication goal. REA/Ghidra is the primary static
+analysis environment for XenoDream, not an exclusive tool requirement.
+
+The available methods include:
+
+- official documentation, embedded help, installed metadata, and corpus mining;
+- REA/Ghidra, other disassemblers and decompilers, debuggers, and runtime tracing;
+- documented APIs, command-line tools, native file generation and mutation,
+  scripting, and Windows UI Automation;
+- controlled process, file, registry, and system-call observation or
+  instrumentation; and
+- mesh-processing, validation, repair, CAD, slicing, automated testing,
+  quantitative comparison, and fabrication experiments.
+
+Choose the least invasive method that can produce reliable evidence. Preserve
+original artifacts and isolate runtime experiments. Record the target version,
+artifact hash, tool and method, evidence location, interpretation, confidence,
+and unresolved questions. Cross-validate binary findings against existing
+models, experiments, tests, and observed application behavior. Decompiled code
+is evidence, not automatic authority.
+
+Do not make repeated user-operated experiments the routine discovery process.
+Do not reconstruct unrelated parts of the application. Invoke internal
+application functions only when static and runtime evidence establishes a safe,
+necessary reason to do so.
 
 ## What the repository already proves
 
