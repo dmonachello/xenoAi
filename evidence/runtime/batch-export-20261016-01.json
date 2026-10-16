@@ -1,0 +1,41 @@
+{
+  "experiment": "batch-export-20261016-01",
+  "started_local": "2026-10-16T12:31:00-04:00",
+  "ended_local": "2026-10-16T12:43:55-04:00",
+  "application": {
+    "path": "C:\\Program Files (x86)\\XenoDream Software\\XenoDreamX\\XenoDreamX.exe",
+    "version": "1.22.0.0",
+    "automation_pid": 15564,
+    "preexisting_pid": 14496
+  },
+  "input": {
+    "source": "output/m3_generated_cube.xxp",
+    "disposable_copy": "tmp/runtime-acceptance-20261016-01/accepted_cube_disposable.xxp",
+    "sha256_before": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0",
+    "sha256_after": "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+  },
+  "requested_export": {
+    "format": "binary STL",
+    "output_directory": "tmp/runtime-acceptance-20261016-01/mesh",
+    "observed_options": {
+      "fill": true,
+      "denoise": false,
+      "simplify": true,
+      "simplify_percent": 50,
+      "simplify_profile": "3D Printing (manifold)"
+    }
+  },
+  "observations": [
+    "A second XenoDream process opened the disposable project without changing the preexisting process.",
+    "Selecting a batch source starts evaluation immediately.",
+    "The batch control changed from Select Files... to Cancel Batch.",
+    "No STL or OBJ file appeared in the controlled output directory.",
+    "The batch remained in evaluation for more than 90 seconds.",
+    "The automation process stopped responding and was force-closed.",
+    "The preexisting XenoDream process remained responsive.",
+    "XenoDream updated XenoDreamX.ini while the file dialog was used. The file contents were not captured because the file contains registration fields."
+  ],
+  "result": "UNRESOLVED",
+  "reason": "The GUI automation reached native batch evaluation but did not reach export. The run does not distinguish a slow evaluation, a bad control sequence, or an application deadlock.",
+  "output_files": []
+}

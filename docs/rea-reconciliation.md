@@ -241,3 +241,29 @@ most files predate 1.220 and names may be edited.
 
 See `docs/rea-mesh-pipeline.md` and cross-validation rows R012-R017 for the
 complete trace, limitations, and next automated experiment.
+
+## First batch-automation checkpoint
+
+The first controlled runtime attempt reached XenoDream's native batch
+evaluation state but did not reach mesh export. The test used a disposable copy
+of the accepted one-cube project in a second XenoDream process. The existing
+XenoDream session remained separate and responsive.
+
+The file picker exposed one important behavior: selecting a source starts the
+batch immediately. The batch button changed to **Cancel Batch**, but no STL or
+OBJ file appeared after more than 90 seconds. The automation process then
+stopped responding and was force-closed. The source file retained its original
+SHA-256 value. XenoDream did update `XenoDreamX.ini` while the file dialog was
+used, so future runs must treat user configuration as mutable application
+state.
+
+This result is **UNRESOLVED**. It does not show that the project cannot produce
+a mesh. The run may have hit slow evaluation, an invalid GUI event sequence, or
+an application deadlock after the earlier cancelled probe. Do not use this run
+to change the generator or to classify the cube as non-exportable.
+
+The next runtime attempt must use a fresh isolated process, set all controls
+before source selection, minimize the automation window after batch start, and
+enforce a cleanup timeout. It must also capture progress text and process CPU
+time so that a slow evaluation can be distinguished from a deadlock. See
+`evidence/runtime/batch-export-20261016-01.json` and cross-validation row R018.
