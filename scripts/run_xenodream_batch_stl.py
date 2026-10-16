@@ -312,7 +312,10 @@ if os.name == "nt":
                 10,
                 "complete source path entry",
             )
-            open_button.click()
+            # The Vista-style file dialog intermittently ignores the wrapper's
+            # logical click even though the button is enabled. A real input
+            # click follows the same reliable path used for text entry.
+            open_button.click_input()
         finally:
             SetCursorPos(cursor)
 

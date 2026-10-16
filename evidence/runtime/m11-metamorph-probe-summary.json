@@ -1,0 +1,51 @@
+{
+  "schema": "xenosculpt-metamorph-probe-evidence/v1",
+  "settings": {
+    "mesh_size_percent": 25,
+    "stl_max_dimension_mm": 100
+  },
+  "baseline_variation": {
+    "replicates": 2,
+    "triangle_count_span": 0,
+    "absolute_volume_span": 0.03147616545902565,
+    "maximum_dimension_span": 0.013606786727905273
+  },
+  "probes": [
+    {
+      "operation": "Sphere",
+      "parameter": "Warp",
+      "token_index": 0,
+      "requested_values": ["-5", "0", "5"],
+      "native_exports_succeeded": true,
+      "basic_topology_valid": true,
+      "change_exceeds_baseline_variation": true,
+      "observations": {
+        "positive_triangle_delta": 24,
+        "negative_triangle_delta": 24,
+        "positive_absolute_volume_delta": 398.32888481079135,
+        "negative_absolute_volume_delta": 400.17862649756717
+      }
+    },
+    {
+      "operation": "Sphere",
+      "parameter": "Ovoid",
+      "token_index": 3,
+      "requested_values": ["0", "2.8"],
+      "native_exports_succeeded": true,
+      "basic_topology_valid": true,
+      "change_exceeds_baseline_variation": true,
+      "observations": {
+        "baseline_dimensions_mm": [95.8945541381836, 95.90475821495056, 95.88435363769531],
+        "mutated_dimensions_mm": [39.8839545249939, 95.01131176948547, 39.879952907562256],
+        "triangle_delta": -830,
+        "absolute_volume_delta": -382426.42891648074
+      }
+    }
+  ],
+  "claims": {
+    "native_structure_valid": true,
+    "evaluates_to_3d_geometry": true,
+    "basic_mesh_predicates_pass": true,
+    "fabrication_suitable": false
+  }
+}

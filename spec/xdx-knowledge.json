@@ -276,6 +276,35 @@
         {"artifact": "evidence/rea/metamorph-descriptor-session.json"}
       ],
       "generator_implication": "Expose exact descriptor domains through read-only inspection. Keep new parameter writes disabled until evaluator tracing and automated native mesh sweeps establish geometric effects and safe sculpture envelopes."
+    },
+    {
+      "id": "R028",
+      "topic": "sphere_cube_metamorph_evaluators",
+      "relationship": "CONFIRMS+EXTENDS",
+      "interpretation": "Sphere setup reads all twelve persisted parameter slots and Cube setup reads all nine before their operation-specific field evaluators consume point coordinates and parameter-derived state.",
+      "confidence": "high",
+      "manual_evidence": ["R027", "E049"],
+      "binary_evidence": [
+        {"address": "0x5bea08", "evidence_id": "ev_83058f86b7168438f89f6e7117723d6b7eda9548ff237b20c3864b2a09756b81"},
+        {"address": "0x5be17c", "evidence_id": "ev_c8f922628215d4a841a7f920065429a3b00e76b755360b1adb782ea32629dd7c"},
+        {"address": "0x5c0784", "evidence_id": "ev_806d50753dd6a9c59b20ece8f7d77593c17290dca0c73012dee9600eb0dd5052"},
+        {"address": "0x5bff60", "evidence_id": "ev_3202dd3840817e6ee20b9887996ce5f2a8279a96f4d61c6ca12b394b17b2fd07"},
+        {"artifact": "evidence/rea/metamorph-evaluator-session.json"}
+      ],
+      "generator_implication": "Use descriptor-backed isolated native probes to recover useful geometry envelopes. Do not infer safe parameter combinations from descriptor metadata alone."
+    },
+    {
+      "id": "R029",
+      "topic": "sphere_metamorph_native_mesh_effects",
+      "relationship": "CONFIRMS+EXTENDS",
+      "interpretation": "Isolated Sphere Warp and Ovoid token changes evaluated into one-component closed native STL meshes and produced changes beyond repeated baseline variation; Ovoid 2.8 strongly reduced the X and Z dimensions.",
+      "confidence": "high_for_tested_values",
+      "manual_evidence": ["R027", "user_observed_sphere_ovoid_2_8"],
+      "binary_evidence": [
+        {"artifact": "docs/rea-metamorph-evaluators.md"},
+        {"artifact": "evidence/runtime/m11-metamorph-probe-summary.json"}
+      ],
+      "generator_implication": "An evidence-gated mutation layer may use these verified mappings with native evaluation and mesh scoring. Do not claim fabrication suitability."
     }
   ],
   "unresolved_priorities": [
