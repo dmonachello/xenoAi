@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from decimal import Decimal as D
+from dataclasses import asdict
 from pathlib import Path
+import json
+import sqlite3
+import struct
 
 import pytest
 
@@ -17,12 +21,36 @@ from xenodream_xxp.workspace import (
     ProjectWorkspace,
     WorkspaceError,
 )
+from xenodream_xxp.mesh import inspect_binary_stl
+from xenodream_xxp.native_export import MeshExportSettings
 
 
 def _source(tmp_path: Path) -> Path:
     path = tmp_path / "source.xxp"
     path.write_bytes(compile_cube())
     return path
+
+
+def _closed_tetrahedron(path: Path) -> None:
+    origin = (0.0, 0.0, 0.0)
+    x = (1.0, 0.0, 0.0)
+    y = (0.0, 1.0, 0.0)
+    z = (0.0, 0.0, 1.0)
+
+    def triangle(a, b, c):
+        return struct.pack("<12fH", 0.0, 0.0, 1.0, *a, *b, *c, 0)
+
+    triangles = (
+        triangle(origin, y, x),
+        triangle(origin, x, z),
+        triangle(origin, z, y),
+        triangle(x, y, z),
+    )
+    path.write_bytes(
+        b"validation".ljust(80, b"\0")
+        + struct.pack("<I", len(triangles))
+        + b"".join(triangles)
+    )
 
 
 def test_create_records_constraints_and_preserves_source(tmp_path) -> None:
@@ -194,6 +222,76 @@ def test_sphere_metamorph_profile_records_evidence_and_validation_gate(
         "native_validation_required": True,
         "fabrication_suitable": False,
     }
+
+
+def test_native_validation_attaches_mesh_without_changing_head(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+    initial = workspace.status().head
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+    calls = 0
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        nonlocal calls
+        calls += 1
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    settings = MeshExportSettings(stl_max_dimension_mm=120, mesh_size_percent=60)
+
+    first = workspace.validate_native(executable=executable, settings=settings)
+    second = workspace.validate_native(executable=executable, settings=settings)
+
+    assert calls == 1
+    assert first == second
+    assert first.revision_id == initial.id
+    assert first.native_model_valid is True
+    assert first.evaluates_to_3d is True
+    assert first.basic_mesh_valid is True
+    assert first.fabrication_suitable is False
+    assert first.mesh_path is not None and Path(first.mesh_path).is_file()
+    assert workspace.status().head == initial
+    assert workspace.status().latest_validation == first
+    assert _source(tmp_path).read_bytes() == compile_cube()
+
+
+def test_open_migrates_schema_one_workspace(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+    with sqlite3.connect(workspace.database) as connection:
+        connection.execute("DROP TABLE validations")
+        connection.execute(
+            "UPDATE metadata SET value = '1' WHERE key = 'schema_version'"
+        )
+        connection.commit()
+
+    reopened = ProjectWorkspace.open(workspace.root)
+
+    assert reopened.status().latest_validation is None
+    with sqlite3.connect(workspace.database) as connection:
+        assert connection.execute(
+            "SELECT value FROM metadata WHERE key = 'schema_version'"
+        ).fetchone()[0] == "2"
 
 
 def test_rejects_invalid_workspace_and_constraints(tmp_path) -> None:

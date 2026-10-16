@@ -77,6 +77,8 @@ xenosculpt project evolve sculpture.xsp --seed 17 --strength 0.5 `
   --message "seeded physical-form variation"
 xenosculpt project metamorph sculpture.xsp --object Sphere2 `
   --profile cushion-core --message "measured cushion form"
+xenosculpt project validate sculpture.xsp `
+  --stl-max-dimension-mm 120 --mesh-size-percent 50
 xenosculpt project compare sculpture.xsp main alternate
 xenosculpt project checkout sculpture.xsp main
 xenosculpt project export sculpture.xsp output/restored-main.xxp
@@ -87,6 +89,14 @@ Other commands are `project status`, `project log`, `project row`,
 model edited manually in XenoDream as a new revision. Checkout accepts a branch
 name or an unambiguous revision prefix. Export refuses to overwrite an existing
 file.
+
+`project validate` evaluates a disposable copy of the selected revision in an
+isolated XenoDream process, exports binary STL, and attaches the native and mesh
+report to that revision. It does not advance HEAD or change the native model.
+Meshes are stored by SHA-256 under the workspace. The report distinguishes
+native acceptance, production of 3D geometry, basic mesh topology, and
+fabrication suitability; the last remains false until process-specific checks
+exist.
 
 Controlled object mutation currently follows the same evidence boundary as the
 generator. Cubes support scale, rotation, position, color density, and Face

@@ -36,6 +36,7 @@ from .report import inspect_document
 from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
+from .native_export import DEFAULT_XENODREAM_EXECUTABLE, MeshExportSettings
 from .solidify import SolidifySettings, solidify_binary_stl
 from .mutation import (
     CenteredRowMutation,
@@ -196,6 +197,20 @@ def _parser() -> argparse.ArgumentParser:
     )
     project_status.add_argument("workspace", type=Path)
 
+    project_validate = project_commands.add_parser(
+        "validate",
+        help="evaluate a revision in isolated XenoDream and attach an STL report",
+    )
+    project_validate.add_argument("workspace", type=Path)
+    project_validate.add_argument("--ref", default="HEAD")
+    project_validate.add_argument(
+        "--executable", type=Path, default=DEFAULT_XENODREAM_EXECUTABLE
+    )
+    project_validate.add_argument("--stl-max-dimension-mm", type=int, default=250)
+    project_validate.add_argument("--mesh-size-percent", type=int, default=50)
+    project_validate.add_argument("--timeout-seconds", type=float, default=600)
+    project_validate.add_argument("--poll-seconds", type=float, default=1)
+
     project_mutate = project_commands.add_parser(
         "mutate", help="apply verified fields to one uniquely named object"
     )
@@ -329,6 +344,19 @@ def _handle_project(args: argparse.Namespace) -> int:
     if args.project_command == "status":
         _print_json(asdict(workspace.status()))
         return 0
+    if args.project_command == "validate":
+        validation = workspace.validate_native(
+            ref=args.ref,
+            executable=args.executable,
+            settings=MeshExportSettings(
+                stl_max_dimension_mm=args.stl_max_dimension_mm,
+                mesh_size_percent=args.mesh_size_percent,
+            ),
+            timeout_seconds=args.timeout_seconds,
+            poll_seconds=args.poll_seconds,
+        )
+        _print_json(asdict(validation))
+        return 0 if validation.basic_mesh_valid else 1
     if args.project_command == "mutate":
         result = workspace.apply(
             ObjectMutation(

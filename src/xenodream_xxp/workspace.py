@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 from hashlib import sha256
@@ -18,6 +18,12 @@ from uuid import uuid4
 from .diffing import diff_documents
 from .document import KeyValueRecord, parse_bytes
 from .generator import Vector3
+from .mesh import StlReport, basic_mesh_valid
+from .native_export import (
+    DEFAULT_XENODREAM_EXECUTABLE,
+    MeshExportSettings,
+    run_export,
+)
 from .mutation import (
     CenteredRowMutation,
     MutationResult,
@@ -85,6 +91,23 @@ class WorkspaceStatus:
     artifact_path: str
     xdx_version: str
     constraints: FabricationConstraints
+    latest_validation: NativeValidation | None
+
+
+@dataclass(frozen=True, slots=True)
+class NativeValidation:
+    id: str
+    revision_id: str
+    created_at: str
+    outcome: str
+    settings: dict[str, object]
+    report: dict[str, object]
+    mesh_path: str | None
+    mesh_sha256: str | None
+    native_model_valid: bool
+    evaluates_to_3d: bool
+    basic_mesh_valid: bool
+    fabrication_suitable: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +125,7 @@ class ArtifactInfo:
     revision_id: str
 
 
-_SCHEMA_VERSION = "1"
+_SCHEMA_VERSION = "2"
 _DATABASE_NAME = "project.sqlite3"
 _BRANCH_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
@@ -215,6 +238,8 @@ class ProjectWorkspace:
         self.root = root.resolve()
         self.database = self.root / _DATABASE_NAME
         self.artifacts = self.root / "artifacts"
+        self.meshes = self.root / "meshes"
+        self.validation_runs = self.root / "validation-runs"
 
     @classmethod
     def create(
@@ -235,6 +260,8 @@ class ProjectWorkspace:
 
         workspace.root.mkdir(parents=True, exist_ok=True)
         workspace.artifacts.mkdir(parents=True, exist_ok=True)
+        workspace.meshes.mkdir(parents=True, exist_ok=True)
+        workspace.validation_runs.mkdir(parents=True, exist_ok=True)
         artifact_sha = workspace._store_artifact(data)
         details = {"source_sha256": artifact_sha}
         revision_id = workspace._revision_id(
@@ -276,6 +303,22 @@ class ProjectWorkspace:
                         current_branch TEXT REFERENCES branches(name),
                         detached_revision TEXT REFERENCES revisions(id)
                     );
+                    CREATE TABLE validations (
+                        id TEXT PRIMARY KEY,
+                        request_key TEXT NOT NULL,
+                        revision_id TEXT NOT NULL REFERENCES revisions(id),
+                        created_at TEXT NOT NULL,
+                        outcome TEXT NOT NULL,
+                        settings_json TEXT NOT NULL,
+                        report_json TEXT NOT NULL,
+                        mesh_sha256 TEXT,
+                        native_model_valid INTEGER NOT NULL,
+                        evaluates_to_3d INTEGER NOT NULL,
+                        basic_mesh_valid INTEGER NOT NULL,
+                        fabrication_suitable INTEGER NOT NULL
+                    );
+                    CREATE INDEX validations_revision_created
+                    ON validations(revision_id, created_at DESC);
                     """
                 )
                 metadata = {
@@ -331,8 +374,34 @@ class ProjectWorkspace:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE key = 'schema_version'"
             ).fetchone()
-            if row is None or row[0] != _SCHEMA_VERSION:
+            if row is None or row[0] not in {"1", _SCHEMA_VERSION}:
                 raise WorkspaceError("unsupported or missing workspace schema")
+            if row[0] == "1":
+                connection.executescript(
+                    """
+                    BEGIN IMMEDIATE;
+                    CREATE TABLE validations (
+                        id TEXT PRIMARY KEY,
+                        request_key TEXT NOT NULL,
+                        revision_id TEXT NOT NULL REFERENCES revisions(id),
+                        created_at TEXT NOT NULL,
+                        outcome TEXT NOT NULL,
+                        settings_json TEXT NOT NULL,
+                        report_json TEXT NOT NULL,
+                        mesh_sha256 TEXT,
+                        native_model_valid INTEGER NOT NULL,
+                        evaluates_to_3d INTEGER NOT NULL,
+                        basic_mesh_valid INTEGER NOT NULL,
+                        fabrication_suitable INTEGER NOT NULL
+                    );
+                    CREATE INDEX validations_revision_created
+                    ON validations(revision_id, created_at DESC);
+                    UPDATE metadata SET value = '2' WHERE key = 'schema_version';
+                    COMMIT;
+                    """
+                )
+        workspace.meshes.mkdir(exist_ok=True)
+        workspace.validation_runs.mkdir(exist_ok=True)
         return workspace
 
     @contextmanager
@@ -448,6 +517,35 @@ class ProjectWorkspace:
             raise WorkspaceError(f"artifact failed hash verification: {path}")
         return data
 
+    def _validation(self, row: sqlite3.Row) -> NativeValidation:
+        mesh_sha = row["mesh_sha256"]
+        return NativeValidation(
+            id=row["id"],
+            revision_id=row["revision_id"],
+            created_at=row["created_at"],
+            outcome=row["outcome"],
+            settings=json.loads(row["settings_json"]),
+            report=json.loads(row["report_json"]),
+            mesh_path=(
+                str(self.meshes / f"{mesh_sha}.stl") if mesh_sha is not None else None
+            ),
+            mesh_sha256=mesh_sha,
+            native_model_valid=bool(row["native_model_valid"]),
+            evaluates_to_3d=bool(row["evaluates_to_3d"]),
+            basic_mesh_valid=bool(row["basic_mesh_valid"]),
+            fabrication_suitable=bool(row["fabrication_suitable"]),
+        )
+
+    def _latest_validation(
+        self, connection: sqlite3.Connection, revision_id: str
+    ) -> NativeValidation | None:
+        row = connection.execute(
+            "SELECT * FROM validations WHERE revision_id = ? "
+            "ORDER BY created_at DESC, id DESC LIMIT 1",
+            (revision_id,),
+        ).fetchone()
+        return None if row is None else self._validation(row)
+
     def status(self) -> WorkspaceStatus:
         with self._connect() as connection:
             revision = self._get_revision(connection, "HEAD")
@@ -464,6 +562,7 @@ class ProjectWorkspace:
                     "SELECT name, revision_id FROM branches ORDER BY name"
                 ).fetchall()
             }
+            latest_validation = self._latest_validation(connection, revision.id)
         return WorkspaceStatus(
             root=str(self.root),
             current_branch=branch,
@@ -472,7 +571,119 @@ class ProjectWorkspace:
             artifact_path=str(self.artifacts / f"{revision.artifact_sha256}.xxp"),
             xdx_version=version,
             constraints=_constraints_from_dict(json.loads(raw_constraints)),
+            latest_validation=latest_validation,
         )
+
+    def validate_native(
+        self,
+        *,
+        ref: str = "HEAD",
+        executable: str | Path = DEFAULT_XENODREAM_EXECUTABLE,
+        settings: MeshExportSettings = MeshExportSettings(),
+        timeout_seconds: float = 600,
+        poll_seconds: float = 1,
+    ) -> NativeValidation:
+        """Evaluate a revision in XenoDream and attach immutable mesh evidence."""
+
+        executable_path = Path(executable).resolve(strict=True)
+        with self._connect() as connection:
+            revision = self._get_revision(connection, ref)
+        source = self.artifacts / f"{revision.artifact_sha256}.xxp"
+        executable_sha = sha256(executable_path.read_bytes()).hexdigest()
+        request = {
+            "revision_id": revision.id,
+            "artifact_sha256": revision.artifact_sha256,
+            "executable_sha256": executable_sha,
+            "settings": asdict(settings),
+            "runner_schema": "xenodream-batch-stl/v2",
+        }
+        request_key = sha256(_json_bytes(request)).hexdigest()
+        with self._connect() as connection:
+            cached = connection.execute(
+                "SELECT * FROM validations WHERE request_key = ? AND outcome = 'succeeded' "
+                "ORDER BY created_at DESC LIMIT 1",
+                (request_key,),
+            ).fetchone()
+            if cached is not None:
+                validation = self._validation(cached)
+                if validation.mesh_path is None or Path(validation.mesh_path).is_file():
+                    return validation
+
+        run_directory = self.validation_runs / f"{revision.id[:12]}-{uuid4().hex}"
+        report_path = run_directory / "report.json"
+        report = run_export(
+            executable_path,
+            source,
+            run_directory,
+            report_path,
+            timeout_seconds,
+            poll_seconds,
+            settings,
+        )
+        stl_data = report.get("stl")
+        mesh_sha: str | None = None
+        mesh_report: StlReport | None = None
+        if isinstance(stl_data, dict) and isinstance(stl_data.get("path"), str):
+            produced = Path(stl_data["path"])
+            if produced.is_file():
+                mesh_bytes = produced.read_bytes()
+                mesh_sha = sha256(mesh_bytes).hexdigest()
+                mesh_path = self.meshes / f"{mesh_sha}.stl"
+                if mesh_path.exists():
+                    if mesh_path.read_bytes() != mesh_bytes:
+                        raise WorkspaceError("mesh hash collision or corrupted mesh")
+                else:
+                    temporary = self.meshes / f".{mesh_sha}.{uuid4().hex}.tmp"
+                    try:
+                        with temporary.open("xb") as stream:
+                            stream.write(mesh_bytes)
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                        os.replace(temporary, mesh_path)
+                    finally:
+                        if temporary.exists():
+                            temporary.unlink()
+                mesh_report = StlReport(**stl_data)
+
+        outcome = str(report.get("outcome"))
+        native_model_valid = outcome == "succeeded"
+        evaluates_to_3d = native_model_valid and mesh_report is not None
+        mesh_valid = evaluates_to_3d and basic_mesh_valid(mesh_report)
+        fabrication_suitable = False
+        created_at = _now()
+        validation_payload = {
+            "request_key": request_key,
+            "report": report,
+            "mesh_sha256": mesh_sha,
+            "created_at": created_at,
+        }
+        validation_id = sha256(_json_bytes(validation_payload)).hexdigest()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "INSERT INTO validations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    validation_id,
+                    request_key,
+                    revision.id,
+                    created_at,
+                    outcome,
+                    _json_bytes(request).decode(),
+                    _json_bytes(report).decode(),
+                    mesh_sha,
+                    int(native_model_valid),
+                    int(evaluates_to_3d),
+                    int(mesh_valid),
+                    int(fabrication_suitable),
+                ),
+            )
+            row = connection.execute(
+                "SELECT * FROM validations WHERE id = ?", (validation_id,)
+            ).fetchone()
+            connection.commit()
+        if row is None:
+            raise WorkspaceError("validation was not recorded")
+        return self._validation(row)
 
     def _record_revision(
         self,

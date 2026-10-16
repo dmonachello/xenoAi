@@ -28,6 +28,22 @@ class StlReport:
     signed_volume: float
 
 
+def basic_mesh_valid(report: StlReport) -> bool:
+    """Return whether the STL passes topology checks independent of fabrication."""
+
+    return all(
+        (
+            report.triangle_count > 0,
+            report.degenerate_triangles == 0,
+            report.boundary_edges == 0,
+            report.non_manifold_edges == 0,
+            report.inconsistent_winding_edges == 0,
+            report.connected_components == 1,
+            report.signed_volume != 0,
+        )
+    )
+
+
 def inspect_binary_stl(path: Path) -> StlReport:
     data = path.read_bytes()
     if len(data) < 84:

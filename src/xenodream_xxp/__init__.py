@@ -21,7 +21,8 @@ from .generator import (
     compile_three_cubes,
 )
 from .recipes import centered_x_row
-from .mesh import StlReport, inspect_binary_stl
+from .mesh import StlReport, basic_mesh_valid, inspect_binary_stl
+from .native_export import MeshExportSettings
 from .metamorph import inspect_metamorphs, load_metamorph_registry
 from .solidify import (
     SolidifyError,
@@ -44,6 +45,7 @@ from .workspace import (
     ApplyResult,
     ArtifactInfo,
     FabricationConstraints,
+    NativeValidation,
     ProjectWorkspace,
     Revision,
     WorkspaceError,
@@ -65,6 +67,7 @@ __all__ = [
     "ApplyResult",
     "ArtifactInfo",
     "FabricationConstraints",
+    "NativeValidation",
     "ProjectWorkspace",
     "Revision",
     "WorkspaceError",
@@ -74,6 +77,7 @@ __all__ = [
     "SPHERE_COMPILER_PROFILE",
     "SphereSpec",
     "StlReport",
+    "MeshExportSettings",
     "SolidifyError",
     "SolidifyReport",
     "SolidifySettings",
@@ -91,6 +95,7 @@ __all__ = [
     "sphere_metamorph_profile_evidence",
     "sphere_metamorph_profiles",
     "inspect_binary_stl",
+    "basic_mesh_valid",
     "inspect_metamorphs",
     "load_metamorph_registry",
     "solidify_binary_stl",
