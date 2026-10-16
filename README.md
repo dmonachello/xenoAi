@@ -102,11 +102,13 @@ ranges.
 
 `inspect-metamorphs` reports every persisted `Holon\N\MM\M` block, its Style,
 declared and observed parameter counts, operation-registry match, and individual
-raw tokens. It labels a token only when its stored meaning is verified. Native
-UI labels whose token order remains unknown appear separately as displayed
-parameter names. Candidate families such as Cylinder, Torus, Pipe, RoundCube,
-Cog, SpiralShell, and Crystal are identification leads, not writable generator
-operations.
+raw tokens. For XenoDream X 1.220 Sphere and Cube records, it reports every
+token's binary-recovered name and whether it is numeric or discrete. Numeric
+descriptors include the native minimum, maximum, default, step, and decimal
+places; discrete descriptors include the default index and choice strings.
+These are read-only facts and do not authorize unvalidated mutations. Candidate
+families such as Cylinder, Torus, Pipe, RoundCube, Cog, SpiralShell, and Crystal
+remain identification leads, not writable generator operations.
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
 overwrite an existing path. Verified controls can be supplied explicitly:

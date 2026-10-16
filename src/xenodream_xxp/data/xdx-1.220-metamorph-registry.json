@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "target": {
     "product": "XenoDream X",
     "format_version": "1.220",
@@ -7,7 +7,8 @@
   },
   "policy": {
     "candidate_names_do_not_authorize_writes": true,
-    "displayed_parameter_order_is_not_token_order": true,
+    "token_order_requires_explicit_binary_indexes": true,
+    "descriptor_domains_do_not_authorize_writes": true,
     "unknown_tokens_remain_unmapped": true
   },
   "operations": [
@@ -24,10 +25,24 @@
         "Shear", "Shear Bias", "XZ Curve", "Taper X", "Taper Type",
         "Taper Shape"
       ],
-      "token_bindings": [],
+      "token_bindings": [
+        {"token_index": 0, "name": "Warp", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.001", "decimal_places": 3, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 1, "name": "Warp Shape", "kind": "choice", "default": 0, "choices": ["Round Up", "Tear Up", "Sharp Up", "Round Anti", "Tear Anti", "Sharp Anti", "Round Top", "Tear Top", "Sharp Top", "Round Bottom", "Tear Bottom", "Sharp Bottom"], "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 2, "name": "Waist", "kind": "numeric", "minimum": "-200", "maximum": "200", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 3, "name": "Ovoid", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.001", "decimal_places": 3, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 4, "name": "Sharpness", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.001", "decimal_places": 3, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 5, "name": "Bilobe", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.001", "decimal_places": 3, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 6, "name": "Shear", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.001", "decimal_places": 3, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 7, "name": "Shear Bias", "kind": "numeric", "minimum": "-200", "maximum": "200", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 8, "name": "XZ Curve", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 9, "name": "Taper X", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.1", "decimal_places": 1, "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 10, "name": "Taper Type", "kind": "choice", "default": 0, "choices": ["Y and Z", "Y", "Z"], "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]},
+        {"token_index": 11, "name": "Taper Shape", "kind": "choice", "default": 0, "choices": ["Linear", "Curve down", "Curve up", "S bend", "Plateau", "Rocket", "Funnel"], "status": "binary_verified", "evidence": ["R027", "REA 0x5aaca8"]}
+      ],
       "evidence": [
         "experiments/m4-generated-sphere",
-        "REA string 0x5ab225",
+        "R027",
+        "REA metadata range 0x5aaca8..0x5ab4f8",
         "evidence/corpus/xdx-corpus-inventory.json"
       ]
     },
@@ -44,16 +59,20 @@
         "Crop Face", "Corner Crush", "Face Squeeze", "Face Choice"
       ],
       "token_bindings": [
-        {
-          "token_index": 0,
-          "name": "Face Warp",
-          "status": "verified",
-          "evidence": ["E049", "experiments/metamorph-face-warp"]
-        }
+        {"token_index": 0, "name": "Face Warp", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "confirmed", "evidence": ["E049", "R027", "experiments/metamorph-face-warp", "REA 0x5abfd8"]},
+        {"token_index": 1, "name": "Face Shape", "kind": "choice", "default": 0, "choices": ["Pyramid", "Pyramid 45", "Cone", "Bullet"], "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 2, "name": "Face Curve", "kind": "numeric", "minimum": "0", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 3, "name": "Inset", "kind": "numeric", "minimum": "0", "maximum": "99.99", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 4, "name": "Edge Warp", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 5, "name": "Crop Face", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 6, "name": "Corner Crush", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 7, "name": "Face Squeeze", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]},
+        {"token_index": 8, "name": "Face Choice", "kind": "choice", "default": 0, "choices": ["All", "X, Y", "X, Z", "X", "Y", "Z"], "status": "binary_verified", "evidence": ["R027", "REA 0x5abfd8"]}
       ],
       "evidence": [
         "experiments/m3-generated-cube",
-        "REA strings 0x5ac1d7 and 0x5ac406",
+        "R027",
+        "REA metadata range 0x5abfd8..0x5ac694",
         "evidence/corpus/xdx-corpus-inventory.json"
       ]
     },

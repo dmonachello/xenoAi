@@ -259,11 +259,28 @@
         {"artifact": "src/xenodream_xxp/data/xdx-1.220-metamorph-registry.json"}
       ],
       "generator_implication": "Use the registry for lossless semantic inspection and binary targeting. Do not enable new operation writes until descriptor population, persisted token bindings, ranges, and native mesh behavior are verified."
+    },
+    {
+      "id": "R027",
+      "topic": "sphere_cube_indexed_parameter_descriptors",
+      "relationship": "CONFIRMS+EXTENDS",
+      "interpretation": "The XenoDream X 1.220 operation table explicitly maps persisted parameter indexes 0-11 for Sphere Style 1 and 0-8 for Cube Style 5. Numeric descriptors carry native minimum, maximum, default, step, and decimal-place metadata; discrete descriptors carry a default index and choice strings.",
+      "confidence": "high",
+      "manual_evidence": ["E049", "accepted_sphere_style_1_numpars_12", "accepted_cube_style_5_numpars_9", "R026"],
+      "binary_evidence": [
+        {"address": "0x7f4390", "evidence_id": "ev_8879be053706028117ff1fc6966c6b02fa5b179a2835de2dc796926d26c4d1cb"},
+        {"address": "0x5e0114", "evidence_id": "ev_85261e10d061437c85ac32c043fa92f9c65c09cd07a693f3848bbc5f2a790ae5"},
+        {"address": "0x788e0c", "evidence_id": "ev_7954c7ec76b5d2f0ddd9796f271f55c098a5358ab95122cdf5f82bc75b6f564a"},
+        {"address": "0x67a88c", "evidence_id": "ev_5c28be4d31e49cd71d1f951ca3d4a2e3d0d812d6e855bfd4e173be596a9621ea"},
+        {"address": "0x67a728", "evidence_id": "ev_bf1cb8b680976dcc7f9bea32e675d91bd40da7b6d2786697c2f20a2c065eafc1"},
+        {"artifact": "evidence/rea/metamorph-descriptor-session.json"}
+      ],
+      "generator_implication": "Expose exact descriptor domains through read-only inspection. Keep new parameter writes disabled until evaluator tracing and automated native mesh sweeps establish geometric effects and safe sculpture envelopes."
     }
   ],
   "unresolved_priorities": [
     "closed_volumetric_operation_registry",
-    "constructor_and_metamorph_parameter_descriptors",
+    "metamorph_evaluator_formulas_and_interactions",
     "mesh_tessellation_controls",
     "manifold_predicate_coverage",
     "hierarchy_identity_and_references",

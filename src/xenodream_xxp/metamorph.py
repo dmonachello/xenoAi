@@ -88,6 +88,13 @@ def inspect_metamorphs(document: Document) -> dict[str, Any]:
         parameters = []
         for index, raw in enumerate(tokens):
             binding = bindings.get(index)
+            descriptor = None
+            if binding is not None:
+                descriptor = {
+                    key: value
+                    for key, value in binding.items()
+                    if key not in {"token_index", "name", "status", "evidence"}
+                }
             parameters.append(
                 {
                     "token_index": index,
@@ -97,6 +104,7 @@ def inspect_metamorphs(document: Document) -> dict[str, Any]:
                         "unresolved" if binding is None else binding["status"]
                     ),
                     "evidence": [] if binding is None else binding["evidence"],
+                    "descriptor": descriptor,
                 }
             )
 
