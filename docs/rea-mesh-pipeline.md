@@ -1,0 +1,160 @@
+# XenoDream X mesh-pipeline investigation
+
+Date: 2026-10-16
+
+This checkpoint traces the installed XenoDream X 1.220 executable from native
+model evaluation toward triangle export. It does not change the generator.
+Addresses apply only to the analyzed executable with SHA-256
+`1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e`.
+The retained REA evidence is `evidence/rea/mesh-pipeline-session.json`; the
+separately retained Batch Export dossiers are in
+`evidence/rea/batch-automation-session.json`.
+
+## Result
+
+XenoDream's Mesh Export path evaluates a procedural model into a sampled scalar
+volume, extracts an isosurface with a cube-edge triangulation algorithm, then
+runs optional mesh-processing stages before writing triangles. This is the
+first direct binary evidence connecting native procedural holons to physical
+3D mesh data.
+
+The algorithm at `0x7ca990` reads eight scalar samples for one grid cell and
+tests sign changes across the cell's 12 edges. It interpolates a point on every
+crossed edge. The routines reached through `0x7cbb20` resolve those edge points
+into shared vertex indices and append triples to the global triangle-index
+buffer. This is a marching-cubes-like isosurface pipeline. The exact case table,
+ambiguity policy, and scalar-field formula remain to be recovered before
+claiming mathematical equivalence to a particular marching-cubes variant.
+
+`0x7cc444` computes a normal for each triangle from its three resolved vertex
+positions. The STL, OBJ, and PLY writers consume the same vertex and triangle
+stores. Binary STL therefore represents evaluated geometry, not a separate
+render-only approximation.
+
+## Recovered control flow
+
+```text
+native .xxp model
+      |
+      v
+Filling worker (callback at 0x7c9704)
+      |
+      v
+sampled scalar volume (global rooted at 0x7f6498)
+      |
+      v
+cell edge crossings (0x7ca990: 8 corners, 12 edges)
+      |
+      v
+cell triangulation (0x7cbb20 family)
+      |
+      +--> shared vertex store (global rooted at 0x7f60c8)
+      +--> triangle index store (global rooted at 0x7f6148)
+      |
+      v
+De-noising -> Simplifying -> Smoothing
+      |
+      v
+export dispatch 0x7d9054
+      +--> OBJ 0x7d1548
+      +--> binary STL 0x7d0220
+      +--> POV include
+      +--> PLY 0x7d05d4 / 0x7d0e74
+```
+
+The UI stage function `0x7d8e08` supplies the observed stage names `Filling`,
+`Triangulating`, `De-noising`, `Simplifying`, and `Smoothing`. A worker created
+at `0x7d9df0` invokes the supplied callback through `0x6e7b8c`; this establishes
+that these operations run asynchronously rather than in the UI handler.
+
+## Geometry details recovered
+
+- `0x7ca990` compares an isovalue against eight values read from the volume and
+  encodes crossings in a 12-bit edge mask. Each crossing point is linearly
+  interpolated on one cube edge.
+- `0x7cbc28` accepts triangle edge triples, inserts or finds their vertices in
+  a shared vertex structure, and writes three vertex indices per triangle.
+- `0x7cc444` reads those three vertices, computes a triangle normal, and stores
+  one 3-component normal per triangle.
+- `0x7d520c` can remap triangle indices through a vertex map, discard triangles
+  whose remapped indices collapse, and compact the triangle list. This is
+  evidence of a deduplication/remapping pass, not yet proof of a manifold test.
+- `0x7d0220` writes the evaluated triangles as binary STL records and applies a
+  computed scale. The source and physical unit of that scale remain unknown.
+
+These findings **EXTEND** the manual work. The manual experiments proved that
+specific cube and sphere projects open and render. They did not establish how
+XenoDream evaluates those projects or that Mesh Export consumes a real
+triangle mesh. No finding in this pass contradicts the accepted generator.
+
+## Batch automation
+
+`0x7d57a4` is the Batch Export start handler. It snapshots UI settings through
+`0x7da8e0`, creates a job, and enters state machine `0x7da994`. The job contains
+the export selector, source index/current `.xxp`, destination, optional
+processing flag, source callback, callback receiver, and state.
+
+The state machine loads successive projects, drives evaluation and optional
+processing, then calls export dispatcher `0x7d9054` in state 7. One source
+callback walks a configured file list; another walks a numbered
+`%s_%.5d.xxp` sequence. Failures display `Batch stopped - save failed - disk
+full?`.
+
+This proves that routine multi-file evaluation/export can be automated without
+asking for one manual open per model. It does **not** prove a headless CLI. The
+path is VCL GUI-configured and advances by private message `0x801b`. Static
+searches found no defined `-batch`, `/batch`, `silent`, or command-line usage
+strings. The safe automation boundary is Windows UI Automation over the Batch
+Export form, not direct injection of the private message.
+
+## Corpus reconciliation
+
+The reproducible inventory at `evidence/corpus/xdx-corpus-inventory.json` was
+generated by `scripts/inventory_xdx_corpus.py` from 247 installed projects and
+the current `XDXSystem.xmm`.
+
+- All 247 projects parse and round-trip byte-for-byte.
+- Every declared `Header.NumHolons` equals the observed holon count.
+- All 953 metamorph records have `NumPars` equal to the `Pars` token count.
+- The corpus spans many historical versions; only two files are 1.220.
+- Type1 first-metamorph correlations identify candidates including Sphere
+  Style 1, Cube 5, Torus 42, Pipe 11, Cylinder 13, Crystal 72, Cog 62, and
+  SpiralShell 65.
+- Parameter counts change by version, including Sphere Style 1 and Cube Style
+  5. A style/payload rule must therefore be version-aware.
+
+The correlations are discovery leads, not format definitions. Names may be
+edited, and no corpus record alone proves closedness, manifoldness,
+connectedness, thickness, units, or printability.
+
+## Physical-sculpture implications
+
+The most valuable next static target is the scalar-field evaluator that fills
+the sampled volume. It connects constructor/metamorph parameters to actual
+geometry. After that, recover mesh sampling dimensions, isovalue, simplifier,
+smoother, export-scale controls, and the producer behind the manifold status.
+
+The strongest operation-specific next target is Cylinder Style 13. Installed
+metadata contains both `Open half cylinder` and `Closed half cylinder` presets,
+which gives a focused static comparison for the parameter controlling closure.
+Torus 42 and Pipe 11 follow because the installed corpus has many examples.
+
+No mesh should be called printable from native validity or STL export alone.
+Automated acceptance must separately record:
+
+1. native project load success;
+2. successful scalar evaluation and triangle generation;
+3. external checks for closure, manifoldness, orientation, degeneracy,
+   connected components, and self-intersection;
+4. process-specific checks for dimensions, minimum thickness, unsupported
+   regions, and tolerances.
+
+## Next automated experiment
+
+Use one disposable copy of an already accepted project and a new empty output
+directory. Launch it through the registered file argument, inspect the Windows
+UI Automation tree, open Batch Export, select binary STL, and run exactly one
+job. Wait for the `Cancel Batch` caption to return to `Run Batch` and for the
+output file to stabilize. Hash the source before and after, validate STL count
+and length, then run independent mesh checks. Do not inject message `0x801b`
+and do not save the source project.

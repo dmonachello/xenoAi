@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "target": {
+    "product": "XenoDream X",
+    "version": "1.22.0.0",
+    "format_version": "1.220",
+    "architecture": "x86",
+    "sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e"
+  },
+  "acceptance_levels": [
+    "native_structure_valid",
+    "evaluates_to_3d_geometry",
+    "mesh_geometrically_valid",
+    "mesh_fabrication_suitable"
+  ],
+  "claims": [
+    {
+      "id": "R001",
+      "topic": "Header.NumHolons",
+      "relationship": "CONFIRMS",
+      "interpretation": "The 1.220 loader reads NumHolons, requires a value of at least one, allocates that count, and loops over holon deserialization.",
+      "confidence": "high",
+      "manual_evidence": ["E050", "E055", "E060"],
+      "binary_evidence": [{"function": "0x60af28", "evidence_id": "ev_a505f1e57a73331323d9a6b7cbb6dc1465cb117a3db3296382387ac572a5a501"}],
+      "generator_implication": "Recover holon construction rules before removing bounded profiles."
+    },
+    {
+      "id": "R002",
+      "topic": "SelectionSpots",
+      "relationship": "EXTENDS",
+      "interpretation": "The section stores up to nine selection collections; each nonempty value contains metadata, a count, and holon IDs, and the loader retains only resolving IDs.",
+      "confidence": "high",
+      "manual_evidence": ["E031", "E033", "E040", "E059", "E067"],
+      "binary_evidence": [
+        {"function": "0x60e698", "evidence_id": "ev_e418172b3ea38bc2f06224e9e877544d17598d8297d91caf1654a6b13fcc64d1"},
+        {"function": "0x61781c", "evidence_id": "ev_23d45ce74081f9a02bb9c2b232ada1896d9668f7802285691cd112f8e12c90cb"}
+      ],
+      "generator_implication": "Model it as editor selection state, not geometry, when general serialization is implemented."
+    },
+    {
+      "id": "R003",
+      "topic": "mesh_export_formats",
+      "relationship": "EXTENDS",
+      "interpretation": "Format selector values dispatch to OBJ, STL, POV-Ray include, and PLY writers.",
+      "confidence": "high",
+      "manual_evidence": [],
+      "binary_evidence": [{"function": "0x7d9054", "evidence_id": "ev_36e21f668e2a1ad381b180737a4b0823026cd2183b4149738e184a7c1df4edc0"}],
+      "generator_implication": "Add export automation only after the UI/caller path is recovered."
+    },
+    {
+      "id": "R004",
+      "topic": "binary_stl_writer",
+      "relationship": "EXTENDS",
+      "interpretation": "The native writer emits binary STL header, count, normals, and triangle vertices and applies a computed scale whose source fields are unidentified.",
+      "confidence": "high",
+      "manual_evidence": [],
+      "binary_evidence": [{"function": "0x7d0220", "evidence_id": "ev_1130203810b93e59bef67603f6d21f93f6661cae2d6e88303419d79e2729398d"}],
+      "generator_implication": "Validate emitted topology and dimensions independently."
+    },
+    {
+      "id": "R006",
+      "topic": "manifold_status_display",
+      "relationship": "EXTENDS",
+      "interpretation": "Mesh preview displays Manifold or NOT Manifold from an unknown flag and two unknown global values; the underlying topology test has not been located.",
+      "confidence": "medium",
+      "manual_evidence": [],
+      "binary_evidence": [
+        {"function": "0x7d93f8", "evidence_id": "ev_fcf88268c7d7142ddab13b98a5f1bcdf3abb9564dfaef66c896d0cee08e9be10"},
+        {"function": "0x7da49c", "evidence_id": "ev_f1f45e734c041a3d4f467fbe2385591f77793dcd76fbdf8ebbf994e26f75aef3"}
+      ],
+      "generator_implication": "Treat native status as one signal, never as proof of printability."
+    },
+    {
+      "id": "R005",
+      "topic": "obj_and_ply_writers",
+      "relationship": "EXTENDS",
+      "interpretation": "The binary includes OBJ, ASCII PLY, and binary little-endian PLY writers with triangular faces and conditional normals/colors.",
+      "confidence": "high",
+      "manual_evidence": [],
+      "binary_evidence": [
+        {"function": "0x7d1548", "evidence_id": "ev_79eac6320f45d93796bd85d4f1e1d51bb3a579cc4f0962e97360350a0ec2bdcc"},
+        {"function": "0x7d05d4", "evidence_id": "ev_3fe3a464e972709466eba7d83625dacbaad846bbf3b1cdd9dbbf30fb63f238cc"},
+        {"function": "0x7d0e74", "evidence_id": "ev_0a6072f8d770e1a050e27705da5b472c5d98879abb7c59e7773b61682b7041bd"}
+      ],
+      "generator_implication": "Use OBJ/PLY diagnostic exports for topology, normal, and optional color inspection."
+    },
+    {
+      "id": "R007",
+      "topic": "mesh_import_constructor",
+      "relationship": "EXTENDS",
+      "interpretation": "Embedded help documents a Mesh constructor importing OBJ, PLY, or STL with scaling, centering, color, order, and a stated ten-million-triangle cap.",
+      "confidence": "medium",
+      "manual_evidence": [],
+      "binary_evidence": [{"string": "0x5bcf3e", "evidence_id": "ev_e3ec270ade941c86dfa09e7c021a30a5ff8efe6350fd1a4f21045e340cb5ca07"}],
+      "generator_implication": "Potential repaired-mesh bridge; persisted schema and portability must be recovered first."
+    },
+    {
+      "id": "R008",
+      "topic": "operation_vocabulary",
+      "relationship": "EXTENDS",
+      "interpretation": "Installed plaintext metadata contains 60 operation/preset families and 517 payload assignments.",
+      "confidence": "medium",
+      "manual_evidence": ["cube_style_5", "sphere_style_1"],
+      "binary_evidence": [{"artifact": "XDXSystem.xmm", "sha256": "affff961b7a1b937a0bd45e42b7399b337c937582ecd7041b7dfc90ea9fd1af2"}],
+      "generator_implication": "Recover descriptor schema and prioritize closed 3D operations."
+    },
+    {
+      "id": "R009",
+      "topic": "3mf_export",
+      "relationship": "UNRESOLVED",
+      "interpretation": "No defined 3MF string was found; this does not exclude packed, constructed, or indirect support.",
+      "confidence": "low",
+      "manual_evidence": [],
+      "binary_evidence": [{"search": "3MF", "evidence_id": "ev_025f524de068c6bca09d8f86ba65af4fc5f11c9add0bb4de6a9e06259b0ca56a"}],
+      "generator_implication": "Treat STL/OBJ/PLY as evidenced and plan external 3MF conversion unless later evidence proves native support."
+    },
+    {
+      "id": "R010",
+      "topic": "current_generator_mappings",
+      "relationship": "CONFIRMS",
+      "interpretation": "No first-pass binary finding contradicts the accepted Transform, GradDensity, Face Warp, or bounded output behavior.",
+      "confidence": "medium",
+      "manual_evidence": ["docs/verified-semantics.md", "89_tests", "application_resave_acceptance"],
+      "binary_evidence": [{"function": "0x60af28", "evidence_id": "ev_a505f1e57a73331323d9a6b7cbb6dc1465cb117a3db3296382387ac572a5a501"}],
+      "generator_implication": "Keep the verified implementation as a regression oracle; do not rewrite it from decompiler interpretations."
+    },
+    {
+      "id": "R011",
+      "topic": "batch_evaluation_export",
+      "relationship": "EXTENDS",
+      "interpretation": "An asynchronous application state machine prepares/evaluates the model and dispatches mesh export with save-failure handling.",
+      "confidence": "medium",
+      "manual_evidence": ["manual_open_render_resave_acceptance"],
+      "binary_evidence": [{"function": "0x7da994", "evidence_id": "ev_84194281904adfe092366677bf6bf721f78c029d9e1430b8aa7459317a6fc151"}],
+      "generator_implication": "Recover its configuration and entry path to automate routine acceptance."
+    },
+    {
+      "id": "R012",
+      "topic": "installed_project_corpus",
+      "relationship": "CONFIRMS",
+      "interpretation": "All 247 installed projects parse and serialize byte-identically, and every declared NumHolons matches the observed holon section count.",
+      "confidence": "high",
+      "manual_evidence": ["parser_regression_suite"],
+      "binary_evidence": [{"artifact": "evidence/corpus/xdx-corpus-inventory.json", "sha256": "23a83bd77067ba1ba59b8ba46284d285f81f22ab39fabaced2c964ed12672d69"}],
+      "generator_implication": "Use the corpus as broad preservation evidence, not as current-version templates."
+    },
+    {
+      "id": "R013",
+      "topic": "metamorph_payload_length",
+      "relationship": "CONFIRMS",
+      "interpretation": "All 953 installed metamorph sections with numeric NumPars have the same number of whitespace-delimited Pars tokens.",
+      "confidence": "high",
+      "manual_evidence": ["cube_and_sphere_templates"],
+      "binary_evidence": [{"artifact": "evidence/corpus/xdx-corpus-inventory.json"}],
+      "generator_implication": "Enforce count consistency while keeping parameter schemas version-specific."
+    },
+    {
+      "id": "R014",
+      "topic": "constructor_style_candidates",
+      "relationship": "EXTENDS",
+      "interpretation": "Historical Type1 first-metamorph correlations identify broad candidate constructor families beyond Cube and Sphere.",
+      "confidence": "medium",
+      "manual_evidence": ["cube_style_5", "sphere_style_1"],
+      "binary_evidence": [{"artifact": "evidence/corpus/xdx-corpus-inventory.json"}, {"artifact": "XDXSystem.xmm", "sha256": "affff961b7a1b937a0bd45e42b7399b337c937582ecd7041b7dfc90ea9fd1af2"}],
+      "generator_implication": "Use correlations to select binary targets; do not expose them as verified constructors."
+    },
+    {
+      "id": "R015",
+      "topic": "scalar_isosurface_evaluation",
+      "relationship": "EXTENDS",
+      "interpretation": "The mesh path samples eight scalar values per cell, detects crossings on 12 cube edges, interpolates edge points, and assembles shared indexed triangles in a marching-cubes-like pipeline.",
+      "confidence": "high",
+      "manual_evidence": ["cube_and_sphere_render_acceptance"],
+      "binary_evidence": [
+        {"function": "0x7ca990", "evidence_id": "ev_90dbb161c2773888a12833f385e89d1568800e49604fc2c621e6eb8243e2d504"},
+        {"function": "0x7cbb20", "evidence_id": "ev_0062fde5740594c9d97a9b729859bc31aa196350e52afe77edd43c7138889561"},
+        {"function": "0x7cbc28", "evidence_id": "ev_f6f9b81c4b8f14fe206189c21d5e7149f754785a61300e53c7540c90180a50ce"}
+      ],
+      "generator_implication": "Recover the scalar evaluator and descriptors before generalizing constructors."
+    },
+    {
+      "id": "R016",
+      "topic": "triangle_processing",
+      "relationship": "EXTENDS",
+      "interpretation": "XenoDream computes triangle normals and exposes Filling, Triangulating, De-noising, Simplifying, and Smoothing stages; one pass remaps vertices and drops collapsed triangles.",
+      "confidence": "medium",
+      "manual_evidence": [],
+      "binary_evidence": [
+        {"function": "0x7cc444", "evidence_id": "ev_106554a9f5b55eb86a056b2ef966ef66c824b79ac2b61519df8ea44f189a02d1"},
+        {"function": "0x7d8e08", "evidence_id": "ev_8a92b0d8bdcbd9f181b38ea9feef157227a2c8ddf80f9235c6a2daeb04b5d51e"},
+        {"function": "0x7d520c", "evidence_id": "ev_76613a8768980d134ba3f010451ac5a867595eb643d0973ee7dee5493cba6bcb"}
+      ],
+      "generator_implication": "Do not expose processing controls until their effects and ranges are recovered; validate externally."
+    },
+    {
+      "id": "R017",
+      "topic": "batch_ui_automation",
+      "relationship": "EXTENDS",
+      "interpretation": "The GUI Batch Export path enumerates configured files or numbered XXP sequences, drives asynchronous evaluation, and exports each result; no supported headless batch switch was found.",
+      "confidence": "high",
+      "manual_evidence": ["manual_application_acceptance"],
+      "binary_evidence": [
+        {"function": "0x7d57a4", "evidence_id": "ev_04a31b1d1571957a3ef572865cc52854c2c3c65659de525fa8334753a7580081"},
+        {"function": "0x7da8e0", "evidence_id": "ev_b66002d46d64dd2a62ff74e6702fffe89d0b378eec49c26893acaf1633dc6334"},
+        {"function": "0x7da994", "evidence_id": "ev_84194281904adfe092366677bf6bf721f78c029d9e1430b8aa7459317a6fc151"}
+      ],
+      "generator_implication": "Automate the existing form with Windows UI Automation instead of claiming a CLI or injecting private messages."
+    }
+  ],
+  "unresolved_priorities": [
+    "closed_volumetric_operation_registry",
+    "constructor_and_metamorph_parameter_descriptors",
+    "mesh_tessellation_controls",
+    "physical_unit_mapping",
+    "manifold_predicate_coverage",
+    "hierarchy_identity_and_references",
+    "automated_application_invocation",
+    "external_printability_validation_pipeline"
+  ]
+}
