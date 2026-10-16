@@ -16,8 +16,10 @@ from .document import parse_bytes
 from .generator import (
     COMPILER_PROFILE,
     CUBE_SPHERE_COMPILER_PROFILE,
+    CYLINDER_COMPILER_PROFILE,
     CubeProjectSpec,
     CubeSpec,
+    CylinderSpec,
     GenerationError,
     ProjectSpec,
     SPHERE_COMPILER_PROFILE,
@@ -28,6 +30,7 @@ from .generator import (
     Vector3,
     compile_cube,
     compile_cube_project,
+    compile_cylinder,
     compile_project,
     compile_sphere,
     compile_three_cubes,
@@ -149,6 +152,26 @@ def _parser() -> argparse.ArgumentParser:
         help="create the verified XDX 1.220 sphere project",
     )
     generate_sphere.add_argument("output", type=Path)
+
+    generate_cylinder = commands.add_parser(
+        "generate-cylinder",
+        help="create the binary-recovered default XDX 1.220 Cylinder project",
+    )
+    generate_cylinder.add_argument("output", type=Path)
+    generate_cylinder.add_argument(
+        "--scale",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("50"), Decimal("50"), Decimal("50")),
+    )
+    generate_cylinder.add_argument(
+        "--position",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
 
     generate_cube_sphere = commands.add_parser(
         "generate-cube-sphere",
@@ -651,6 +674,33 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "bytes": len(output),
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": SPHERE_COMPILER_PROFILE,
+                }
+            )
+            return 0
+
+        if args.command == "generate-cylinder":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            output = compile_cylinder(
+                CylinderSpec(
+                    scale=Vector3(*args.scale),
+                    position=Vector3(*args.position),
+                )
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": CYLINDER_COMPILER_PROFILE,
+                    "native_validation_required": True,
+                    "fabrication_suitable": False,
                 }
             )
             return 0

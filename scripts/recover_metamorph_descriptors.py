@@ -59,6 +59,7 @@ class ChoiceDescriptor:
 PROFILES = (
     OperationProfile(style=1, name="Sphere", expected_descriptors=12, end_style=2),
     OperationProfile(style=5, name="Cube", expected_descriptors=9, end_style=6),
+    OperationProfile(style=13, name="Cylinder", expected_descriptors=7, end_style=14),
 )
 
 
@@ -260,12 +261,18 @@ def recover(executable: bytes) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("executable", type=Path)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         report = recover(args.executable.read_bytes())
     except (OSError, RecoveryError) as error:
         parser.error(str(error))
-    print(json.dumps(report, indent=2, sort_keys=True))
+    rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    if args.output is None:
+        print(rendered, end="")
+    else:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(rendered, encoding="utf-8")
     return 0
 
 

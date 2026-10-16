@@ -91,14 +91,25 @@
     {
       "style": 13,
       "name": "Cylinder",
-      "role": "candidate_constructor",
-      "status": "historical_corpus_candidate",
-      "confidence": "medium",
-      "format_versions": [],
-      "verified_num_pars": [],
-      "displayed_parameter_names": [],
-      "token_bindings": [],
-      "evidence": ["R014", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
+      "role": "constructor",
+      "status": "binary_descriptor_native_evaluated_record_family",
+      "confidence": "high",
+      "format_versions": ["1.220", "historical 0.992-1.007"],
+      "verified_num_pars": [7],
+      "displayed_parameter_names": [
+        "Length", "Arc", "Closed Ends", "Wedge", "Spherical",
+        "Bevel Edges", "Bevel"
+      ],
+      "token_bindings": [
+        {"token_index": 0, "name": "Length", "kind": "numeric", "minimum": "0", "maximum": "200", "default": "1", "step": "0.001", "decimal_places": 3, "status": "binary_verified", "evidence": ["R034", "REA 0x5af453"]},
+        {"token_index": 1, "name": "Arc", "kind": "numeric", "minimum": "0.01", "maximum": "360", "default": "360", "step": "0.01", "decimal_places": 2, "status": "binary_verified", "evidence": ["R034", "REA 0x5af486"]},
+        {"token_index": 2, "name": "Closed Ends", "kind": "choice", "default": 2, "choices": ["None", "Back", "Both"], "status": "binary_verified", "evidence": ["R034", "REA 0x5af4b6"]},
+        {"token_index": 3, "name": "Wedge", "kind": "choice", "default": 0, "choices": ["No", "Yes"], "status": "binary_verified", "evidence": ["R034", "REA 0x5af509"]},
+        {"token_index": 4, "name": "Spherical", "kind": "choice", "default": 0, "choices": ["No", "Yes"], "status": "binary_verified", "evidence": ["R034", "REA 0x5af54f"]},
+        {"token_index": 5, "name": "Bevel Edges", "kind": "numeric", "minimum": "-100", "maximum": "100", "default": "0", "step": "0.1", "decimal_places": 1, "status": "binary_verified", "evidence": ["R034", "REA 0x5af599"]},
+        {"token_index": 6, "name": "Bevel", "kind": "choice", "default": 2, "choices": ["Front", "Back", "Both Ends"], "status": "binary_verified", "evidence": ["R034", "REA 0x5af5d1"]}
+      ],
+      "evidence": ["R014", "R034", "E100", "REA metadata range 0x5af204..0x5af834", "XDXSystem.xmm", "evidence/corpus/xdx-corpus-inventory.json"]
     },
     {
       "style": 42,

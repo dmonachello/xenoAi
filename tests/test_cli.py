@@ -10,10 +10,12 @@ from xenodream_xxp.document import parse_bytes
 from xenodream_xxp.generator import (
     COMPILER_PROFILE,
     CUBE_SPHERE_COMPILER_PROFILE,
+    CYLINDER_COMPILER_PROFILE,
     SPHERE_COMPILER_PROFILE,
     THREE_CUBE_COMPILER_PROFILE,
     TWO_CUBE_COMPILER_PROFILE,
     compile_sphere,
+    compile_cylinder,
 )
 
 
@@ -286,6 +288,18 @@ def test_generate_sphere_writes_verified_reference(tmp_path, capsys) -> None:
     assert output.read_bytes() == reference.read_bytes()
 
 
+def test_generate_cylinder_writes_native_accepted_default(tmp_path, capsys) -> None:
+    output = tmp_path / "cylinder.xxp"
+
+    assert main(["generate-cylinder", str(output)]) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["compiler_profile"] == CYLINDER_COMPILER_PROFILE
+    assert result["native_validation_required"] is True
+    assert result["fabrication_suitable"] is False
+    assert output.read_bytes() == compile_cylinder()
+
+
 def test_generate_cube_sphere_writes_controlled_reference(tmp_path, capsys) -> None:
     output = tmp_path / "cube-sphere.xxp"
     reference = (
@@ -303,7 +317,11 @@ def test_generate_cube_sphere_writes_controlled_reference(tmp_path, capsys) -> N
 
 
 def test_new_generator_commands_refuse_to_overwrite(tmp_path, capsys) -> None:
-    for command in ("generate-sphere", "generate-cube-sphere"):
+    for command in (
+        "generate-sphere",
+        "generate-cylinder",
+        "generate-cube-sphere",
+    ):
         output = tmp_path / f"{command}.xxp"
         output.write_bytes(b"keep")
 

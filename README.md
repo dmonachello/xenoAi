@@ -29,6 +29,7 @@ xxp solidify-stl output/model.stl output/model-solid.stl `
   --amount-mm 1.0 --voxel-mm 0.5
 xxp generate-cube output/generated_cube.xxp
 xxp generate-sphere output/generated_sphere.xxp
+xxp generate-cylinder output/generated_cylinder.xxp
 xxp generate-two-cubes output/generated_two_cubes.xxp
 xxp generate-three-cubes output/generated_three_cubes.xxp
 xxp generate-cube-sphere output/generated_cube_sphere.xxp
@@ -113,6 +114,14 @@ unmeasured combination. The resulting revision remains editable in XenoDream,
 but the command reports `native_validation_required: true` and
 `fabrication_suitable: false`. It does not turn the recovered descriptor ranges
 into unrestricted write permission.
+
+`generate-cylinder` is the first constructor added without a manually created
+1.220 Cylinder template. Its Style 13 identity, seven parameter slots, names,
+domains, and defaults come from the executable operation registry and are
+reconciled with nine historical native records and installed presets. The
+default project passed isolated XenoDream evaluation and basic mesh validation.
+The public command currently exposes only verified transform controls;
+unrestricted Cylinder metamorph edits remain gated on automated measurements.
 
 `project evolve` derives a repeatable variation from the current revision.
 The same source revision, seed, and strength produce identical native bytes.

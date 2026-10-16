@@ -9,6 +9,7 @@ import pytest
 from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import SectionRecord, parse_bytes
 from xenodream_xxp.generator import (
+    CylinderSpec,
     CubeSpec,
     CubeProjectSpec,
     GenerationError,
@@ -18,6 +19,7 @@ from xenodream_xxp.generator import (
     Vector3,
     compile_cube,
     compile_cube_project,
+    compile_cylinder,
     compile_project,
     compile_sphere,
     compile_three_cubes,
@@ -74,6 +76,53 @@ THREE_CUBE_ACCEPTANCE = (
     / "m3-generated-three-cubes"
 )
 D = Decimal
+
+
+def _value(data: bytes, section: bytes, key: bytes) -> bytes:
+    matches = [
+        record.value
+        for record in parse_bytes(data).records
+        if getattr(record, "section", None) == section
+        and getattr(record, "key", None) == key
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def test_default_cylinder_uses_binary_recovered_record_family() -> None:
+    output = compile_cylinder()
+
+    assert parse_bytes(output).to_bytes() == output
+    assert _value(output, b"Header", b"Progversion") == b"1.220"
+    assert _value(output, b"Holon\\1", b"Name") == b"Cylinder2"
+    assert _value(output, b"Holon\\1\\MM\\0", b"Style") == b"13"
+    assert _value(output, b"Holon\\1\\MM\\0", b"NumPars") == b"7"
+    assert _value(output, b"Holon\\1\\MM\\0", b"Pars") == (
+        b"1.00000 360.0000 2 0 0 0.000 2 "
+    )
+
+
+def test_cylinder_transform_edits_are_isolated() -> None:
+    baseline = parse_bytes(compile_cylinder())
+    changed = parse_bytes(
+        compile_cylinder(
+            CylinderSpec(
+                scale=Vector3(D("25"), D("50"), D("75")),
+                position=Vector3(D("10"), D("20"), D("30")),
+            )
+        )
+    )
+
+    assert [
+        (item["section"], item["key"], item.get("token_index"))
+        for item in diff_documents(baseline, changed)
+    ] == [
+        ("Holon\\1", "Transform", 0),
+        ("Holon\\1", "Transform", 2),
+        ("Holon\\1", "Transform", 9),
+        ("Holon\\1", "Transform", 10),
+        ("Holon\\1", "Transform", 11),
+    ]
 
 
 def test_default_cube_is_byte_identical_to_verified_template() -> None:

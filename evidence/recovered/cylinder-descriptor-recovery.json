@@ -1,0 +1,464 @@
+{
+  "operation_count": 246,
+  "operation_table_va": "0x7f4390",
+  "operations": [
+    {
+      "descriptors": [
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 1500,
+          "control_flag_38": 0,
+          "decimal_places": 3,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Warp",
+          "payload_hex": "000000000400576172700000c8c20000c842000000006f12833a0300000008000000dc05000000",
+          "slot": 0,
+          "source_va": "0x5aaecb",
+          "step": 0.0010000000474974513
+        },
+        {
+          "choices": [
+            "Round Up",
+            "Tear Up",
+            "Sharp Up",
+            "Round Anti",
+            "Tear Anti",
+            "Sharp Anti",
+            "Round Top",
+            "Tear Top",
+            "Sharp Top",
+            "Round Bottom",
+            "Tear Bottom",
+            "Sharp Bottom"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Warp Shape",
+          "payload_hex": "010000000a00576172702053686170650c000000000000000800526f756e64205570070054656172205570080053686172702055700a00526f756e6420416e746909005465617220416e74690a00536861727020416e74690900526f756e6420546f7008005465617220546f700900536861727020546f700c00526f756e6420426f74746f6d0b005465617220426f74746f6d0c00536861727020426f74746f6d000000000000000000000000",
+          "slot": 1,
+          "source_va": "0x5aaefc",
+          "unresolved_tail_hex": "000000000000000000000000"
+        },
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 800,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 200.0,
+          "minimum": -200.0,
+          "name": "Waist",
+          "payload_hex": "0200000005005761697374000048c300004843000000000ad7233c02000000080000002003000000",
+          "slot": 2,
+          "source_va": "0x5aafb3",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 500,
+          "control_flag_38": 0,
+          "decimal_places": 3,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Ovoid",
+          "payload_hex": "0300000005004f766f69640000c8c20000c842000000006f12833a0300000008000000f401000000",
+          "slot": 3,
+          "source_va": "0x5aafe5",
+          "step": 0.0010000000474974513
+        },
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 1500,
+          "control_flag_38": 0,
+          "decimal_places": 3,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Sharpness",
+          "payload_hex": "04000000090053686172706e6573730000c8c20000c842000000006f12833a0300000008000000dc05000000",
+          "slot": 4,
+          "source_va": "0x5ab017",
+          "step": 0.0010000000474974513
+        },
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 1000,
+          "control_flag_38": 0,
+          "decimal_places": 3,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Bilobe",
+          "payload_hex": "05000000060042696c6f62650000c8c20000c842000000006f12833a0300000008000000e803000000",
+          "slot": 5,
+          "source_va": "0x5ab04d",
+          "step": 0.0010000000474974513
+        },
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 1000,
+          "control_flag_38": 0,
+          "decimal_places": 3,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Shear",
+          "payload_hex": "06000000050053686561720000c8c20000c842000000006f12833a0300000008000000e803000000",
+          "slot": 6,
+          "source_va": "0x5ab080",
+          "step": 0.0010000000474974513
+        },
+        {
+          "control_arg_30": 8,
+          "control_arg_34": 1000,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 200.0,
+          "minimum": -200.0,
+          "name": "Shear Bias",
+          "payload_hex": "070000000a0053686561722042696173000048c300004843000000000ad7233c0200000008000000e803000000",
+          "slot": 7,
+          "source_va": "0x5ab0b2",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 6,
+          "control_arg_34": 500,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "XZ Curve",
+          "payload_hex": "080000000800585a2043757276650000c8c20000c842000000000ad7233c0200000006000000f401000000",
+          "slot": 8,
+          "source_va": "0x5ab0e9",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 5,
+          "control_arg_34": 100,
+          "control_flag_38": 0,
+          "decimal_places": 1,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Taper X",
+          "payload_hex": "090000000700546170657220580000c8c20000c84200000000cdcccc3d01000000050000006400000000",
+          "slot": 9,
+          "source_va": "0x5ab11e",
+          "step": 0.10000000149011612
+        },
+        {
+          "choices": [
+            "Y and Z",
+            "Y",
+            "Z"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Taper Type",
+          "payload_hex": "0a0000000a0054617065722054797065030000000000000007005920616e64205a01005901005a000000000000000000000000000000000000000000000000000000000000",
+          "slot": 10,
+          "source_va": "0x5ab152",
+          "unresolved_tail_hex": "000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "choices": [
+            "Linear",
+            "Curve down",
+            "Curve up",
+            "S bend",
+            "Plateau",
+            "Rocket",
+            "Funnel"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Taper Shape",
+          "payload_hex": "0b0000000b005461706572205368617065070000000000000006004c696e6561720a00437572766520646f776e080043757276652075700600532062656e640700506c61746561750600526f636b6574060046756e6e656c00000000000000000000000000000000000000000000",
+          "slot": 11,
+          "source_va": "0x5ab1a1",
+          "unresolved_tail_hex": "00000000000000000000000000000000000000000000"
+        }
+      ],
+      "metadata_range": [
+        "0x5aaca8",
+        "0x5ab4f8"
+      ],
+      "name": "Sphere",
+      "style": 1
+    },
+    {
+      "descriptors": [
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Face Warp",
+          "payload_hex": "0000000009004661636520576172700000c8c20000c842000000000ad7233c0200000007000000c800000000",
+          "slot": 0,
+          "source_va": "0x5ac1c7",
+          "step": 0.009999999776482582
+        },
+        {
+          "choices": [
+            "Pyramid",
+            "Pyramid 45",
+            "Cone",
+            "Bullet"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Face Shape",
+          "payload_hex": "010000000a004661636520536861706504000000000000000700507972616d69640a00507972616d69642034350400436f6e65060042756c6c657400000000000000000000000000000000000000000000000000000000",
+          "slot": 1,
+          "source_va": "0x5ac1fd",
+          "unresolved_tail_hex": "00000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "name": "Face Curve",
+          "payload_hex": "020000000a0046616365204375727665000000000000c842000000000ad7233c0200000007000000c800000000",
+          "slot": 2,
+          "source_va": "0x5ac25e",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 99.98999786376953,
+          "minimum": 0.0,
+          "name": "Inset",
+          "payload_hex": "030000000500496e73657400000000e1fac742000000000ad7233c0200000007000000c800000000",
+          "slot": 3,
+          "source_va": "0x5ac295",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Edge Warp",
+          "payload_hex": "0400000009004564676520576172700000c8c20000c842000000000ad7233c0200000007000000c800000000",
+          "slot": 4,
+          "source_va": "0x5ac2c7",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Crop Face",
+          "payload_hex": "05000000090043726f7020466163650000c8c20000c842000000000ad7233c0200000007000000c800000000",
+          "slot": 5,
+          "source_va": "0x5ac2fd",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Corner Crush",
+          "payload_hex": "060000000c00436f726e65722043727573680000c8c20000c842000000000ad7233c0200000007000000c800000000",
+          "slot": 6,
+          "source_va": "0x5ac333",
+          "step": 0.009999999776482582
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 200,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Face Squeeze",
+          "payload_hex": "070000000c00466163652053717565657a650000c8c20000c842000000000ad7233c0200000007000000c800000000",
+          "slot": 7,
+          "source_va": "0x5ac36c",
+          "step": 0.009999999776482582
+        },
+        {
+          "choices": [
+            "All",
+            "X, Y",
+            "X, Z",
+            "X",
+            "Y",
+            "Z"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Face Choice",
+          "payload_hex": "080000000b00466163652043686f69636506000000000000000300416c6c0400582c20590400582c205a01005801005901005a000000000000000000000000000000000000000000000000",
+          "slot": 8,
+          "source_va": "0x5ac3a5",
+          "unresolved_tail_hex": "000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "metadata_range": [
+        "0x5abfd8",
+        "0x5ac694"
+      ],
+      "name": "Cube",
+      "style": 5
+    },
+    {
+      "descriptors": [
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 400,
+          "control_flag_38": 0,
+          "decimal_places": 3,
+          "default": 1.0,
+          "kind": "numeric",
+          "maximum": 200.0,
+          "minimum": 0.0,
+          "name": "Length",
+          "payload_hex": "0000000006004c656e67746800000000000048430000803f6f12833a03000000070000009001000000",
+          "slot": 0,
+          "source_va": "0x5af453",
+          "step": 0.0010000000474974513
+        },
+        {
+          "control_arg_30": 7,
+          "control_arg_34": 1500,
+          "control_flag_38": 0,
+          "decimal_places": 2,
+          "default": 360.0,
+          "kind": "numeric",
+          "maximum": 360.0,
+          "minimum": 0.009999999776482582,
+          "name": "Arc",
+          "payload_hex": "0100000003004172630ad7233c0000b4430000b4430ad7233c0200000007000000dc05000000",
+          "slot": 1,
+          "source_va": "0x5af486",
+          "step": 0.009999999776482582
+        },
+        {
+          "choices": [
+            "None",
+            "Back",
+            "Both"
+          ],
+          "default": 2,
+          "kind": "choice",
+          "name": "Closed Ends",
+          "payload_hex": "020000000b00436c6f73656420456e6473030000000200000004004e6f6e6504004261636b0400426f7468000000000000000000000000000000000000000000000000000000000000",
+          "slot": 2,
+          "source_va": "0x5af4b6",
+          "unresolved_tail_hex": "000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "choices": [
+            "No",
+            "Yes"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Wedge",
+          "payload_hex": "0300000005005765646765020000000000000002004e6f03005965730000000000000000000000000000000000000000000000000000000000000000",
+          "slot": 3,
+          "source_va": "0x5af509",
+          "unresolved_tail_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "choices": [
+            "No",
+            "Yes"
+          ],
+          "default": 0,
+          "kind": "choice",
+          "name": "Spherical",
+          "payload_hex": "04000000090053706865726963616c020000000000000002004e6f03005965730000000000000000000000000000000000000000000000000000000000000000",
+          "slot": 4,
+          "source_va": "0x5af54f",
+          "unresolved_tail_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "control_arg_30": 5,
+          "control_arg_34": 100,
+          "control_flag_38": 0,
+          "decimal_places": 1,
+          "default": 0.0,
+          "kind": "numeric",
+          "maximum": 100.0,
+          "minimum": -100.0,
+          "name": "Bevel Edges",
+          "payload_hex": "050000000b00426576656c2045646765730000c8c20000c84200000000cdcccc3d01000000050000006400000000",
+          "slot": 5,
+          "source_va": "0x5af599",
+          "step": 0.10000000149011612
+        },
+        {
+          "choices": [
+            "Front",
+            "Back",
+            "Both Ends"
+          ],
+          "default": 2,
+          "kind": "choice",
+          "name": "Bevel",
+          "payload_hex": "060000000500426576656c0300000002000000050046726f6e7404004261636b0900426f746820456e6473000000000000000000000000000000000000000000000000000000000000",
+          "slot": 6,
+          "source_va": "0x5af5d1",
+          "unresolved_tail_hex": "000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "metadata_range": [
+        "0x5af204",
+        "0x5af834"
+      ],
+      "name": "Cylinder",
+      "style": 13
+    }
+  ],
+  "schema_version": 1,
+  "target_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e"
+}

@@ -12,6 +12,7 @@ TWO_CUBE_COMPILER_PROFILE = "xdx-1.220-two-cube-evidence-2026-10-15"
 THREE_CUBE_COMPILER_PROFILE = "xdx-1.220-three-cube-evidence-2026-10-15"
 SPHERE_COMPILER_PROFILE = "xdx-1.220-sphere-evidence-2026-10-15"
 CUBE_SPHERE_COMPILER_PROFILE = "xdx-1.220-cube-sphere-evidence-2026-10-15"
+CYLINDER_COMPILER_PROFILE = "xdx-1.220-cylinder-binary-corpus-2026-10-16"
 
 
 class GenerationError(ValueError):
@@ -76,6 +77,20 @@ class SphereSpec:
             raise TypeError("position must be Vector3")
 
 
+@dataclass(frozen=True, slots=True)
+class CylinderSpec:
+    """Transform controls for the binary-recovered default Cylinder constructor."""
+
+    scale: Vector3 = Vector3(Decimal("50"), Decimal("50"), Decimal("50"))
+    position: Vector3 = Vector3()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.scale, Vector3):
+            raise TypeError("scale must be Vector3")
+        if not isinstance(self.position, Vector3):
+            raise TypeError("position must be Vector3")
+
+
 SupportedCubes: TypeAlias = (
     tuple[CubeSpec]
     | tuple[CubeSpec, CubeSpec]
@@ -105,6 +120,7 @@ SupportedObjects: TypeAlias = (
     | tuple[CubeSpec, CubeSpec, CubeSpec]
     | tuple[SphereSpec]
     | tuple[CubeSpec, SphereSpec]
+    | tuple[CylinderSpec]
 )
 
 _SUPPORTED_OBJECT_SIGNATURES = {
@@ -113,6 +129,7 @@ _SUPPORTED_OBJECT_SIGNATURES = {
     (CubeSpec, CubeSpec, CubeSpec),
     (SphereSpec,),
     (CubeSpec, SphereSpec),
+    (CylinderSpec,),
 }
 
 
@@ -129,7 +146,7 @@ class ProjectSpec:
         if signature not in _SUPPORTED_OBJECT_SIGNATURES:
             raise GenerationError(
                 "supported object sequences are cube, cube/cube, "
-                "cube/cube/cube, sphere, and cube/sphere"
+                "cube/cube/cube, sphere, cube/sphere, and cylinder"
             )
 
 
@@ -179,6 +196,8 @@ def compile_project(spec: ProjectSpec | None = None) -> bytes:
     project = spec if spec is not None else ProjectSpec()
     if not isinstance(project, ProjectSpec):
         raise TypeError("spec must be ProjectSpec")
+    if tuple(type(item) for item in project.objects) == (CylinderSpec,):
+        return compile_cylinder(project.objects[0])
     return compile_project_template(project)
 
 
@@ -189,6 +208,17 @@ def compile_sphere(spec: SphereSpec | None = None) -> bytes:
     if not isinstance(sphere, SphereSpec):
         raise TypeError("spec must be SphereSpec")
     return compile_project(ProjectSpec(objects=(sphere,)))
+
+
+def compile_cylinder(spec: CylinderSpec | None = None) -> bytes:
+    """Compile the recovered default XDX 1.220 Cylinder constructor."""
+
+    from ._constructor_project import compile_cylinder_template
+
+    cylinder = spec if spec is not None else CylinderSpec()
+    if not isinstance(cylinder, CylinderSpec):
+        raise TypeError("spec must be CylinderSpec")
+    return compile_cylinder_template(cylinder)
 
 
 def compile_three_cubes(spec: ThreeCubeProjectSpec | None = None) -> bytes:

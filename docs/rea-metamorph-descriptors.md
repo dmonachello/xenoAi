@@ -68,3 +68,13 @@ experiments. The next investigation should trace selected descriptor values
 into the Sphere and Cube evaluator functions, then use automated native STL
 exports to measure topology, connectedness, thickness, and surface changes for
 small isolated parameter sweeps.
+
+## Cylinder extension
+
+M15 extended the same bounded extractor to Style 13. The current binary defines
+seven Cylinder slots in metadata range `0x5af204..0x5af834`; their exact payload
+is retained in `evidence/recovered/cylinder-descriptor-recovery.json`. Nine
+historical native Cylinder records independently use the same Style and
+seven-token order. A default record built from the reconciled rules passed
+automated XenoDream evaluation and mesh inspection. See
+`docs/m15-cylinder-constructor.md`.
