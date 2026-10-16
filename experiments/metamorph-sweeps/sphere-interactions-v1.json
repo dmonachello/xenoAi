@@ -1,0 +1,98 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-plan/v2",
+  "operation": "Sphere",
+  "source": "../../src/xenodream_xxp/templates/xdx-1.220/sphere_base.xxp",
+  "holon": 1,
+  "baseline_replicates": 2,
+  "cases": [
+    {
+      "id": "warp-control",
+      "compare_to": "baseline",
+      "source": "XDXSystem.xmm Sphere/Apple 1 numeric control",
+      "mutations": [
+        {"parameter": "Warp", "value": "-7"}
+      ]
+    },
+    {
+      "id": "warp-sharp-anti",
+      "compare_to": "warp-control",
+      "source": "XDXSystem.xmm Sphere/Apple 1",
+      "mutations": [
+        {"parameter": "Warp", "value": "-7"},
+        {"parameter": "Warp Shape", "value": "Sharp Anti"}
+      ]
+    },
+    {
+      "id": "warp-tear-anti",
+      "compare_to": "warp-control",
+      "source": "native Warp Shape choice paired with the Apple 1 Warp value",
+      "mutations": [
+        {"parameter": "Warp", "value": "-7"},
+        {"parameter": "Warp Shape", "value": "Tear Anti"}
+      ]
+    },
+    {
+      "id": "shear-control",
+      "compare_to": "baseline",
+      "source": "XDXSystem.xmm Sphere/Heart 2 numeric control",
+      "mutations": [
+        {"parameter": "Shear", "value": "8"}
+      ]
+    },
+    {
+      "id": "shear-biased",
+      "compare_to": "shear-control",
+      "source": "XDXSystem.xmm Sphere/Heart 2",
+      "mutations": [
+        {"parameter": "Shear", "value": "8"},
+        {"parameter": "Shear Bias", "value": "100"}
+      ]
+    },
+    {
+      "id": "taper-control",
+      "compare_to": "baseline",
+      "source": "XDXSystem.xmm Sphere/Cushion numeric control",
+      "mutations": [
+        {"parameter": "Taper X", "value": "-28"}
+      ]
+    },
+    {
+      "id": "taper-y",
+      "compare_to": "taper-control",
+      "source": "native Taper Type Y choice",
+      "mutations": [
+        {"parameter": "Taper X", "value": "-28"},
+        {"parameter": "Taper Type", "value": "Y"}
+      ]
+    },
+    {
+      "id": "taper-z",
+      "compare_to": "taper-control",
+      "source": "native Taper Type Z choice",
+      "mutations": [
+        {"parameter": "Taper X", "value": "-28"},
+        {"parameter": "Taper Type", "value": "Z"}
+      ]
+    },
+    {
+      "id": "taper-curve-up",
+      "compare_to": "taper-control",
+      "source": "XDXSystem.xmm Sphere/Cushion Taper Shape",
+      "mutations": [
+        {"parameter": "Taper X", "value": "-28"},
+        {"parameter": "Taper Shape", "value": "Curve up"}
+      ]
+    },
+    {
+      "id": "cushion-core",
+      "compare_to": "taper-control",
+      "source": "XDXSystem.xmm Sphere/Cushion interaction subset",
+      "mutations": [
+        {"parameter": "XZ Curve", "value": "-20"},
+        {"parameter": "Taper X", "value": "-28"},
+        {"parameter": "Taper Type", "value": "Y"},
+        {"parameter": "Taper Shape", "value": "Curve up"}
+      ]
+    }
+  ]
+}

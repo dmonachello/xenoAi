@@ -319,6 +319,20 @@
         {"artifact": "experiments/metamorph-sweeps/sphere-isolated-v1.json"}
       ],
       "generator_implication": "Use the strong connected effects as candidates for an interaction sweep and later evidence-gated Sphere mutation. Continue native evaluation and mesh scoring, and keep fabrication suitability false."
+    },
+    {
+      "id": "R031",
+      "topic": "sphere_metamorph_interactions",
+      "relationship": "CONFIRMS+EXTENDS",
+      "interpretation": "Warp Shape, Shear Bias, Taper Type, and Taper Shape produced mesh changes beyond repeated-baseline variation when paired with their driving numeric parameters. A preset-derived four-parameter cushion combination also produced a large measured effect. All tested final meshes retained one component and the current basic topology predicates.",
+      "confidence": "high_for_tested_combinations",
+      "manual_evidence": ["R027", "R030", "installed_XDXSystem.xmm_Sphere_presets"],
+      "binary_evidence": [
+        {"artifact": "docs/m13-sphere-interaction-sweep.md"},
+        {"artifact": "evidence/runtime/m13-sphere-interaction-sweep-summary.json"},
+        {"artifact": "experiments/metamorph-sweeps/sphere-interactions-v1.json"}
+      ],
+      "generator_implication": "Permit only exact tested controls and combinations in an opt-in experimental Sphere mutation policy with required native evaluation and mesh scoring. Do not infer safety for unrestricted descriptor-domain combinations."
     }
   ],
   "unresolved_priorities": [

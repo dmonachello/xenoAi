@@ -1,0 +1,44 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-evidence/v2",
+  "plan": "experiments/metamorph-sweeps/sphere-interactions-v1.json",
+  "plan_sha256": "8f79075f40fdfdd52b919f7ed20b1179e491269477ac491bfddb6759fde508e3",
+  "source_summary_sha256": "6321e85f06741e74de7eeb679a4652d4bdbb17204f02d03828510c52e5bdeb38",
+  "settings": {
+    "stl_max_dimension_mm": 100,
+    "mesh_size_percent": 25
+  },
+  "execution": {
+    "jobs": 12,
+    "successful_jobs": 12,
+    "jobs_requiring_retry": {
+      "warp-sharp-anti": ["automation_failed", "succeeded"],
+      "taper-y": ["automation_failed", "succeeded"]
+    }
+  },
+  "baseline": {
+    "replicates": 2,
+    "triangle_count": 21662,
+    "triangle_count_span": 0,
+    "absolute_volume_span": 0.09225746698211879,
+    "dimension_spans": [0.0, 0.0034062862396240234, 0.017001867294311523]
+  },
+  "ranked_results": [
+    {"id": "warp-tear-anti", "compare_to": "warp-control", "impact_score": 0.4236334091437068, "triangle_delta": 3264, "absolute_volume_delta": -99813.86289917835, "dimensions_mm": [95.44636964797974, 55.293752908706665, 95.44636964797974], "basic_topology_valid": true},
+    {"id": "cushion-core", "compare_to": "taper-control", "impact_score": 0.3360205964995055, "triangle_delta": 2324, "absolute_volume_delta": 125278.15355271759, "dimensions_mm": [95.90475821495056, 95.88643646240234, 95.90475821495056], "basic_topology_valid": true},
+    {"id": "shear-control", "compare_to": "baseline", "impact_score": 0.32069828044613485, "triangle_delta": -1160, "absolute_volume_delta": -148038.79480997857, "dimensions_mm": [84.22860074043274, 95.86225175857544, 84.23180508613586], "basic_topology_valid": true},
+    {"id": "warp-sharp-anti", "compare_to": "warp-control", "impact_score": 0.3153617354274439, "triangle_delta": 2180, "absolute_volume_delta": -54513.568047411274, "dimensions_mm": [94.99999356269836, 65.68080043792725, 94.99999356269836], "basic_topology_valid": true},
+    {"id": "taper-control", "compare_to": "baseline", "impact_score": 0.19233635277957806, "triangle_delta": -1700, "absolute_volume_delta": -88785.14042552852, "dimensions_mm": [95.90202522277832, 95.79616713523865, 95.79616713523865], "basic_topology_valid": true},
+    {"id": "taper-y", "compare_to": "taper-control", "impact_score": 0.10952543884170905, "triangle_delta": 850, "absolute_volume_delta": 40834.2372106961, "dimensions_mm": [95.89658987522125, 95.79616713523865, 95.88435363769531], "basic_topology_valid": true},
+    {"id": "taper-z", "compare_to": "taper-control", "impact_score": 0.10952537117659944, "triangle_delta": 850, "absolute_volume_delta": 40834.211983194924, "dimensions_mm": [95.88775634765625, 95.88775503635406, 95.79017806053162], "basic_topology_valid": true},
+    {"id": "taper-curve-up", "compare_to": "taper-control", "impact_score": 0.1090249995243762, "triangle_delta": 702, "absolute_volume_delta": 40647.65902384161, "dimensions_mm": [95.90202522277832, 95.90475821495056, 95.90475821495056], "basic_topology_valid": true},
+    {"id": "warp-control", "compare_to": "baseline", "impact_score": 0.07782183143031915, "triangle_delta": 102, "absolute_volume_delta": -35923.64174457989, "dimensions_mm": [93.28064322471619, 95.93504166603088, 93.28515982627869], "basic_topology_valid": true},
+    {"id": "shear-biased", "compare_to": "shear-control", "impact_score": 0.07322822328987375, "triangle_delta": 238, "absolute_volume_delta": 22962.550298476126, "dimensions_mm": [84.35717248916626, 95.25734543800354, 84.35123682022095], "basic_topology_valid": true}
+  ],
+  "claims": {
+    "native_structure_valid": true,
+    "evaluates_to_3d_geometry": true,
+    "basic_mesh_predicates_pass": true,
+    "interaction_effects_exceed_observed_baseline": true,
+    "fabrication_suitable": false
+  }
+}

@@ -12,11 +12,17 @@ import re
 import sys
 from typing import Any
 
+from xenodream_xxp.diffing import diff_documents
+from xenodream_xxp.document import parse_bytes
+
 from probe_metamorph_mesh import ProbeError, build_variant
 from run_xenodream_batch_stl import MeshExportSettings, run_export
 
 
-SCHEMA = "xenosculpt-metamorph-sweep-plan/v1"
+SCHEMA_V1 = "xenosculpt-metamorph-sweep-plan/v1"
+SCHEMA_V2 = "xenosculpt-metamorph-sweep-plan/v2"
+SCHEMA = SCHEMA_V1
+PLAN_SCHEMAS = {SCHEMA_V1, SCHEMA_V2}
 MANIFEST_SCHEMA = "xenosculpt-metamorph-sweep/v1"
 SUMMARY_SCHEMA = "xenosculpt-metamorph-sweep-summary/v1"
 DEFAULT_EXECUTABLE = Path(
@@ -51,7 +57,7 @@ def _case_id(value: object) -> str:
 
 def load_plan(path: Path) -> dict[str, Any]:
     plan = _read_json(path)
-    if plan.get("schema") != SCHEMA:
+    if plan.get("schema") not in PLAN_SCHEMAS:
         raise SweepError("unsupported sweep plan schema")
     if plan.get("operation") != "Sphere":
         raise SweepError("the current sweep supports only Sphere")
@@ -69,25 +75,65 @@ def load_plan(path: Path) -> dict[str, Any]:
         if not isinstance(case, dict):
             raise SweepError("each case must be an object")
         identifier = _case_id(case.get("id"))
-        parameter = case.get("parameter")
-        value = case.get("value")
         evidence = case.get("source")
         if identifier in ids:
             raise SweepError(f"duplicate case id {identifier!r}")
-        if not isinstance(parameter, str) or not parameter:
-            raise SweepError(f"case {identifier!r} needs a parameter")
-        if parameter.casefold() in parameters:
-            raise SweepError(f"duplicate parameter {parameter!r}")
-        if not isinstance(value, str) or not value:
-            raise SweepError(f"case {identifier!r} needs a string value")
+        if identifier == "baseline":
+            raise SweepError("case id 'baseline' is reserved")
         if not isinstance(evidence, str) or not evidence:
             raise SweepError(f"case {identifier!r} needs a source citation")
+        if plan["schema"] == SCHEMA_V1:
+            parameter = case.get("parameter")
+            value = case.get("value")
+            if not isinstance(parameter, str) or not parameter:
+                raise SweepError(f"case {identifier!r} needs a parameter")
+            if parameter.casefold() in parameters:
+                raise SweepError(f"duplicate parameter {parameter!r}")
+            if not isinstance(value, str) or not value:
+                raise SweepError(f"case {identifier!r} needs a string value")
+            parameters.add(parameter.casefold())
+        else:
+            compare_to = case.get("compare_to")
+            if compare_to != "baseline" and compare_to not in ids:
+                raise SweepError(
+                    f"case {identifier!r} compare_to must name baseline or an earlier case"
+                )
+            mutations = case.get("mutations")
+            if not isinstance(mutations, list) or not mutations:
+                raise SweepError(f"case {identifier!r} needs a non-empty mutations list")
+            case_parameters: set[str] = set()
+            for mutation in mutations:
+                if not isinstance(mutation, dict):
+                    raise SweepError(f"case {identifier!r} mutations must be objects")
+                parameter = mutation.get("parameter")
+                value = mutation.get("value")
+                if not isinstance(parameter, str) or not parameter:
+                    raise SweepError(f"case {identifier!r} has an unnamed mutation")
+                if parameter.casefold() in case_parameters:
+                    raise SweepError(
+                        f"case {identifier!r} repeats parameter {parameter!r}"
+                    )
+                if not isinstance(value, str) or not value:
+                    raise SweepError(
+                        f"case {identifier!r} parameter {parameter!r} needs a string value"
+                    )
+                case_parameters.add(parameter.casefold())
         ids.add(identifier)
-        parameters.add(parameter.casefold())
     source = plan.get("source")
     if not isinstance(source, str) or not source:
         raise SweepError("source must be a path string")
     return plan
+
+
+def _case_mutations(
+    plan: dict[str, Any], case: dict[str, Any]
+) -> tuple[list[dict[str, str]], str]:
+    if plan["schema"] == SCHEMA_V1:
+        return (
+            [{"parameter": case["parameter"], "value": case["value"]}],
+            "baseline",
+        )
+    return list(case["mutations"]), case["compare_to"]
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -142,27 +188,51 @@ def prepare_sweep(
             }
         )
     for case in plan["cases"]:
-        try:
-            data, facts = build_variant(
-                source, plan["holon"], case["parameter"], case["value"]
+        data = source
+        mutations, compare_to = _case_mutations(plan, case)
+        mutation_facts = []
+        for mutation in mutations:
+            try:
+                data, facts = build_variant(
+                    data,
+                    plan["holon"],
+                    mutation["parameter"],
+                    mutation["value"],
+                )
+            except ProbeError as error:
+                raise SweepError(f"case {case['id']}: {error}") from error
+            mutation_facts.append(
+                {
+                    "parameter": mutation["parameter"],
+                    "requested": mutation["value"],
+                    "persisted": facts["persisted"],
+                    "changed": facts["persisted"] != facts["source_token"],
+                }
             )
-        except ProbeError as error:
-            raise SweepError(f"case {case['id']}: {error}") from error
+        differences = diff_documents(parse_bytes(source), parse_bytes(data))
+        if len(differences) != sum(item["changed"] for item in mutation_facts):
+            raise SweepError(f"case {case['id']} cumulative diff count is inconsistent")
         file_name = f"variants/{case['id']}.xxp"
         (output_directory / file_name).write_bytes(data)
-        jobs.append(
-            {
-                "id": case["id"],
-                "kind": "case",
-                "parameter": case["parameter"],
-                "requested": case["value"],
-                "selection_source": case["source"],
-                "file": file_name,
-                "sha256": _digest(data),
-                "diff": facts["diff"],
-                "persisted": facts["persisted"],
-            }
-        )
+        job = {
+            "id": case["id"],
+            "kind": "case",
+            "selection_source": case["source"],
+            "compare_to": compare_to,
+            "file": file_name,
+            "sha256": _digest(data),
+            "diff": differences,
+            "mutations": mutation_facts,
+        }
+        if plan["schema"] == SCHEMA_V1:
+            job.update(
+                {
+                    "parameter": case["parameter"],
+                    "requested": case["value"],
+                    "persisted": mutation_facts[0]["persisted"],
+                }
+            )
+        jobs.append(job)
     manifest = {
         "schema": MANIFEST_SCHEMA,
         "plan": {"path": str(plan_path.resolve()), "sha256": _digest(plan_bytes)},
@@ -201,6 +271,20 @@ def _topology_valid(stl: dict[str, Any]) -> bool:
     )
 
 
+def _job_mutations(job: dict[str, Any]) -> list[dict[str, Any]]:
+    mutations = job.get("mutations")
+    if isinstance(mutations, list):
+        return mutations
+    return [
+        {
+            "parameter": job["parameter"],
+            "requested": job["requested"],
+            "persisted": job["persisted"],
+            "changed": bool(job.get("diff")),
+        }
+    ]
+
+
 def summarize_sweep(
     manifest: dict[str, Any], output_directory: Path
 ) -> dict[str, Any]:
@@ -231,6 +315,7 @@ def summarize_sweep(
             completed.append({"job": job, "report": report})
     baselines = [item for item in completed if item["job"]["kind"] == "baseline"]
     baseline = baselines[0]["report"]["stl"] if baselines else None
+    completed_by_id = {item["job"]["id"]: item for item in completed}
     baseline_variation = None
     if baselines:
         meshes = [item["report"]["stl"] for item in baselines]
@@ -247,25 +332,37 @@ def summarize_sweep(
             ],
         }
     results = []
+    missing_controls: list[str] = []
     if baseline is not None:
         for item in completed:
             if item["job"]["kind"] != "case":
                 continue
+            compare_to = item["job"].get("compare_to", "baseline")
+            if compare_to == "baseline":
+                control = baseline
+                control_sha256 = manifest["source"]["sha256"]
+            else:
+                control_item = completed_by_id.get(compare_to)
+                if control_item is None:
+                    missing_controls.append(f"{item['job']['id']}->{compare_to}")
+                    continue
+                control = control_item["report"]["stl"]
+                control_sha256 = control_item["job"]["sha256"]
             stl = item["report"]["stl"]
             dimension_delta = [
-                stl["dimensions"][axis] - baseline["dimensions"][axis]
+                stl["dimensions"][axis] - control["dimensions"][axis]
                 for axis in range(3)
             ]
-            volume_delta = abs(stl["signed_volume"]) - abs(baseline["signed_volume"])
+            volume_delta = abs(stl["signed_volume"]) - abs(control["signed_volume"])
             dimension_fraction = max(
-                abs(dimension_delta[axis]) / baseline["dimensions"][axis]
+                abs(dimension_delta[axis]) / control["dimensions"][axis]
                 for axis in range(3)
             )
-            volume_fraction = abs(volume_delta) / abs(baseline["signed_volume"])
+            volume_fraction = abs(volume_delta) / abs(control["signed_volume"])
             observed_effects = []
             if baseline_variation is not None:
                 if (
-                    abs(stl["triangle_count"] - baseline["triangle_count"])
+                    abs(stl["triangle_count"] - control["triangle_count"])
                     > baseline_variation["triangle_count_span"]
                 ):
                     observed_effects.append("triangle_count")
@@ -277,34 +374,41 @@ def summarize_sweep(
                     for axis in range(3)
                 ):
                     observed_effects.append("dimensions")
-            results.append(
-                {
-                    "id": item["job"]["id"],
-                    "parameter": item["job"]["parameter"],
-                    "requested": item["job"]["requested"],
-                    "persisted": item["job"]["persisted"],
-                    "selection_source": item["job"]["selection_source"],
-                    "source_sha256": item["job"]["sha256"],
-                    "stl_sha256": stl["sha256"],
-                    "dimensions": stl["dimensions"],
-                    "triangle_count": stl["triangle_count"],
-                    "absolute_volume": abs(stl["signed_volume"]),
-                    "delta": {
-                        "dimensions": dimension_delta,
-                        "triangle_count": stl["triangle_count"]
-                        - baseline["triangle_count"],
-                        "absolute_volume": volume_delta,
-                    },
-                    "impact_score": max(dimension_fraction, volume_fraction),
-                    "changes_exceeding_observed_baseline": observed_effects,
-                    "basic_topology_valid": _topology_valid(stl),
-                }
-            )
+            result = {
+                "id": item["job"]["id"],
+                "parameter": item["job"].get("parameter")
+                or " + ".join(
+                    mutation["parameter"] for mutation in _job_mutations(item["job"])
+                ),
+                "selection_source": item["job"]["selection_source"],
+                "compare_to": compare_to,
+                "control_source_sha256": control_sha256,
+                "source_sha256": item["job"]["sha256"],
+                "stl_sha256": stl["sha256"],
+                "mutations": _job_mutations(item["job"]),
+                "dimensions": stl["dimensions"],
+                "triangle_count": stl["triangle_count"],
+                "absolute_volume": abs(stl["signed_volume"]),
+                "delta": {
+                    "dimensions": dimension_delta,
+                    "triangle_count": stl["triangle_count"]
+                    - control["triangle_count"],
+                    "absolute_volume": volume_delta,
+                },
+                "impact_score": max(dimension_fraction, volume_fraction),
+                "changes_exceeding_observed_baseline": observed_effects,
+                "basic_topology_valid": _topology_valid(stl),
+            }
+            if "requested" in item["job"]:
+                result["requested"] = item["job"]["requested"]
+                result["persisted"] = item["job"]["persisted"]
+            results.append(result)
     results.sort(key=lambda item: (-item["impact_score"], item["id"]))
     return {
         "schema": SUMMARY_SCHEMA,
-        "complete": not missing,
+        "complete": not missing and not missing_controls,
         "missing_jobs": missing,
+        "missing_controls": missing_controls,
         "execution": execution,
         "settings": manifest["settings"],
         "baseline": baseline,
