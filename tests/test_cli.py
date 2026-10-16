@@ -367,3 +367,98 @@ def test_generate_row_refuses_to_overwrite(tmp_path, capsys) -> None:
     ) == 2
     assert output.read_bytes() == b"keep"
     assert "already exists" in capsys.readouterr().err
+
+
+def test_project_cli_creates_mutates_branches_and_exports(tmp_path, capsys) -> None:
+    source = tmp_path / "source.xxp"
+    workspace = tmp_path / "sculpture.xsp"
+    source.write_bytes(
+        (
+            Path(__file__).parents[1]
+            / "experiments"
+            / "group-creation"
+            / "cube_base.xxp"
+        ).read_bytes()
+    )
+
+    assert main(
+        [
+            "project", "init", str(workspace), str(source),
+            "--process", "FDM",
+            "--build-volume", "220", "220", "250",
+            "--min-feature-mm", "1.2",
+        ]
+    ) == 0
+    created = json.loads(capsys.readouterr().out)
+    assert created["current_branch"] == "main"
+    assert list(created["branches"]) == ["main"]
+    assert created["constraints"]["process"] == "FDM"
+
+    assert main(
+        [
+            "project", "mutate", str(workspace),
+            "--object", "Cube2",
+            "--scale", "25", "50", "100",
+            "--message", "elongate cube",
+            "--prompt", "make it taller",
+        ]
+    ) == 0
+    mutation = json.loads(capsys.readouterr().out)
+    assert mutation["created"] is True
+    assert mutation["revision"]["prompt"] == "make it taller"
+    mutated_sha = mutation["revision"]["artifact_sha256"]
+
+    assert main(
+        ["project", "branch", str(workspace), "alternate", "--checkout"]
+    ) == 0
+    capsys.readouterr()
+    assert main(
+        [
+            "project", "mutate", str(workspace),
+            "--object", "Cube2", "--face-warp", "0.25",
+            "--message", "warp faces",
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    assert main(["project", "compare", str(workspace), "main", "alternate"]) == 1
+    comparison = json.loads(capsys.readouterr().out)
+    assert comparison["differences"][0]["section"] == "Holon\\1\\MM\\0"
+
+    assert main(["project", "checkout", str(workspace), "main"]) == 0
+    capsys.readouterr()
+    output = tmp_path / "active.xxp"
+    assert main(["project", "export", str(workspace), str(output)]) == 0
+    exported = json.loads(capsys.readouterr().out)
+    assert exported["sha256"] == mutated_sha
+    assert b"25.00000 50.00000 100.00000" in output.read_bytes()
+
+
+def test_project_cli_import_and_log(tmp_path, capsys) -> None:
+    source = tmp_path / "source.xxp"
+    workspace = tmp_path / "sculpture.xsp"
+    source.write_bytes(
+        (
+            Path(__file__).parents[1]
+            / "experiments"
+            / "group-creation"
+            / "cube_base.xxp"
+        ).read_bytes()
+    )
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    manual = tmp_path / "manual.xxp"
+    manual.write_bytes(source.read_bytes().replace(b"GradDensity=1.000", b"GradDensity=0.500"))
+    assert main(
+        [
+            "project", "import", str(workspace), str(manual),
+            "--message", "manual edit",
+        ]
+    ) == 0
+    imported = json.loads(capsys.readouterr().out)
+    assert imported["created"] is True
+
+    assert main(["project", "log", str(workspace)]) == 0
+    history = json.loads(capsys.readouterr().out)
+    assert [item["operation"] for item in history] == ["manual-import", "init"]

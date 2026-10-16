@@ -42,10 +42,43 @@ python scripts/build_xenosculpt.py
 dist\xenosculpt.exe --help
 ```
 
-The executable currently exposes the same evidence-backed commands as `xxp`,
-including native project generation and `validate-stl`. A higher-level scene
-description and mutation interface will build on this executable; they are not
-part of the current M5 calibration checkpoint.
+The executable exposes the same evidence-backed commands as `xxp`, including
+native project generation, persistent project revisions, controlled mutations,
+and `validate-stl`. Natural-language planning will build on the typed revision
+interface; unrestricted text-to-scene interpretation is not yet available.
+
+## Persistent projects and controlled mutations
+
+Create a workspace from any existing native XDX project. The source is never
+modified. Native artifacts are stored by SHA-256, while SQLite records the
+revision graph, branches, prompts, and fabrication constraints.
+
+```powershell
+xenosculpt project init sculpture.xsp output/smoke_test.xxp `
+  --process FDM --build-volume 220 220 250 --min-feature-mm 1.2
+
+xenosculpt project mutate sculpture.xsp --object Cube2 `
+  --scale 25 50 100 --message "elongate cube" `
+  --prompt "make the cube taller"
+
+xenosculpt project branch sculpture.xsp alternate --checkout
+xenosculpt project mutate sculpture.xsp --object Cube2 `
+  --face-warp 0.25 --message "warp the faces"
+xenosculpt project compare sculpture.xsp main alternate
+xenosculpt project checkout sculpture.xsp main
+xenosculpt project export sculpture.xsp output/restored-main.xxp
+```
+
+Other commands are `project status`, `project log`, `project row`, and
+`project import`. Import records a model edited manually in XenoDream as a new
+revision. Checkout accepts a branch name or an unambiguous revision prefix.
+Export refuses to overwrite an existing file.
+
+Controlled object mutation currently follows the same evidence boundary as the
+generator. Cubes support scale, rotation, position, color density, and Face
+Warp. Spheres support scale and position. A requested edit outside those rules
+is rejected. Every mutation audits its structural diff and preserves all
+unrelated bytes.
 
 `generate-cube` uses the evidence-gated XDX 1.220 compiler. It refuses to
 overwrite an existing path. Verified controls can be supplied explicitly:

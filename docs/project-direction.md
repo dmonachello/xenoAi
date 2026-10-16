@@ -181,6 +181,13 @@ answer, especially artistic judgment and final fabrication assessment.
 
 ### 1. Add persistent revisions and controlled mutations
 
+Status: initial implementation completed on 2026-10-16. The packaged
+executable now creates workspaces, records fabrication constraints and prompts,
+applies verified object and row mutations, manages branches and checkout,
+compares revisions, imports manual edits, and exports the active native
+artifact. The next extension is natural-language plan generation over this
+typed boundary.
+
 Create a project workspace format that records the active `.xxp`, its hash,
 the XenoDream version, fabrication constraints, and an append-only revision
 graph. Add typed mutation operations for the fields already verified, including

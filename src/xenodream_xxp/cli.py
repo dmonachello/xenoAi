@@ -35,6 +35,8 @@ from .generator import (
 from .report import inspect_document
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
+from .mutation import CenteredRowMutation, ObjectMutation
+from .workspace import FabricationConstraints, ProjectWorkspace
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -146,16 +148,226 @@ def _parser() -> argparse.ArgumentParser:
         metavar=("X", "Y", "Z"),
         default=(Decimal("0"), Decimal("0"), Decimal("0")),
     )
+
+    project = commands.add_parser(
+        "project", help="manage native artifacts, revisions, branches, and mutations"
+    )
+    project_commands = project.add_subparsers(dest="project_command", required=True)
+
+    project_init = project_commands.add_parser(
+        "init", help="create a revision workspace from an existing XDX project"
+    )
+    project_init.add_argument("workspace", type=Path)
+    project_init.add_argument("source", type=Path)
+    project_init.add_argument("--process")
+    project_init.add_argument(
+        "--build-volume", nargs=3, type=Decimal, metavar=("X", "Y", "Z")
+    )
+    project_init.add_argument("--min-feature-mm", type=Decimal)
+
+    project_status = project_commands.add_parser(
+        "status", help="show the current branch, revision, artifact, and constraints"
+    )
+    project_status.add_argument("workspace", type=Path)
+
+    project_mutate = project_commands.add_parser(
+        "mutate", help="apply verified fields to one uniquely named object"
+    )
+    project_mutate.add_argument("workspace", type=Path)
+    project_mutate.add_argument("--object", required=True)
+    project_mutate.add_argument("--scale", nargs=3, type=Decimal, metavar=("X", "Y", "Z"))
+    project_mutate.add_argument(
+        "--rotation", nargs=3, type=Decimal, metavar=("X", "Y", "Z")
+    )
+    project_mutate.add_argument(
+        "--position", nargs=3, type=Decimal, metavar=("X", "Y", "Z")
+    )
+    project_mutate.add_argument("--color-density", type=Decimal)
+    project_mutate.add_argument("--face-warp", type=Decimal)
+    project_mutate.add_argument("--message", required=True)
+    project_mutate.add_argument("--prompt")
+
+    project_row = project_commands.add_parser(
+        "row", help="place the current supported objects in a centered X-axis row"
+    )
+    project_row.add_argument("workspace", type=Path)
+    project_row.add_argument("--spacing", type=Decimal, required=True)
+    project_row.add_argument(
+        "--center",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
+    project_row.add_argument("--message", required=True)
+    project_row.add_argument("--prompt")
+
+    project_branch = project_commands.add_parser(
+        "branch", help="create a branch at a revision or the current HEAD"
+    )
+    project_branch.add_argument("workspace", type=Path)
+    project_branch.add_argument("name")
+    project_branch.add_argument("--from", dest="from_ref", default="HEAD")
+    project_branch.add_argument("--checkout", action="store_true")
+
+    project_checkout = project_commands.add_parser(
+        "checkout", help="restore HEAD to a branch or revision"
+    )
+    project_checkout.add_argument("workspace", type=Path)
+    project_checkout.add_argument("ref")
+
+    project_log = project_commands.add_parser(
+        "log", help="show revision ancestry from a branch, revision, or HEAD"
+    )
+    project_log.add_argument("workspace", type=Path)
+    project_log.add_argument("--ref", default="HEAD")
+
+    project_compare = project_commands.add_parser(
+        "compare", help="compare two branches or revisions"
+    )
+    project_compare.add_argument("workspace", type=Path)
+    project_compare.add_argument("before")
+    project_compare.add_argument("after")
+
+    project_export = project_commands.add_parser(
+        "export", help="write one revision as an editable native XDX project"
+    )
+    project_export.add_argument("workspace", type=Path)
+    project_export.add_argument("output", type=Path)
+    project_export.add_argument("--ref", default="HEAD")
+
+    project_import = project_commands.add_parser(
+        "import", help="record a manually edited XDX project as a revision"
+    )
+    project_import.add_argument("workspace", type=Path)
+    project_import.add_argument("source", type=Path)
+    project_import.add_argument("--message", required=True)
+    project_import.add_argument("--prompt")
     return parser
 
 
 def _print_json(value: object) -> None:
-    print(json.dumps(value, indent=2, sort_keys=True))
+    def encode(item: object) -> str:
+        if isinstance(item, (Decimal, Path)):
+            return str(item)
+        raise TypeError(f"cannot serialize {type(item).__name__} as JSON")
+
+    print(
+        json.dumps(
+            value,
+            indent=2,
+            sort_keys=True,
+            default=encode,
+        )
+    )
+
+
+def _vector(values: Sequence[Decimal] | None) -> Vector3 | None:
+    return None if values is None else Vector3(*values)
+
+
+def _handle_project(args: argparse.Namespace) -> int:
+    if args.project_command == "init":
+        constraints = FabricationConstraints(
+            process=args.process,
+            build_volume_mm=_vector(args.build_volume),
+            min_feature_mm=args.min_feature_mm,
+        )
+        workspace = ProjectWorkspace.create(args.workspace, args.source, constraints)
+        _print_json(asdict(workspace.status()))
+        return 0
+
+    workspace = ProjectWorkspace.open(args.workspace)
+    if args.project_command == "status":
+        _print_json(asdict(workspace.status()))
+        return 0
+    if args.project_command == "mutate":
+        result = workspace.apply(
+            ObjectMutation(
+                object_name=args.object,
+                scale=_vector(args.scale),
+                rotation=_vector(args.rotation),
+                position=_vector(args.position),
+                color_density=args.color_density,
+                face_warp=args.face_warp,
+            ),
+            message=args.message,
+            prompt=args.prompt,
+        )
+        _print_json(
+            {
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "differences": []
+                if result.mutation is None
+                else result.mutation.differences,
+            }
+        )
+        return 0
+    if args.project_command == "row":
+        result = workspace.apply(
+            CenteredRowMutation(args.spacing, Vector3(*args.center)),
+            message=args.message,
+            prompt=args.prompt,
+        )
+        _print_json(
+            {
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "differences": []
+                if result.mutation is None
+                else result.mutation.differences,
+            }
+        )
+        return 0
+    if args.project_command == "branch":
+        revision = workspace.create_branch(
+            args.name, from_ref=args.from_ref, checkout=args.checkout
+        )
+        _print_json(
+            {
+                "branch": args.name,
+                "revision": asdict(revision),
+                "checked_out": args.checkout,
+            }
+        )
+        return 0
+    if args.project_command == "checkout":
+        _print_json(asdict(workspace.checkout(args.ref)))
+        return 0
+    if args.project_command == "log":
+        _print_json([asdict(item) for item in workspace.history(args.ref)])
+        return 0
+    if args.project_command == "compare":
+        differences = workspace.compare(args.before, args.after)
+        _print_json(
+            {
+                "before": args.before,
+                "after": args.after,
+                "differences": differences,
+            }
+        )
+        return 1 if differences else 0
+    if args.project_command == "export":
+        _print_json(asdict(workspace.export(args.output, args.ref)))
+        return 0
+    if args.project_command == "import":
+        result = workspace.import_artifact(
+            args.source, message=args.message, prompt=args.prompt
+        )
+        _print_json(
+            {"created": result.created, "revision": asdict(result.revision)}
+        )
+        return 0
+    raise ValueError(f"unsupported project command: {args.project_command}")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "project":
+            return _handle_project(args)
+
         if args.command == "inspect":
             document = parse_bytes(args.input.read_bytes())
             _print_json(inspect_document(document))

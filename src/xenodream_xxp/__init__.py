@@ -22,6 +22,22 @@ from .generator import (
 )
 from .recipes import centered_x_row
 from .mesh import StlReport, inspect_binary_stl
+from .mutation import (
+    CenteredRowMutation,
+    MutationError,
+    MutationResult,
+    ObjectMutation,
+    apply_verified_mutation,
+)
+from .workspace import (
+    ApplyResult,
+    ArtifactInfo,
+    FabricationConstraints,
+    ProjectWorkspace,
+    Revision,
+    WorkspaceError,
+    WorkspaceStatus,
+)
 
 __all__ = [
     "CubeSpec",
@@ -29,6 +45,17 @@ __all__ = [
     "CUBE_SPHERE_COMPILER_PROFILE",
     "CubeProjectSpec",
     "Document",
+    "CenteredRowMutation",
+    "MutationError",
+    "MutationResult",
+    "ObjectMutation",
+    "ApplyResult",
+    "ArtifactInfo",
+    "FabricationConstraints",
+    "ProjectWorkspace",
+    "Revision",
+    "WorkspaceError",
+    "WorkspaceStatus",
     "GenerationError",
     "ProjectSpec",
     "SPHERE_COMPILER_PROFILE",
@@ -44,6 +71,7 @@ __all__ = [
     "compile_sphere",
     "compile_three_cubes",
     "centered_x_row",
+    "apply_verified_mutation",
     "inspect_binary_stl",
     "parse_bytes",
     "parse_file",
