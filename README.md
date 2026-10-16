@@ -1,5 +1,11 @@
 # XenoDream X `.xxp` tools
 
+The current roadmap is
+[conversational control for physical sculpture](docs/project-direction.md).
+XenoDream remains the first implementation. The project will preserve native
+editability, revision history, and fabrication constraints as it grows beyond
+the current bounded generator.
+
 This repository starts with a conservative reader and writer for XenoDream X
 parameter files. The current milestone preserves observed syntax. It does not
 claim that static parsing proves XenoDream accepts a file.
