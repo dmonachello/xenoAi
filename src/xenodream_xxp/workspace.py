@@ -23,8 +23,10 @@ from .mutation import (
     MutationResult,
     ObjectMutation,
     SeededVariation,
+    SphereMetamorphMutation,
     VerifiedOperation,
     apply_verified_mutation,
+    sphere_metamorph_profile_evidence,
 )
 
 
@@ -173,6 +175,15 @@ def _operation_details(operation: VerifiedOperation) -> dict[str, object]:
             "type": "seeded-variation-v1",
             "seed": operation.seed,
             "strength": str(operation.strength),
+        }
+    if isinstance(operation, SphereMetamorphMutation):
+        return {
+            "type": "sphere-metamorph-profile-v1",
+            "object_name": operation.object_name,
+            "profile": operation.profile,
+            "evidence": list(sphere_metamorph_profile_evidence(operation.profile)),
+            "native_validation_required": True,
+            "fabrication_suitable": False,
         }
     raise TypeError("unsupported verified operation")
 

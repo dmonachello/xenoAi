@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from decimal import Decimal, DecimalException, ROUND_HALF_EVEN
+from functools import lru_cache
+from importlib.resources import files
+import json
 import random
 import re
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 from .diffing import diff_documents
 from .document import Document, KeyValueRecord, SectionRecord, parse_bytes
@@ -89,7 +92,25 @@ class SeededVariation:
             raise MutationError("strength must be finite and greater than 0 through 1")
 
 
-VerifiedOperation: TypeAlias = ObjectMutation | CenteredRowMutation | SeededVariation
+@dataclass(frozen=True, slots=True)
+class SphereMetamorphMutation:
+    """Apply one measured complete Sphere metamorph profile."""
+
+    object_name: str
+    profile: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.object_name, str) or not self.object_name:
+            raise TypeError("object_name must be a non-empty string")
+        if not isinstance(self.profile, str) or not self.profile:
+            raise TypeError("profile must be a non-empty string")
+        if self.profile not in sphere_metamorph_profiles():
+            raise MutationError(f"unknown Sphere metamorph profile {self.profile!r}")
+
+
+VerifiedOperation: TypeAlias = (
+    ObjectMutation | CenteredRowMutation | SeededVariation | SphereMetamorphMutation
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +119,8 @@ class MutationResult:
     changed: bool
     differences: tuple[dict[str, object], ...]
     object_names: tuple[str, ...]
+    native_validation_required: bool = False
+    fabrication_suitable: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +138,86 @@ _SUPPORTED_SIGNATURES = {
     ("sphere",),
     ("cube", "sphere"),
 }
+
+
+@lru_cache(maxsize=1)
+def _sphere_profile_registry() -> dict[str, Any]:
+    resource = files("xenodream_xxp").joinpath(
+        "data", "xdx-1.220-sphere-mutation-profiles.json"
+    )
+    registry = json.loads(resource.read_text(encoding="utf-8"))
+    if registry.get("schema_version") != 1:
+        raise MutationError("unsupported Sphere metamorph profile schema")
+    target = registry.get("target")
+    if not isinstance(target, dict) or target != {
+        "product": "XenoDream X",
+        "format_version": "1.220",
+        "operation": "Sphere",
+        "style": "1",
+        "num_pars": 12,
+    }:
+        raise MutationError("Sphere metamorph profile target is invalid")
+    policy = registry.get("policy")
+    if policy != {
+        "replace_complete_parameter_vector": True,
+        "source_profiles_native_evaluated": True,
+        "source_profiles_basic_topology_valid": True,
+        "new_revision_native_validation_required": True,
+        "fabrication_suitable": False,
+        "arbitrary_parameter_values_allowed": False,
+    }:
+        raise MutationError("Sphere metamorph profile policy is invalid")
+    profiles = registry.get("profiles")
+    if not isinstance(profiles, list) or not profiles:
+        raise MutationError("Sphere metamorph profile registry is empty")
+    names: set[str] = set()
+    for profile in profiles:
+        if not isinstance(profile, dict):
+            raise MutationError("Sphere metamorph profiles must be objects")
+        name = profile.get("name")
+        pars = profile.get("pars")
+        evidence = profile.get("evidence")
+        if not isinstance(name, str) or not name or name in names:
+            raise MutationError("Sphere metamorph profile names must be unique")
+        if (
+            not isinstance(pars, list)
+            or len(pars) != 12
+            or any(
+                not isinstance(token, str)
+                or not token
+                or any(character.isspace() for character in token)
+                or not token.isascii()
+                for token in pars
+            )
+        ):
+            raise MutationError(f"Sphere metamorph profile {name!r} has invalid Pars")
+        if (
+            not isinstance(evidence, list)
+            or not evidence
+            or any(not isinstance(item, str) or not item for item in evidence)
+        ):
+            raise MutationError(f"Sphere metamorph profile {name!r} lacks evidence")
+        names.add(name)
+    return registry
+
+
+def sphere_metamorph_profiles() -> tuple[str, ...]:
+    """Return stable names of measured Sphere metamorph profiles."""
+
+    return tuple(profile["name"] for profile in _sphere_profile_registry()["profiles"])
+
+
+def sphere_metamorph_profile_evidence(name: str) -> tuple[str, ...]:
+    """Return evidence identifiers for one measured profile."""
+
+    return tuple(_sphere_profile(name)["evidence"])
+
+
+def _sphere_profile(name: str) -> dict[str, Any]:
+    for profile in _sphere_profile_registry()["profiles"]:
+        if profile["name"] == name:
+            return profile
+    raise MutationError(f"unknown Sphere metamorph profile {name!r}")
 
 
 def _matching_records(
@@ -201,30 +304,51 @@ def _replace_value(
     places: int,
     token_index: int | None,
 ) -> Document:
+    replacement = _format_decimal(value, places, f"{section!r}.{key!r}")
+    if token_index is None:
+        return _replace_raw_value(document, section, key, replacement)
+    return _replace_token(document, section, key, token_index, replacement)
+
+
+def _replace_raw_value(
+    document: Document, section: bytes, key: bytes, replacement: bytes
+) -> Document:
     matches = _matching_records(document, section, key)
     if len(matches) != 1:
         raise MutationError(f"expected one editable {section!r}.{key!r} record")
     record_index, record = matches[0]
-    replacement = _format_decimal(value, places, f"{section!r}.{key!r}")
-    if token_index is None:
-        new_value = replacement
-    else:
-        tokens = list(re.finditer(rb"\S+", record.value))
-        if token_index >= len(tokens):
-            raise MutationError(f"missing token {token_index} in {section!r}.{key!r}")
-        token = tokens[token_index]
-        new_value = record.value[: token.start()] + replacement + record.value[token.end() :]
     separator = record.content.find(b"=")
     if separator < 0:
         raise MutationError("key/value record lost its separator")
     new_record = replace(
         record,
-        content=record.content[: separator + 1] + new_value,
-        value=new_value,
+        content=record.content[: separator + 1] + replacement,
+        value=replacement,
     )
     records = list(document.records)
     records[record_index] = new_record
     return Document(tuple(records))
+
+
+def _replace_token(
+    document: Document,
+    section: bytes,
+    key: bytes,
+    token_index: int,
+    replacement: bytes,
+) -> Document:
+    if not replacement or re.search(rb"\s", replacement):
+        raise MutationError("replacement token must be one non-whitespace value")
+    matches = _matching_records(document, section, key)
+    if len(matches) != 1:
+        raise MutationError(f"expected one editable {section!r}.{key!r} record")
+    record = matches[0][1]
+    tokens = list(re.finditer(rb"\S+", record.value))
+    if token_index >= len(tokens):
+        raise MutationError(f"missing token {token_index} in {section!r}.{key!r}")
+    token = tokens[token_index]
+    value = record.value[: token.start()] + replacement + record.value[token.end() :]
+    return _replace_raw_value(document, section, key, value)
 
 
 def _set_vector(
@@ -417,6 +541,42 @@ def _apply_object_mutation(
     return document, (obj.name,), allowed
 
 
+def _apply_sphere_metamorph_mutation(
+    document: Document,
+    operation: SphereMetamorphMutation,
+    objects: tuple[_ObjectRecord, ...],
+) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+    matches = [item for item in objects if item.name == operation.object_name]
+    if len(matches) != 1:
+        raise MutationError(
+            f"object name {operation.object_name!r} matched {len(matches)} objects"
+        )
+    obj = matches[0]
+    if obj.kind != "sphere":
+        raise MutationError("Sphere metamorph profiles require a verified Sphere")
+    metamorph = obj.section + b"\\MM\\0"
+    if _value(document, metamorph, b"Style") != b"1":
+        raise MutationError("Sphere metamorph profile requires Style 1")
+    if _value(document, metamorph, b"NumPars") != b"12":
+        raise MutationError("Sphere metamorph profile requires NumPars 12")
+    if len(_value(document, metamorph, b"Pars").split()) != 12:
+        raise MutationError("Sphere metamorph profile requires twelve Pars tokens")
+
+    profile = _sphere_profile(operation.profile)
+    for token_index, token in enumerate(profile["pars"]):
+        document = _replace_token(
+            document,
+            metamorph,
+            b"Pars",
+            token_index,
+            token.encode("ascii"),
+        )
+    allowed = {
+        (metamorph.decode(), "Pars", token_index) for token_index in range(12)
+    }
+    return document, (obj.name,), allowed
+
+
 def _apply_row_mutation(
     document: Document,
     operation: CenteredRowMutation,
@@ -441,9 +601,18 @@ def _apply_row_mutation(
 def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> MutationResult:
     """Apply one verified operation while preserving every unrelated byte."""
 
-    if not isinstance(operation, (ObjectMutation, CenteredRowMutation, SeededVariation)):
+    if not isinstance(
+        operation,
+        (
+            ObjectMutation,
+            CenteredRowMutation,
+            SeededVariation,
+            SphereMetamorphMutation,
+        ),
+    ):
         raise TypeError(
-            "operation must be ObjectMutation, CenteredRowMutation, or SeededVariation"
+            "operation must be ObjectMutation, CenteredRowMutation, "
+            "SeededVariation, or SphereMetamorphMutation"
         )
     original = parse_bytes(data)
     if original.to_bytes() != data:
@@ -454,6 +623,10 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
         mutated, names, allowed = _apply_object_mutation(original, operation, objects)
     elif isinstance(operation, CenteredRowMutation):
         mutated, names, allowed = _apply_row_mutation(original, operation, objects)
+    elif isinstance(operation, SphereMetamorphMutation):
+        mutated, names, allowed = _apply_sphere_metamorph_mutation(
+            original, operation, objects
+        )
     else:
         mutated, names, allowed = _apply_seeded_variation(
             original, operation, objects
@@ -474,4 +647,11 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
     output = mutated.to_bytes()
     if parse_bytes(output).to_bytes() != output:
         raise MutationError("mutated output failed exact parser round trip")
-    return MutationResult(output, output != data, differences, names)
+    return MutationResult(
+        output,
+        output != data,
+        differences,
+        names,
+        native_validation_required=isinstance(operation, SphereMetamorphMutation),
+        fabrication_suitable=False,
+    )

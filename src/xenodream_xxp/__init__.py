@@ -35,7 +35,10 @@ from .mutation import (
     MutationResult,
     ObjectMutation,
     SeededVariation,
+    SphereMetamorphMutation,
     apply_verified_mutation,
+    sphere_metamorph_profile_evidence,
+    sphere_metamorph_profiles,
 )
 from .workspace import (
     ApplyResult,
@@ -58,6 +61,7 @@ __all__ = [
     "MutationResult",
     "ObjectMutation",
     "SeededVariation",
+    "SphereMetamorphMutation",
     "ApplyResult",
     "ArtifactInfo",
     "FabricationConstraints",
@@ -84,6 +88,8 @@ __all__ = [
     "compile_three_cubes",
     "centered_x_row",
     "apply_verified_mutation",
+    "sphere_metamorph_profile_evidence",
+    "sphere_metamorph_profiles",
     "inspect_binary_stl",
     "inspect_metamorphs",
     "load_metamorph_registry",

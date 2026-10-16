@@ -5,8 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from xenodream_xxp.generator import CubeSpec, Vector3, compile_cube
-from xenodream_xxp.mutation import CenteredRowMutation, ObjectMutation, SeededVariation
+from xenodream_xxp.generator import CubeSpec, Vector3, compile_cube, compile_sphere
+from xenodream_xxp.mutation import (
+    CenteredRowMutation,
+    ObjectMutation,
+    SeededVariation,
+    SphereMetamorphMutation,
+)
 from xenodream_xxp.workspace import (
     FabricationConstraints,
     ProjectWorkspace,
@@ -162,6 +167,32 @@ def test_seeded_variation_records_reproducibility_details(tmp_path) -> None:
         "type": "seeded-variation-v1",
         "seed": 17,
         "strength": "0.5",
+    }
+
+
+def test_sphere_metamorph_profile_records_evidence_and_validation_gate(
+    tmp_path,
+) -> None:
+    source = tmp_path / "sphere.xxp"
+    source.write_bytes(compile_sphere())
+    workspace = ProjectWorkspace.create(tmp_path / "sphere.xsp", source)
+
+    result = workspace.apply(
+        SphereMetamorphMutation("Sphere2", "cushion-core"),
+        message="measured cushion form",
+    )
+
+    assert result.created is True
+    assert result.mutation is not None
+    assert result.mutation.native_validation_required is True
+    assert result.revision.operation == "sphere-metamorph-profile-v1"
+    assert result.revision.details == {
+        "type": "sphere-metamorph-profile-v1",
+        "object_name": "Sphere2",
+        "profile": "cushion-core",
+        "evidence": ["R031", "E096"],
+        "native_validation_required": True,
+        "fabrication_suitable": False,
     }
 
 

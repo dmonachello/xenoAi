@@ -75,21 +75,34 @@ xenosculpt project mutate sculpture.xsp --object Cube2 `
   --face-warp 0.25 --message "warp the faces"
 xenosculpt project evolve sculpture.xsp --seed 17 --strength 0.5 `
   --message "seeded physical-form variation"
+xenosculpt project metamorph sculpture.xsp --object Sphere2 `
+  --profile cushion-core --message "measured cushion form"
 xenosculpt project compare sculpture.xsp main alternate
 xenosculpt project checkout sculpture.xsp main
 xenosculpt project export sculpture.xsp output/restored-main.xxp
 ```
 
-Other commands are `project status`, `project log`, `project row`, `project evolve`, and
-`project import`. Import records a model edited manually in XenoDream as a new
-revision. Checkout accepts a branch name or an unambiguous revision prefix.
-Export refuses to overwrite an existing file.
+Other commands are `project status`, `project log`, `project row`,
+`project evolve`, `project metamorph`, and `project import`. Import records a
+model edited manually in XenoDream as a new revision. Checkout accepts a branch
+name or an unambiguous revision prefix. Export refuses to overwrite an existing
+file.
 
 Controlled object mutation currently follows the same evidence boundary as the
 generator. Cubes support scale, rotation, position, color density, and Face
 Warp. Spheres support scale and position. A requested edit outside those rules
 is rejected. Every mutation audits its structural diff and preserves all
 unrelated bytes.
+
+`project metamorph` applies one measured Sphere parameter profile. The current
+profiles cover strong isolated effects and tested Warp Shape, Shear Bias, Taper
+Type, and Taper Shape interactions. Run the command with `--help` to list their
+stable names. A profile replaces the complete twelve-token Sphere metamorph
+vector, preventing values from a previous profile from leaking into an
+unmeasured combination. The resulting revision remains editable in XenoDream,
+but the command reports `native_validation_required: true` and
+`fabrication_suitable: false`. It does not turn the recovered descriptor ranges
+into unrestricted write permission.
 
 `project evolve` derives a repeatable variation from the current revision.
 The same source revision, seed, and strength produce identical native bytes.

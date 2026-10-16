@@ -333,6 +333,21 @@
         {"artifact": "experiments/metamorph-sweeps/sphere-interactions-v1.json"}
       ],
       "generator_implication": "Permit only exact tested controls and combinations in an opt-in experimental Sphere mutation policy with required native evaluation and mesh scoring. Do not infer safety for unrestricted descriptor-domain combinations."
+    },
+    {
+      "id": "R032",
+      "topic": "measured_sphere_metamorph_profiles",
+      "relationship": "CONFIRMS+EXTENDS",
+      "interpretation": "Fifteen complete Sphere parameter vectors derived from M12 and M13 can be applied to one verified XDX 1.220 Sphere while preserving unrelated bytes. Full-vector replacement prevents unmeasured parameter carry-over between profiles.",
+      "confidence": "high_for_structural_mutation_of_exact_profiles",
+      "manual_evidence": ["R029", "R030", "R031", "E094", "E095", "E096"],
+      "binary_evidence": [
+        {"artifact": "src/xenodream_xxp/data/xdx-1.220-sphere-mutation-profiles.json"},
+        {"artifact": "docs/m14-sphere-metamorph-mutation.md"},
+        {"artifact": "tests/test_mutation.py"},
+        {"artifact": "evidence/runtime/m14-packaged-mutation-smoke.json"}
+      ],
+      "generator_implication": "Expose these exact states through typed workspace mutation and keep native validation required and fabrication suitability false until the resulting revision is exported and checked."
     }
   ],
   "unresolved_priorities": [

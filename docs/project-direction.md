@@ -78,7 +78,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 110 tests. The standalone `xenosculpt.exe` build can
+The current suite has 157 tests. The standalone `xenosculpt.exe` build can
 generate the supported native projects, inspect `.xxp`, compare files, and run
 basic binary-STL validation.
 
@@ -181,9 +181,11 @@ answer, especially artistic judgment and final fabrication assessment.
 
 ### 1. Add persistent revisions and controlled mutations
 
-Status: initial implementation completed on 2026-10-16. The packaged
+Status: initial implementation completed on 2026-10-16 and extended with
+measured Sphere metamorph profiles on 2026-10-17. The packaged
 executable now creates workspaces, records fabrication constraints and prompts,
-applies verified object and row mutations, manages branches and checkout,
+applies verified object, row, seeded-variation, and Sphere metamorph-profile
+mutations, manages branches and checkout,
 compares revisions, imports manual edits, and exports the active native
 artifact. The next extension is natural-language plan generation over this
 typed boundary.

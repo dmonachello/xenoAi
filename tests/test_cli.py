@@ -13,6 +13,7 @@ from xenodream_xxp.generator import (
     SPHERE_COMPILER_PROFILE,
     THREE_CUBE_COMPILER_PROFILE,
     TWO_CUBE_COMPILER_PROFILE,
+    compile_sphere,
 )
 
 
@@ -480,6 +481,33 @@ def test_project_cli_creates_seeded_variation(tmp_path, capsys) -> None:
     assert result["revision"]["details"]["seed"] == 17
     assert result["revision"]["details"]["strength"] == "0.5"
     assert result["differences"]
+
+
+def test_project_cli_applies_measured_sphere_metamorph_profile(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "sphere.xxp"
+    workspace = tmp_path / "sphere.xsp"
+    source.write_bytes(compile_sphere())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "project", "metamorph", str(workspace),
+            "--object", "Sphere2",
+            "--profile", "cushion-core",
+            "--message", "measured cushion form",
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["created"] is True
+    assert result["native_validation_required"] is True
+    assert result["fabrication_suitable"] is False
+    assert result["revision"]["operation"] == "sphere-metamorph-profile-v1"
+    assert result["revision"]["details"]["evidence"] == ["R031", "E096"]
+    assert [item["token_index"] for item in result["differences"]] == [8, 9, 10, 11]
 
 
 def test_project_cli_import_and_log(tmp_path, capsys) -> None:

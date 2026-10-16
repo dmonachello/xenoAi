@@ -37,7 +37,13 @@ from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
 from .solidify import SolidifySettings, solidify_binary_stl
-from .mutation import CenteredRowMutation, ObjectMutation, SeededVariation
+from .mutation import (
+    CenteredRowMutation,
+    ObjectMutation,
+    SeededVariation,
+    SphereMetamorphMutation,
+    sphere_metamorph_profiles,
+)
 from .workspace import FabricationConstraints, ProjectWorkspace
 
 
@@ -207,6 +213,17 @@ def _parser() -> argparse.ArgumentParser:
     project_mutate.add_argument("--message", required=True)
     project_mutate.add_argument("--prompt")
 
+    project_metamorph = project_commands.add_parser(
+        "metamorph", help="apply one measured Sphere metamorph profile"
+    )
+    project_metamorph.add_argument("workspace", type=Path)
+    project_metamorph.add_argument("--object", required=True)
+    project_metamorph.add_argument(
+        "--profile", required=True, choices=sphere_metamorph_profiles()
+    )
+    project_metamorph.add_argument("--message", required=True)
+    project_metamorph.add_argument("--prompt")
+
     project_row = project_commands.add_parser(
         "row", help="place the current supported objects in a centered X-axis row"
     )
@@ -332,6 +349,24 @@ def _handle_project(args: argparse.Namespace) -> int:
                 "differences": []
                 if result.mutation is None
                 else result.mutation.differences,
+            }
+        )
+        return 0
+    if args.project_command == "metamorph":
+        result = workspace.apply(
+            SphereMetamorphMutation(args.object, args.profile),
+            message=args.message,
+            prompt=args.prompt,
+        )
+        _print_json(
+            {
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "differences": []
+                if result.mutation is None
+                else result.mutation.differences,
+                "native_validation_required": True,
+                "fabrication_suitable": False,
             }
         )
         return 0

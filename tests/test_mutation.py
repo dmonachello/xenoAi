@@ -13,13 +13,17 @@ from xenodream_xxp.generator import (
     Vector3,
     compile_cube,
     compile_project,
+    compile_sphere,
 )
 from xenodream_xxp.mutation import (
     CenteredRowMutation,
     MutationError,
     ObjectMutation,
     SeededVariation,
+    SphereMetamorphMutation,
     apply_verified_mutation,
+    sphere_metamorph_profile_evidence,
+    sphere_metamorph_profiles,
 )
 
 
@@ -150,3 +154,59 @@ def test_seeded_variation_validates_seed_and_strength() -> None:
         SeededVariation(seed=1, strength=D("0"))
     with pytest.raises(MutationError, match="strength"):
         SeededVariation(seed=1, strength=D("1.01"))
+
+
+def test_sphere_metamorph_profiles_are_measured_and_replace_complete_state() -> None:
+    profiles = sphere_metamorph_profiles()
+    assert len(profiles) == 15
+    assert "cushion-core" in profiles
+    assert sphere_metamorph_profile_evidence("cushion-core") == ("R031", "E096")
+
+    source = compile_sphere()
+    for profile in profiles:
+        result = apply_verified_mutation(
+            source, SphereMetamorphMutation("Sphere2", profile)
+        )
+        assert parse_bytes(result.data).to_bytes() == result.data
+        assert result.changed is True
+        assert result.native_validation_required is True
+        assert result.fabrication_suitable is False
+        assert all(
+            item["section"] == "Holon\\1\\MM\\0" and item["key"] == "Pars"
+            for item in result.differences
+        )
+
+    cushion = apply_verified_mutation(
+        source, SphereMetamorphMutation("Sphere2", "cushion-core")
+    )
+    assert cushion.native_validation_required is True
+    assert cushion.fabrication_suitable is False
+    assert [item["token_index"] for item in cushion.differences] == [8, 9, 10, 11]
+    assert (
+        b"Pars=0.00000 0 0.0000 0.00000 0.00000 0.00000 0.00000 "
+        b"0.0000 -20.0000 -28.000 1 2 "
+    ) in cushion.data
+
+    switched = apply_verified_mutation(
+        cushion.data, SphereMetamorphMutation("Sphere2", "warp-tear-anti")
+    )
+    assert [item["token_index"] for item in switched.differences] == [0, 1, 8, 9, 10, 11]
+    assert (
+        b"Pars=-7.00000 4 0.0000 0.00000 0.00000 0.00000 0.00000 "
+        b"0.0000 0.0000 0.000 0 0 "
+    ) in switched.data
+
+    repeated = apply_verified_mutation(
+        switched.data, SphereMetamorphMutation("Sphere2", "warp-tear-anti")
+    )
+    assert repeated.changed is False
+    assert repeated.data == switched.data
+
+
+def test_sphere_metamorph_profile_rejects_unknown_profile_and_cube_target() -> None:
+    with pytest.raises(MutationError, match="unknown Sphere metamorph profile"):
+        SphereMetamorphMutation("Sphere2", "invented")
+    with pytest.raises(MutationError, match="require a verified Sphere"):
+        apply_verified_mutation(
+            compile_cube(), SphereMetamorphMutation("Cube2", "cushion-core")
+        )

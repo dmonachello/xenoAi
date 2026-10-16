@@ -1,0 +1,26 @@
+{
+  "schema": "xenosculpt-packaged-mutation-smoke/v1",
+  "executable": {
+    "path": "dist/xenosculpt.exe",
+    "sha256": "9c690504e950179c9bf20d993c73b757315ee8c247060c8459e034af2d505d70"
+  },
+  "operation": {
+    "type": "sphere-metamorph-profile-v1",
+    "object_name": "Sphere2",
+    "profile": "warp-tear-anti"
+  },
+  "output": {
+    "path": "output/m14-profile-smoke/warp-tear-anti.xxp",
+    "bytes": 3401,
+    "sha256": "f77d431353332c673d6afb717634f20123df382b4c6d9b4b392f90afd4263072"
+  },
+  "accepted_m13_variant": {
+    "id": "warp-tear-anti",
+    "sha256": "f77d431353332c673d6afb717634f20123df382b4c6d9b4b392f90afd4263072",
+    "native_evaluated": true,
+    "basic_topology_valid": true
+  },
+  "byte_identical_to_accepted_variant": true,
+  "new_revision_native_validation_required": true,
+  "fabrication_suitable": false
+}
