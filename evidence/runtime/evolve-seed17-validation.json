@@ -1,0 +1,176 @@
+{
+  "cleanup_confirmed": true,
+  "completion_windows": [],
+  "elapsed_seconds": 20.479,
+  "error": null,
+  "input": {
+    "disposable": "C:\\Users\\dmona\\xenoAi\\output\\evolve-seed17-validation\\xdx_evolve-seed17-valida.xxp",
+    "disposable_sha256_after": "337cfc77944756e3167f4e5ba65ea9db395cc5820fdad47b09705c313e3aa446",
+    "disposable_sha256_before": "337cfc77944756e3167f4e5ba65ea9db395cc5820fdad47b09705c313e3aa446",
+    "source": "C:\\Users\\dmona\\xenoAi\\output\\evolved_seed17.xxp",
+    "source_sha256_after": "337cfc77944756e3167f4e5ba65ea9db395cc5820fdad47b09705c313e3aa446",
+    "source_sha256_before": "337cfc77944756e3167f4e5ba65ea9db395cc5820fdad47b09705c313e3aa446"
+  },
+  "mesh_export_settings": {
+    "control_display_after_input": {
+      "mesh_size_percent": 100,
+      "stl_max_dimension_mm": 250
+    },
+    "coordinate_unit": "millimetre",
+    "persisted_after": {
+      "mesh_size_percent": 25,
+      "stl_max_dimension_mm": 250
+    },
+    "persisted_before": {
+      "mesh_size_percent": 100,
+      "stl_max_dimension_mm": 250
+    },
+    "requested": {
+      "mesh_size_percent": 25,
+      "stl_max_dimension_mm": 250
+    }
+  },
+  "outcome": "succeeded",
+  "output_directory": "C:\\Users\\dmona\\xenoAi\\output\\evolve-seed17-validation\\mesh",
+  "owned_pid": 49120,
+  "preexisting_visible_xenodream_pids": [
+    14496
+  ],
+  "progress_log": "C:\\Users\\dmona\\xenoAi\\output\\evolve-seed17-validation\\progress.jsonl",
+  "relocated_from": "C:\\Users\\dmona\\Documents\\XenoDreamX\\xdx_evolve-seed17-valida.stl",
+  "samples": [
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 66.625,
+      "elapsed_seconds": 7.171,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 74.938,
+      "elapsed_seconds": 8.172,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 81.875,
+      "elapsed_seconds": 9.173,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 89.516,
+      "elapsed_seconds": 10.175,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 96.094,
+      "elapsed_seconds": 11.176,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 103.266,
+      "elapsed_seconds": 12.177,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 110.75,
+      "elapsed_seconds": 13.178,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 117.609,
+      "elapsed_seconds": 14.179,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 125.656,
+      "elapsed_seconds": 15.181,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 131.547,
+      "elapsed_seconds": 16.182,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 132.516,
+      "elapsed_seconds": 17.184,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Cancel Batch",
+      "cpu_seconds": 133.516,
+      "elapsed_seconds": 18.185,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    },
+    {
+      "batch_caption": "Select Files...",
+      "cpu_seconds": 133.766,
+      "elapsed_seconds": 19.187,
+      "outputs": [],
+      "responding": true,
+      "status_text": ""
+    }
+  ],
+  "schema": "xenodream-batch-stl/v2",
+  "stl": {
+    "boundary_edges": 0,
+    "bounds_max": [
+      244.45643615722656,
+      155.24139404296875,
+      167.38723754882812
+    ],
+    "bounds_min": [
+      4.621271133422852,
+      9.16077995300293,
+      8.642664909362793
+    ],
+    "bytes": 1113684,
+    "connected_components": 1,
+    "degenerate_triangles": 0,
+    "dimensions": [
+      239.8351650238037,
+      146.08061408996582,
+      158.74457263946533
+    ],
+    "inconsistent_winding_edges": 0,
+    "max_dimension": 239.8351650238037,
+    "non_manifold_edges": 0,
+    "path": "C:\\Users\\dmona\\xenoAi\\output\\evolve-seed17-validation\\mesh\\xdx_evolve-seed17-valida.stl",
+    "sha256": "586215d5c597db2509b083cb9ef383fd0a1cd871c83a0546505b21350a67aae3",
+    "signed_volume": 3178074.553143051,
+    "triangle_count": 22272
+  }
+}
