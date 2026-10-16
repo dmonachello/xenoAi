@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -14,6 +14,8 @@ from typing import Any
 
 from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import parse_bytes
+from xenodream_xxp.generator import CYLINDER_COMPILER_PROFILE, compile_cylinder
+from xenodream_xxp.metamorph import inspect_metamorphs
 
 from probe_metamorph_mesh import ProbeError, build_variant
 from run_xenodream_batch_stl import MeshExportSettings, run_export
@@ -21,8 +23,9 @@ from run_xenodream_batch_stl import MeshExportSettings, run_export
 
 SCHEMA_V1 = "xenosculpt-metamorph-sweep-plan/v1"
 SCHEMA_V2 = "xenosculpt-metamorph-sweep-plan/v2"
+SCHEMA_V3 = "xenosculpt-metamorph-sweep-plan/v3"
 SCHEMA = SCHEMA_V1
-PLAN_SCHEMAS = {SCHEMA_V1, SCHEMA_V2}
+PLAN_SCHEMAS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3}
 MANIFEST_SCHEMA = "xenosculpt-metamorph-sweep/v1"
 SUMMARY_SCHEMA = "xenosculpt-metamorph-sweep-summary/v1"
 DEFAULT_EXECUTABLE = Path(
@@ -36,6 +39,12 @@ Exporter = Callable[
 
 class SweepError(ValueError):
     pass
+
+
+@dataclass(frozen=True, slots=True)
+class SweepSource:
+    data: bytes
+    identity: dict[str, str]
 
 
 def _digest(data: bytes) -> str:
@@ -59,8 +68,8 @@ def load_plan(path: Path) -> dict[str, Any]:
     plan = _read_json(path)
     if plan.get("schema") not in PLAN_SCHEMAS:
         raise SweepError("unsupported sweep plan schema")
-    if plan.get("operation") != "Sphere":
-        raise SweepError("the current sweep supports only Sphere")
+    if plan.get("operation") not in {"Sphere", "Cylinder"}:
+        raise SweepError("the current sweep supports Sphere and Cylinder")
     if isinstance(plan.get("holon"), bool) or not isinstance(plan.get("holon"), int):
         raise SweepError("holon must be an integer")
     replicates = plan.get("baseline_replicates")
@@ -82,12 +91,15 @@ def load_plan(path: Path) -> dict[str, Any]:
             raise SweepError("case id 'baseline' is reserved")
         if not isinstance(evidence, str) or not evidence:
             raise SweepError(f"case {identifier!r} needs a source citation")
-        if plan["schema"] == SCHEMA_V1:
+        if plan["schema"] in {SCHEMA_V1, SCHEMA_V3}:
             parameter = case.get("parameter")
             value = case.get("value")
             if not isinstance(parameter, str) or not parameter:
                 raise SweepError(f"case {identifier!r} needs a parameter")
-            if parameter.casefold() in parameters:
+            if (
+                plan["schema"] == SCHEMA_V1
+                and parameter.casefold() in parameters
+            ):
                 raise SweepError(f"duplicate parameter {parameter!r}")
             if not isinstance(value, str) or not value:
                 raise SweepError(f"case {identifier!r} needs a string value")
@@ -120,7 +132,12 @@ def load_plan(path: Path) -> dict[str, Any]:
                 case_parameters.add(parameter.casefold())
         ids.add(identifier)
     source = plan.get("source")
-    if not isinstance(source, str) or not source:
+    if plan["schema"] == SCHEMA_V3:
+        if source != {"kind": "generated", "constructor": "Cylinder"}:
+            raise SweepError(
+                "v3 source must be the recovered generated Cylinder constructor"
+            )
+    elif not isinstance(source, str) or not source:
         raise SweepError("source must be a path string")
     return plan
 
@@ -128,7 +145,7 @@ def load_plan(path: Path) -> dict[str, Any]:
 def _case_mutations(
     plan: dict[str, Any], case: dict[str, Any]
 ) -> tuple[list[dict[str, str]], str]:
-    if plan["schema"] == SCHEMA_V1:
+    if plan["schema"] in {SCHEMA_V1, SCHEMA_V3}:
         return (
             [{"parameter": case["parameter"], "value": case["value"]}],
             "baseline",
@@ -143,6 +160,42 @@ def _write_json(path: Path, value: object) -> None:
     )
 
 
+def _resolve_source(plan_path: Path, source: object) -> SweepSource:
+    if isinstance(source, str):
+        path = (plan_path.parent / source).resolve(strict=True)
+        data = path.read_bytes()
+        return SweepSource(
+            data,
+            {"kind": "file", "path": str(path), "sha256": _digest(data)},
+        )
+    if source == {"kind": "generated", "constructor": "Cylinder"}:
+        data = compile_cylinder()
+        return SweepSource(
+            data,
+            {
+                "kind": "generated",
+                "constructor": "Cylinder",
+                "compiler_profile": CYLINDER_COMPILER_PROFILE,
+                "sha256": _digest(data),
+            },
+        )
+    raise SweepError("unsupported sweep source")
+
+
+def _require_plan_operation(source: bytes, holon: int, expected: str) -> None:
+    report = inspect_metamorphs(parse_bytes(source))
+    matches = [
+        item
+        for item in report["metamorphs"]
+        if item["holon_index"] == holon and item["metamorph_index"] == 0
+    ]
+    actual = None if len(matches) != 1 else matches[0]["operation"]["name"]
+    if actual != expected:
+        raise SweepError(
+            f"source operation {actual!r} does not match plan operation {expected!r}"
+        )
+
+
 def prepare_sweep(
     plan_path: Path,
     output_directory: Path,
@@ -150,8 +203,9 @@ def prepare_sweep(
 ) -> dict[str, Any]:
     plan_bytes = plan_path.read_bytes()
     plan = load_plan(plan_path)
-    source_path = (plan_path.parent / plan["source"]).resolve(strict=True)
-    source = source_path.read_bytes()
+    resolved_source = _resolve_source(plan_path, plan["source"])
+    source = resolved_source.data
+    _require_plan_operation(source, plan["holon"], plan["operation"])
     manifest_path = output_directory / "manifest.json"
     if manifest_path.exists():
         manifest = _read_json(manifest_path)
@@ -224,7 +278,7 @@ def prepare_sweep(
             "diff": differences,
             "mutations": mutation_facts,
         }
-        if plan["schema"] == SCHEMA_V1:
+        if plan["schema"] in {SCHEMA_V1, SCHEMA_V3}:
             job.update(
                 {
                     "parameter": case["parameter"],
@@ -236,7 +290,7 @@ def prepare_sweep(
     manifest = {
         "schema": MANIFEST_SCHEMA,
         "plan": {"path": str(plan_path.resolve()), "sha256": _digest(plan_bytes)},
-        "source": {"path": str(source_path), "sha256": _digest(source)},
+        "source": resolved_source.identity,
         "operation": plan["operation"],
         "holon": plan["holon"],
         "settings": asdict(settings),
@@ -436,10 +490,15 @@ def run_sweep(
     manifest = prepare_sweep(plan_path, output_directory, settings)
     for job in manifest["jobs"]:
         job_root = output_directory / "runs" / job["id"]
+        attempt_numbers = [
+            int(match.group(1))
+            for path in job_root.glob("attempt-*")
+            if (match := re.fullmatch(r"attempt-([0-9]+)", path.name)) is not None
+        ]
         prior = sorted(job_root.glob("attempt-*/report.json"))
         if any(_successful_report(path, job["sha256"]) for path in prior):
             continue
-        first_attempt = len(prior) + 1
+        first_attempt = max(attempt_numbers, default=0) + 1
         for attempt in range(first_attempt, attempts + 1):
             run_directory = job_root / f"attempt-{attempt:03d}"
             report_path = run_directory / "report.json"

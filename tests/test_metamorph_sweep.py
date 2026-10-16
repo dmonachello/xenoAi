@@ -81,6 +81,31 @@ def _interaction_plan(tmp_path: Path) -> Path:
     return path
 
 
+def _generated_cylinder_plan(tmp_path: Path) -> Path:
+    path = tmp_path / "cylinder-plan.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": sweep.SCHEMA_V3,
+                "operation": "Cylinder",
+                "source": {"kind": "generated", "constructor": "Cylinder"},
+                "holon": 1,
+                "baseline_replicates": 2,
+                "cases": [
+                    {
+                        "id": "length-half",
+                        "parameter": "Length",
+                        "value": "0.5",
+                        "source": "R034 test",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def _mesh(source: Path, changed: bool) -> dict[str, object]:
     return {
         "sha256": f"mesh-{source.stem}",
@@ -242,3 +267,87 @@ def test_interaction_plan_rejects_forward_controls_and_repeated_mutations(
     plan.write_text(json.dumps(value), encoding="utf-8")
     with pytest.raises(sweep.SweepError, match="reserved"):
         sweep.load_plan(plan)
+
+
+def test_generated_cylinder_source_is_deterministic_and_changes_one_token(
+    tmp_path: Path,
+) -> None:
+    plan = _generated_cylinder_plan(tmp_path)
+    output = tmp_path / "cylinder-sweep"
+
+    manifest = sweep.prepare_sweep(
+        plan, output, sweep.MeshExportSettings(100, 25)
+    )
+
+    assert manifest["operation"] == "Cylinder"
+    assert manifest["source"]["kind"] == "generated"
+    assert manifest["source"]["constructor"] == "Cylinder"
+    assert manifest["source"]["compiler_profile"].startswith("xdx-1.220-cylinder")
+    assert manifest["source"]["sha256"] == manifest["jobs"][0]["sha256"]
+    case = next(job for job in manifest["jobs"] if job["id"] == "length-half")
+    assert case["diff"] == [
+        {
+            "kind": "value_token_changed",
+            "section": "Holon\\1\\MM\\0",
+            "section_occurrence": 0,
+            "key": "Pars",
+            "key_occurrence": 0,
+            "token_index": 0,
+            "before": "1.00000",
+            "after": "0.50000",
+        }
+    ]
+
+
+def test_generated_source_rejects_operation_mismatch(tmp_path: Path) -> None:
+    plan = _generated_cylinder_plan(tmp_path)
+    value = json.loads(plan.read_text(encoding="utf-8"))
+    value["operation"] = "Sphere"
+    plan.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(sweep.SweepError, match="does not match plan operation"):
+        sweep.prepare_sweep(
+            plan, tmp_path / "mismatch", sweep.MeshExportSettings(100, 25)
+        )
+
+
+def test_v3_allows_multiple_values_for_one_recovered_parameter(tmp_path: Path) -> None:
+    plan = _generated_cylinder_plan(tmp_path)
+    value = json.loads(plan.read_text(encoding="utf-8"))
+    value["cases"].append(
+        {
+            "id": "length-two",
+            "parameter": "Length",
+            "value": "2",
+            "source": "R034 second value",
+        }
+    )
+    plan.write_text(json.dumps(value), encoding="utf-8")
+
+    assert len(sweep.load_plan(plan)["cases"]) == 2
+
+
+def test_resume_skips_an_orphaned_attempt_directory(tmp_path: Path) -> None:
+    plan = _generated_cylinder_plan(tmp_path)
+    output = tmp_path / "orphan-resume"
+    sweep.prepare_sweep(plan, output, sweep.MeshExportSettings(100, 25))
+    (output / "runs" / "length-half" / "attempt-001").mkdir(parents=True)
+    calls: list[tuple[str, str]] = []
+
+    def fake_exporter(
+        executable, source, run_directory, report_path, timeout, poll, settings
+    ):
+        del executable, timeout, poll, settings
+        calls.append((run_directory.parent.name, run_directory.name))
+        report = {
+            "outcome": "succeeded",
+            "input": {"source_sha256_before": sweep._digest(source.read_bytes())},
+            "stl": {"sha256": f"mesh-{source.stem}", **_stl(100, 10.0, 500.0)},
+        }
+        sweep._write_json(report_path, report)
+        return report
+
+    summary = sweep.run_sweep(plan, output, attempts=2, exporter=fake_exporter)
+
+    assert summary["complete"] is True
+    assert ("length-half", "attempt-002") in calls

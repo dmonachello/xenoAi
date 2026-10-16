@@ -122,6 +122,8 @@ reconciled with nine historical native records and installed presets. The
 default project passed isolated XenoDream evaluation and basic mesh validation.
 The public command currently exposes only verified transform controls;
 unrestricted Cylinder metamorph edits remain gated on automated measurements.
+The prepared M16 native sweep and its acceptance requirements are documented in
+[`docs/m16-cylinder-metamorph-sweep.md`](docs/m16-cylinder-metamorph-sweep.md).
 
 `project evolve` derives a repeatable variation from the current revision.
 The same source revision, seed, and strength produce identical native bytes.

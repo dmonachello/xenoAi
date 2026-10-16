@@ -1,0 +1,60 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-plan/v3",
+  "operation": "Cylinder",
+  "source": {
+    "kind": "generated",
+    "constructor": "Cylinder"
+  },
+  "holon": 1,
+  "baseline_replicates": 2,
+  "cases": [
+    {
+      "id": "length-three",
+      "parameter": "Length",
+      "value": "3",
+      "source": "XDXSystem.xmm Cylinder/Open half cylinder"
+    },
+    {
+      "id": "arc-half",
+      "parameter": "Arc",
+      "value": "180",
+      "source": "XDXSystem.xmm Cylinder/Open half cylinder"
+    },
+    {
+      "id": "closed-ends-none",
+      "parameter": "Closed Ends",
+      "value": "None",
+      "source": "XDXSystem.xmm Cylinder/Open half cylinder"
+    },
+    {
+      "id": "closed-ends-back",
+      "parameter": "Closed Ends",
+      "value": "Back",
+      "source": "XDXSystem.xmm Cylinder/Pot"
+    },
+    {
+      "id": "wedge-yes",
+      "parameter": "Wedge",
+      "value": "Yes",
+      "source": "XDXSystem.xmm Cylinder/Wedge"
+    },
+    {
+      "id": "spherical-yes",
+      "parameter": "Spherical",
+      "value": "Yes",
+      "source": "XDXSystem.xmm Cylinder/Wedge and Pot"
+    },
+    {
+      "id": "bevel-edges-two",
+      "parameter": "Bevel Edges",
+      "value": "2",
+      "source": "XDXSystem.xmm Cylinder presets"
+    },
+    {
+      "id": "bevel-back",
+      "parameter": "Bevel",
+      "value": "Back",
+      "source": "REA descriptor R034 choice coverage"
+    }
+  ]
+}
