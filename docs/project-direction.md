@@ -33,6 +33,9 @@ The available methods include:
   scripting, and Windows UI Automation;
 - controlled process, file, registry, and system-call observation or
   instrumentation; and
+- Codex, ChatGPT, Ollama-hosted models, and other local or hosted AI systems for
+  code assistance, evidence synthesis, hypothesis generation, operation
+  planning, mutation proposals, and design exploration; and
 - mesh-processing, validation, repair, CAD, slicing, automated testing,
   quantitative comparison, and fabrication experiments.
 
@@ -42,6 +45,14 @@ artifact hash, tool and method, evidence location, interpretation, confidence,
 and unresolved questions. Cross-validate binary findings against existing
 models, experiments, tests, and observed application behavior. Decompiled code
 is evidence, not automatic authority.
+
+AI output is also not evidence by itself. Preserve the prompts, model and
+version when available, inputs, generated plans or artifacts, and verification
+results for consequential uses. Require conclusions and generated files to pass
+the same source tracing, regression tests, application checks, and geometry
+validation as work produced by any other method. Prefer local models when they
+offer adequate capability and improve privacy, reproducibility, cost, or
+offline operation; use hosted models when they materially improve the result.
 
 Do not make repeated user-operated experiments the routine discovery process.
 Do not reconstruct unrelated parts of the application. Invoke internal
