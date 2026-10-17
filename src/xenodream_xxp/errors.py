@@ -1,5 +1,5 @@
-"""Shared public error types."""
+"""Compatibility exports for shared public error types."""
 
+from xenosculpt.core.errors import WorkspaceError
 
-class WorkspaceError(ValueError):
-    """A workspace or fabrication operation violated a stored invariant."""
+__all__ = ["WorkspaceError"]

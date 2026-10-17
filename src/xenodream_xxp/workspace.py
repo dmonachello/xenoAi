@@ -1,8 +1,7 @@
-"""Persistent revision workspaces for native XenoDream artifacts."""
+"""XenoDream project state, native validation, and fabrication evidence."""
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from hashlib import sha256
@@ -11,11 +10,9 @@ import os
 from pathlib import Path
 import re
 import sqlite3
-from typing import Iterator
 from uuid import uuid4
 
-from .diffing import diff_documents
-from .document import KeyValueRecord, parse_bytes
+from .adapter import XENODREAM_APPLICATION, XenoDreamArtifactAdapter
 from .errors import WorkspaceError
 from .fabrication import (
     ASSESSMENT_SCHEMA,
@@ -41,26 +38,14 @@ from .native_export import (
 from .mutation import (
     MutationResult,
     VerifiedOperation,
-    apply_verified_mutation,
-    verified_operation_details,
 )
 from .planning import (
     MutationPlan,
     plan_provenance_to_dict,
     validate_plan_provenance,
 )
-
-
-@dataclass(frozen=True, slots=True)
-class Revision:
-    id: str
-    parent_id: str | None
-    artifact_sha256: str
-    created_at: str
-    operation: str
-    message: str
-    prompt: str | None
-    details: dict[str, object]
+from xenosculpt.core.model import ApplyResult, ArtifactInfo, Revision
+from xenosculpt.core.workspace import RevisionWorkspace
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,24 +77,8 @@ class NativeValidation:
     fabrication_suitable: bool
 
 
-@dataclass(frozen=True, slots=True)
-class ApplyResult:
-    revision: Revision
-    created: bool
-    mutation: MutationResult | None
-
-
-@dataclass(frozen=True, slots=True)
-class ArtifactInfo:
-    path: str
-    bytes: int
-    sha256: str
-    revision_id: str
-
-
 _SCHEMA_VERSION = "3"
 _DATABASE_NAME = "project.sqlite3"
-_BRANCH_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 _ASSESSMENT_SELECT = (
     "SELECT assessment.*, "
     "validation.revision_id AS evidence_revision_id, "
@@ -137,33 +106,13 @@ def _constraints_from_dict(value: dict[str, object]) -> FabricationConstraints:
     return constraints_from_dict(value)
 
 
-def _header_value(data: bytes, key: bytes) -> str:
-    document = parse_bytes(data)
-    if document.to_bytes() != data:
-        raise WorkspaceError("artifact failed exact parser round trip")
-    matches = [
-        record.value
-        for record in document.records
-        if isinstance(record, KeyValueRecord)
-        and record.section == b"Header"
-        and record.section_occurrence == 0
-        and record.key == key
-    ]
-    if len(matches) != 1:
-        raise WorkspaceError(f"artifact must contain one Header.{key.decode()} value")
-    try:
-        return matches[0].decode("ascii")
-    except UnicodeDecodeError as error:
-        raise WorkspaceError(f"Header.{key.decode()} must be ASCII") from error
+class ProjectWorkspace(RevisionWorkspace):
+    """Add XenoDream behavior and evidence to the revision workspace."""
 
-
-class ProjectWorkspace:
-    """Own the revision graph and content-addressed native artifacts."""
+    adapter = XenoDreamArtifactAdapter()
 
     def __init__(self, root: Path) -> None:
-        self.root = root.resolve()
-        self.database = self.root / _DATABASE_NAME
-        self.artifacts = self.root / "artifacts"
+        super().__init__(root, XENODREAM_APPLICATION)
         self.meshes = self.root / "meshes"
         self.validation_runs = self.root / "validation-runs"
 
@@ -179,56 +128,41 @@ class ProjectWorkspace:
             raise WorkspaceError(f"workspace already exists: {workspace.root}")
         source_path = Path(source).resolve()
         data = source_path.read_bytes()
-        if _header_value(data, b"Program") != "XDX":
-            raise WorkspaceError("source must be an XDX project")
-        version = _header_value(data, b"Progversion")
+        descriptor = workspace.adapter.inspect(data)
+        version = descriptor.xdx_version
         policy = constraints if constraints is not None else FabricationConstraints()
 
         workspace.root.mkdir(parents=True, exist_ok=True)
-        workspace.artifacts.mkdir(parents=True, exist_ok=True)
         workspace.meshes.mkdir(parents=True, exist_ok=True)
         workspace.validation_runs.mkdir(parents=True, exist_ok=True)
-        artifact_sha = workspace._store_artifact(data)
+        artifact_sha = sha256(data).hexdigest()
         details = {"source_sha256": artifact_sha}
-        revision_id = workspace._revision_id(
-            None,
-            artifact_sha,
-            "init",
-            details,
-            "Import initial native project",
-            None,
-        )
         created_at = _now()
         temporary_database = workspace.root / f".{_DATABASE_NAME}.{uuid4().hex}.tmp"
         try:
             connection = sqlite3.connect(temporary_database)
             try:
+                workspace.initialize_history(
+                    connection,
+                    source_data=data,
+                    created_at=created_at,
+                    operation="init",
+                    details=details,
+                    message="Import initial native project",
+                    prompt=None,
+                    metadata={
+                        "schema_version": _SCHEMA_VERSION,
+                        "created_at": created_at,
+                        "source_path": str(source_path),
+                        "source_sha256": artifact_sha,
+                        "xdx_version": version,
+                        "constraints_json": _json_bytes(
+                            _constraints_to_dict(policy)
+                        ).decode(),
+                    },
+                )
                 connection.executescript(
                     """
-                    PRAGMA foreign_keys = ON;
-                    CREATE TABLE metadata (
-                        key TEXT PRIMARY KEY,
-                        value TEXT NOT NULL
-                    );
-                    CREATE TABLE revisions (
-                        id TEXT PRIMARY KEY,
-                        parent_id TEXT REFERENCES revisions(id),
-                        artifact_sha256 TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        operation TEXT NOT NULL,
-                        message TEXT NOT NULL,
-                        prompt TEXT,
-                        details_json TEXT NOT NULL
-                    );
-                    CREATE TABLE branches (
-                        name TEXT PRIMARY KEY,
-                        revision_id TEXT NOT NULL REFERENCES revisions(id)
-                    );
-                    CREATE TABLE state (
-                        singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-                        current_branch TEXT REFERENCES branches(name),
-                        detached_revision TEXT REFERENCES revisions(id)
-                    );
                     CREATE TABLE validations (
                         id TEXT PRIMARY KEY,
                         request_key TEXT NOT NULL,
@@ -258,41 +192,6 @@ class ProjectWorkspace:
                     ON fabrication_assessments(validation_id, created_at DESC, id DESC);
                     """
                 )
-                metadata = {
-                    "schema_version": _SCHEMA_VERSION,
-                    "created_at": created_at,
-                    "source_path": str(source_path),
-                    "source_sha256": artifact_sha,
-                    "xdx_version": version,
-                    "constraints_json": _json_bytes(
-                        _constraints_to_dict(policy)
-                    ).decode(),
-                }
-                connection.executemany(
-                    "INSERT INTO metadata(key, value) VALUES (?, ?)",
-                    metadata.items(),
-                )
-                connection.execute(
-                    "INSERT INTO revisions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        revision_id,
-                        None,
-                        artifact_sha,
-                        created_at,
-                        "init",
-                        "Import initial native project",
-                        None,
-                        _json_bytes(details).decode(),
-                    ),
-                )
-                connection.execute(
-                    "INSERT INTO branches(name, revision_id) VALUES ('main', ?)",
-                    (revision_id,),
-                )
-                connection.execute(
-                    "INSERT INTO state(singleton, current_branch, detached_revision) "
-                    "VALUES (1, 'main', NULL)"
-                )
                 connection.commit()
             finally:
                 connection.close()
@@ -313,6 +212,7 @@ class ProjectWorkspace:
             ).fetchone()
             if row is None or row[0] not in {"1", "2", _SCHEMA_VERSION}:
                 raise WorkspaceError("unsupported or missing workspace schema")
+            workspace.verify_application_identity(connection, allow_unbound=True)
             if row[0] == "1":
                 connection.executescript(
                     """
@@ -357,122 +257,11 @@ class ProjectWorkspace:
                     COMMIT;
                     """
                 )
+            workspace.verify_application_identity(connection, infer_legacy=True)
+            connection.commit()
         workspace.meshes.mkdir(exist_ok=True)
         workspace.validation_runs.mkdir(exist_ok=True)
         return workspace
-
-    @contextmanager
-    def _connect(self) -> Iterator[sqlite3.Connection]:
-        connection = sqlite3.connect(self.database)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        try:
-            yield connection
-        finally:
-            connection.close()
-
-    def _store_artifact(self, data: bytes) -> str:
-        digest = sha256(data).hexdigest()
-        destination = self.artifacts / f"{digest}.xxp"
-        if destination.exists():
-            if destination.read_bytes() != data:
-                raise WorkspaceError("artifact hash collision or corrupted artifact")
-            return digest
-        temporary = self.artifacts / f".{digest}.{uuid4().hex}.tmp"
-        try:
-            with temporary.open("xb") as stream:
-                stream.write(data)
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temporary, destination)
-        finally:
-            if temporary.exists():
-                temporary.unlink()
-        return digest
-
-    @staticmethod
-    def _revision_id(
-        parent_id: str | None,
-        artifact_sha: str,
-        operation: str,
-        details: dict[str, object],
-        message: str,
-        prompt: str | None,
-    ) -> str:
-        return sha256(
-            _json_bytes(
-                {
-                    "parent": parent_id,
-                    "artifact_sha256": artifact_sha,
-                    "operation": operation,
-                    "details": details,
-                    "message": message,
-                    "prompt": prompt,
-                }
-            )
-        ).hexdigest()
-
-    @staticmethod
-    def _revision(row: sqlite3.Row) -> Revision:
-        return Revision(
-            id=row["id"],
-            parent_id=row["parent_id"],
-            artifact_sha256=row["artifact_sha256"],
-            created_at=row["created_at"],
-            operation=row["operation"],
-            message=row["message"],
-            prompt=row["prompt"],
-            details=json.loads(row["details_json"]),
-        )
-
-    def _head_id(self, connection: sqlite3.Connection) -> tuple[str, str | None]:
-        row = connection.execute(
-            "SELECT current_branch, detached_revision FROM state WHERE singleton = 1"
-        ).fetchone()
-        if row is None:
-            raise WorkspaceError("workspace state is missing")
-        branch = row["current_branch"]
-        if branch is not None:
-            target = connection.execute(
-                "SELECT revision_id FROM branches WHERE name = ?", (branch,)
-            ).fetchone()
-            if target is None:
-                raise WorkspaceError("current branch is missing")
-            return target["revision_id"], branch
-        if row["detached_revision"] is None:
-            raise WorkspaceError("workspace HEAD has no target")
-        return row["detached_revision"], None
-
-    def _resolve(self, connection: sqlite3.Connection, ref: str) -> str:
-        if ref == "HEAD":
-            return self._head_id(connection)[0]
-        branch = connection.execute(
-            "SELECT revision_id FROM branches WHERE name = ?", (ref,)
-        ).fetchone()
-        if branch is not None:
-            return branch["revision_id"]
-        matches = connection.execute(
-            "SELECT id FROM revisions WHERE id LIKE ? ORDER BY id", (f"{ref}%",)
-        ).fetchall()
-        if len(matches) != 1:
-            raise WorkspaceError(f"reference {ref!r} matched {len(matches)} revisions")
-        return matches[0]["id"]
-
-    def _get_revision(self, connection: sqlite3.Connection, ref: str) -> Revision:
-        revision_id = self._resolve(connection, ref)
-        row = connection.execute(
-            "SELECT * FROM revisions WHERE id = ?", (revision_id,)
-        ).fetchone()
-        if row is None:
-            raise WorkspaceError(f"missing revision {revision_id}")
-        return self._revision(row)
-
-    def _artifact_data(self, revision: Revision) -> bytes:
-        path = self.artifacts / f"{revision.artifact_sha256}.xxp"
-        data = path.read_bytes()
-        if sha256(data).hexdigest() != revision.artifact_sha256:
-            raise WorkspaceError(f"artifact failed hash verification: {path}")
-        return data
 
     def _validation(self, row: sqlite3.Row) -> NativeValidation:
         mesh_sha = row["mesh_sha256"]
@@ -831,56 +620,6 @@ class ProjectWorkspace:
             raise WorkspaceError("validation was not recorded")
         return self._validation(row)
 
-    def _record_revision(
-        self,
-        data: bytes,
-        operation: str,
-        details: dict[str, object],
-        message: str,
-        prompt: str | None,
-        expected_parent: str,
-    ) -> Revision:
-        artifact_sha = self._store_artifact(data)
-        revision_id = self._revision_id(
-            expected_parent, artifact_sha, operation, details, message, prompt
-        )
-        created_at = _now()
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            current, branch = self._head_id(connection)
-            if current != expected_parent:
-                raise WorkspaceError("workspace HEAD changed during the operation")
-            connection.execute(
-                "INSERT OR IGNORE INTO revisions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    revision_id,
-                    expected_parent,
-                    artifact_sha,
-                    created_at,
-                    operation,
-                    message,
-                    prompt,
-                    _json_bytes(details).decode(),
-                ),
-            )
-            if branch is None:
-                connection.execute(
-                    "UPDATE state SET detached_revision = ? WHERE singleton = 1",
-                    (revision_id,),
-                )
-            else:
-                connection.execute(
-                    "UPDATE branches SET revision_id = ? WHERE name = ?",
-                    (revision_id, branch),
-                )
-            row = connection.execute(
-                "SELECT * FROM revisions WHERE id = ?", (revision_id,)
-            ).fetchone()
-            connection.commit()
-        if row is None:
-            raise WorkspaceError("revision was not recorded")
-        return self._revision(row)
-
     def apply(
         self,
         operation: VerifiedOperation,
@@ -926,8 +665,11 @@ class ProjectWorkspace:
         ):
             raise WorkspaceError("operation plan was created for a different HEAD")
         source = self._artifact_data(parent)
-        result = apply_verified_mutation(source, operation)
-        if not result.changed:
+        mutation = self.adapter.apply(source, operation)
+        changed = mutation.data != source
+        if changed != mutation.result.changed:
+            raise WorkspaceError("XenoDream mutation result disagrees with output bytes")
+        if not changed:
             if plan is not None:
                 with self._connect() as connection:
                     current = self._get_revision(connection, "HEAD")
@@ -935,22 +677,22 @@ class ProjectWorkspace:
                     raise WorkspaceError(
                         "operation plan was created for a different HEAD"
                     )
-            return ApplyResult(parent, False, result)
-        details = verified_operation_details(operation)
+            return ApplyResult(parent, False, mutation.result)
+        details = dict(mutation.details)
         if plan is not None:
             details = {
                 **details,
                 "planning": plan_provenance_to_dict(plan),
             }
         revision = self._record_revision(
-            result.data,
-            str(details["type"]),
+            mutation.data,
+            mutation.operation,
             details,
             message.strip(),
             prompt,
             parent.id,
         )
-        return ApplyResult(revision, True, result)
+        return ApplyResult(revision, True, mutation.result)
 
     def import_artifact(
         self,
@@ -963,8 +705,7 @@ class ProjectWorkspace:
             raise WorkspaceError("message must be a non-empty string")
         source_path = Path(source).resolve()
         data = source_path.read_bytes()
-        if _header_value(data, b"Program") != "XDX":
-            raise WorkspaceError("import must be an XDX project")
+        self.adapter.validate_import(data)
         with self._connect() as connection:
             parent = self._get_revision(connection, "HEAD")
         if data == self._artifact_data(parent):
@@ -975,94 +716,10 @@ class ProjectWorkspace:
         )
         return ApplyResult(revision, True, None)
 
-    def create_branch(
-        self, name: str, *, from_ref: str = "HEAD", checkout: bool = False
-    ) -> Revision:
-        if not _valid_branch_name(name):
-            raise WorkspaceError(
-                "branch names may contain letters, digits, dot, underscore, and hyphen"
-            )
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            revision = self._get_revision(connection, from_ref)
-            try:
-                connection.execute(
-                    "INSERT INTO branches(name, revision_id) VALUES (?, ?)",
-                    (name, revision.id),
-                )
-            except sqlite3.IntegrityError as error:
-                raise WorkspaceError(f"branch already exists: {name}") from error
-            if checkout:
-                connection.execute(
-                    "UPDATE state SET current_branch = ?, detached_revision = NULL "
-                    "WHERE singleton = 1",
-                    (name,),
-                )
-            connection.commit()
-        return revision
-
-    def checkout(self, ref: str) -> Revision:
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            branch = connection.execute(
-                "SELECT revision_id FROM branches WHERE name = ?", (ref,)
-            ).fetchone()
-            if branch is not None:
-                revision = self._get_revision(connection, ref)
-                connection.execute(
-                    "UPDATE state SET current_branch = ?, detached_revision = NULL "
-                    "WHERE singleton = 1",
-                    (ref,),
-                )
-            else:
-                revision = self._get_revision(connection, ref)
-                connection.execute(
-                    "UPDATE state SET current_branch = NULL, detached_revision = ? "
-                    "WHERE singleton = 1",
-                    (revision.id,),
-                )
-            connection.commit()
-        return revision
-
-    def history(self, ref: str = "HEAD") -> tuple[Revision, ...]:
-        with self._connect() as connection:
-            revision = self._get_revision(connection, ref)
-            history: list[Revision] = []
-            while True:
-                history.append(revision)
-                if revision.parent_id is None:
-                    break
-                revision = self._get_revision(connection, revision.parent_id)
-        return tuple(history)
-
     def compare(self, before: str, after: str) -> list[dict[str, object]]:
         with self._connect() as connection:
             before_revision = self._get_revision(connection, before)
             after_revision = self._get_revision(connection, after)
-        return diff_documents(
-            parse_bytes(self._artifact_data(before_revision)),
-            parse_bytes(self._artifact_data(after_revision)),
+        return self.adapter.compare(
+            self._artifact_data(before_revision), self._artifact_data(after_revision)
         )
-
-    def export(self, destination: str | Path, ref: str = "HEAD") -> ArtifactInfo:
-        destination_path = Path(destination)
-        if destination_path.exists():
-            raise WorkspaceError(f"refusing to overwrite: {destination_path}")
-        with self._connect() as connection:
-            revision = self._get_revision(connection, ref)
-        data = self._artifact_data(revision)
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
-        with destination_path.open("xb") as stream:
-            stream.write(data)
-        return ArtifactInfo(
-            path=str(destination_path),
-            bytes=len(data),
-            sha256=revision.artifact_sha256,
-            revision_id=revision.id,
-        )
-
-
-def _valid_branch_name(value: str) -> bool:
-    if not isinstance(value, str) or not value or value in {"HEAD", ".", ".."}:
-        return False
-    return _BRANCH_PATTERN.fullmatch(value) is not None

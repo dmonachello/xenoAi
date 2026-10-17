@@ -8,6 +8,21 @@ XenoDream to export a mesh for validation.
 The project is intentionally narrow. It does not claim to be a general
 XenoDream file editor, a slicer, or a printability checker.
 
+## Architecture and future applications
+
+XenoDream is the first application integration, not the project-wide data
+model. The `xenosculpt.core` package owns content-addressed artifacts,
+revisions, branches, history, and atomic updates. The
+`xenodream_xxp.adapter.XenoDreamArtifactAdapter` owns XDX parsing, verified
+native mutations, and XDX comparison. XenoDream execution, STL validation, and
+fabrication assessment remain application-specific capabilities.
+
+Future ComfyUI and MoI integrations can reuse the revision core while keeping
+their own document formats and operations. The project does not force workflow
+graphs, CAD solids, XenoDream holons, images, and meshes into one scene model.
+See [the multi-application core design](.architect/m21-multi-app-core/design.md)
+for the current boundary and its deliberate limits.
+
 ## What works
 
 - Lossless parsing, inspection, round trips, and structural diffs for observed
