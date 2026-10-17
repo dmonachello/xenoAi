@@ -37,6 +37,11 @@ for the current boundary and its deliberate limits.
   revision history, prompts, and fabrication constraints.
 - Verified cube and sphere transforms, deterministic seeded variations, and
   measured Sphere and Cylinder metamorph profiles.
+- Revision-bound XenoDream scene descriptions that list persisted holon IDs,
+  current section positions, observed group references, transforms,
+  metamorphs, write blockers, and evidence-scoped edit capabilities. Unknown
+  records remain visible and read-only where they can be associated with a
+  node. Orphan metamorph sections appear as located diagnostics.
 - A controlled-English `project prompt` command that maps one exact sentence
   to one existing typed operation. It runs offline and does not call a language
   model.
@@ -150,6 +155,8 @@ xxp inspect output/cylinder.xxp
 xxp project init output/cylinder.xsp output/cylinder.xxp `
   --process FDM --build-volume 220 220 250 --min-feature-mm 1.2
 
+xxp project describe output/cylinder.xsp
+
 xxp project prompt output/cylinder.xsp `
   "apply Cylinder profile bevel-25-front to object Cylinder2" `
   --message "apply measured front bevel"
@@ -183,9 +190,16 @@ xxp project metamorph output/project.xsp --operation Cylinder `
   --message "apply measured front bevel"
 ```
 
-Workspace commands also include `status`, `log`, `branch`, `checkout`,
-`compare`, `import`, `export`, `validate`, and `assess`. Run
+Workspace commands also include `describe`, `status`, `log`, `branch`,
+`checkout`, `compare`, `import`, `export`, `validate`, and `assess`. Run
 `xxp project <command> --help` for the exact arguments.
+
+`project describe` reads one hash-verified revision and does not change the
+workspace. It reports only edit capabilities supported by the exact XDX 1.220
+record shape. An empty capability list means that XenoSculpt can preserve the
+node but cannot safely edit it. See
+[XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the output
+contract and limits.
 
 ## Validate a revision in XenoDream
 

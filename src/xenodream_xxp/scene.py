@@ -619,6 +619,18 @@ def _describe_document(
                     section_ordinal=ordinal,
                 )
             )
+        elif raw_name == b"":
+            blockers.append("empty-name")
+            diagnostics.append(
+                SceneDiagnostic(
+                    code="malformed-node-field",
+                    message="Holon Name must be non-empty",
+                    section=section_name,
+                    holon_index=holon_index,
+                    section_occurrence=section_record.occurrence,
+                    section_ordinal=ordinal,
+                )
+            )
         if _transform_is_malformed(fields):
             diagnostics.append(
                 SceneDiagnostic(
@@ -764,6 +776,7 @@ def _describe_document(
             in {
                 "duplicate-or-missing-Name",
                 "non-ascii-name",
+                "empty-name",
                 "ambiguous-metamorph-ownership",
                 "duplicate-name",
                 "unverified-constructor-record",

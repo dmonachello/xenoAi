@@ -149,6 +149,26 @@ def test_non_ascii_name_remains_visible_but_is_not_a_write_target() -> None:
         )
 
 
+def test_empty_name_is_visible_but_is_not_a_write_target() -> None:
+    source = compile_project(ProjectSpec((CubeSpec(),))).replace(
+        b"Name=Cube2\r\n", b"Name=\r\n", 1
+    )
+
+    scene = describe_xdx_scene(source, BINDING)
+    cube = scene.nodes[1]
+
+    assert cube.name == ""
+    assert "empty-name" in cube.write_blockers
+    assert cube.allowed_operations == ()
+    assert any(
+        item.code == "malformed-node-field"
+        and item.message == "Holon Name must be non-empty"
+        for item in scene.diagnostics
+    )
+    with pytest.raises(TypeError, match="object_name must be a non-empty string"):
+        ObjectMutation("", position=Vector3(Decimal("1"), Decimal("0"), Decimal("0")))
+
+
 def test_duplicate_name_across_known_and_opaque_nodes_blocks_name_writes() -> None:
     source = _opaque_sphere_neighbor().replace(b"Name=Sphere3", b"Name=Cube2")
     scene = describe_xdx_scene(source, BINDING)
