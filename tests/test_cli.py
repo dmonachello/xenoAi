@@ -561,6 +561,31 @@ def test_project_cli_creates_mutates_branches_and_exports(tmp_path, capsys) -> N
     assert b"25.00000 50.00000 100.00000" in output.read_bytes()
 
 
+def test_project_cli_describes_a_revision_bound_partial_scene(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "source.xxp"
+    workspace = tmp_path / "sculpture.xsp"
+    source.write_bytes(compile_cube().replace(b"NumHolons=2", b"NumHolons=3"))
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(["project", "describe", str(workspace), "--ref", "HEAD"]) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert list(result) == [
+        "schema",
+        "binding",
+        "xdx_version",
+        "declared_holon_count",
+        "nodes",
+        "diagnostics",
+    ]
+    assert result["binding"]["revision_id"]
+    assert result["nodes"][1]["constructor"] == "Cube"
+    assert result["diagnostics"][0]["code"] == "holon-count-mismatch"
+
+
 def test_project_cli_creates_seeded_variation(tmp_path, capsys) -> None:
     source = tmp_path / "source.xxp"
     workspace = tmp_path / "sculpture.xsp"

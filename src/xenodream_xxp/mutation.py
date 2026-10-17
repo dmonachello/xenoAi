@@ -12,8 +12,14 @@ import re
 from typing import Any, TypeAlias
 
 from .diffing import diff_documents
-from .document import Document, KeyValueRecord, SectionRecord, parse_bytes
+from .document import Document, KeyValueRecord, parse_bytes
 from .generator import Vector3
+from .scene import (
+    SceneBinding,
+    SceneNode,
+    SceneOperation,
+    _describe_document,
+)
 
 
 class MutationError(ValueError):
@@ -152,7 +158,15 @@ class _ObjectRecord:
     kind: str
 
 
-_HOLON_SECTION = re.compile(rb"Holon\\([0-9]+)$")
+_AllowedDifference: TypeAlias = tuple[str, int, str, int, int | None]
+
+
+def _allowed_difference(
+    section: bytes, key: str, token_index: int | None
+) -> _AllowedDifference:
+    return (section.decode(), 0, key, 0, token_index)
+
+
 _SUPPORTED_SIGNATURES = {
     ("cube",),
     ("cube", "cube"),
@@ -411,39 +425,108 @@ def _require_xdx_1220(document: Document) -> None:
         raise MutationError("verified mutations require XDX version 1.220")
 
 
-def _objects(document: Document) -> tuple[_ObjectRecord, ...]:
-    indexed_sections: list[tuple[int, bytes]] = []
-    for record in document.records:
-        if not isinstance(record, SectionRecord) or record.occurrence != 0:
-            continue
-        match = _HOLON_SECTION.fullmatch(record.name)
-        if match and int(match.group(1)) > 0:
-            indexed_sections.append((int(match.group(1)), record.name))
-
+def _objects(
+    document: Document,
+    required: dict[str, tuple[SceneOperation, ...]] | None = None,
+) -> tuple[_ObjectRecord, ...]:
     objects: list[_ObjectRecord] = []
-    for _, section in sorted(indexed_sections):
-        if _value(document, section, b"Type") != b"1":
+    for node in _scene_nodes(document):
+        if node.holon_index <= 0 or node.type_code != 1:
             continue
-        try:
-            name = _value(document, section, b"Name").decode("ascii")
-        except UnicodeDecodeError as error:
-            raise MutationError("verified object names must be ASCII") from error
-        metamorph = section + b"\\MM\\0"
-        style = _value(document, metamorph, b"Style")
-        num_pars = _value(document, metamorph, b"NumPars")
-        pars = _value(document, metamorph, b"Pars")
-        if style == b"5" and num_pars == b"9" and len(pars.split()) == 9:
-            kind = "cube"
-        elif style == b"1" and num_pars == b"12" and len(pars.split()) == 12:
-            kind = "sphere"
-        else:
+        if node.name is None or node.constructor not in {"Cube", "Sphere"}:
+            name = node.name or f"Holon\\{node.holon_index}"
             raise MutationError(
                 f"{name} does not match a verified XDX 1.220 Cube or Sphere record"
             )
-        objects.append(_ObjectRecord(section, name, kind))
+        kind = node.constructor.lower()
+        missing = [
+            operation.value
+            for operation in (required or {}).get(kind, ())
+            if operation not in node.allowed_operations
+        ]
+        if missing:
+            raise MutationError(
+                f"object {node.name!r} does not support {', '.join(missing)}"
+            )
+        objects.append(
+            _ObjectRecord(
+                f"Holon\\{node.holon_index}".encode("ascii"),
+                node.name,
+                kind,
+            )
+        )
     if not objects:
         raise MutationError("project contains no verified editable objects")
     return tuple(objects)
+
+
+_UNBOUND_SCENE = SceneBinding("0" * 64, "0" * 64)
+
+
+def _scene_nodes(document: Document) -> tuple[SceneNode, ...]:
+    return _describe_document(document, _UNBOUND_SCENE).nodes
+
+
+def _target_node(document: Document, object_name: str) -> SceneNode:
+    matches = [
+        node
+        for node in _scene_nodes(document)
+        if node.type_code == 1 and node.name == object_name
+    ]
+    if len(matches) != 1:
+        raise MutationError(
+            f"object name {object_name!r} matched {len(matches)} objects"
+        )
+    return matches[0]
+
+
+def _target_object(node: SceneNode, object_name: str) -> _ObjectRecord:
+    if node.constructor not in {"Cube", "Sphere"}:
+        raise MutationError(
+            f"{object_name} does not match a verified XDX 1.220 Cube or Sphere record"
+        )
+    return _ObjectRecord(
+        f"Holon\\{node.holon_index}".encode("ascii"),
+        object_name,
+        node.constructor.lower(),
+    )
+
+
+def _require_object_capabilities(
+    operation: ObjectMutation, node: SceneNode
+) -> None:
+    if node.constructor == "Sphere" and any(
+        value is not None
+        for value in (operation.rotation, operation.color_density, operation.face_warp)
+    ):
+        raise MutationError(
+            "Sphere mutations support only scale and position until more fields are verified"
+        )
+    requested = {
+        SceneOperation.SET_SCALE: operation.scale,
+        SceneOperation.SET_ROTATION: operation.rotation,
+        SceneOperation.SET_POSITION: operation.position,
+        SceneOperation.SET_COLOR_DENSITY: operation.color_density,
+        SceneOperation.SET_FACE_WARP: operation.face_warp,
+    }
+    missing = [
+        capability.value
+        for capability, value in requested.items()
+        if value is not None and capability not in node.allowed_operations
+    ]
+    if missing:
+        raise MutationError(
+            f"object {operation.object_name!r} does not support {', '.join(missing)}"
+        )
+
+
+def _require_capability(
+    node: SceneNode, object_name: str, capability: SceneOperation
+) -> None:
+    if capability not in node.allowed_operations:
+        raise MutationError(
+            f"object {object_name!r} does not support {capability.value}"
+        )
 
 
 def _format_decimal(value: Decimal, places: int, label: str) -> bytes:
@@ -588,9 +671,9 @@ def _apply_seeded_variation(
     document: Document,
     operation: SeededVariation,
     objects: tuple[_ObjectRecord, ...],
-) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+) -> tuple[Document, tuple[str, ...], set[_AllowedDifference]]:
     sampler = _VariationSampler(operation.seed, operation.strength)
-    allowed: set[tuple[str, str, int | None]] = set()
+    allowed: set[_AllowedDifference] = set()
     names: list[str] = []
     for obj in objects:
         field_count = 10 if obj.kind == "cube" else 6
@@ -663,7 +746,7 @@ def _apply_seeded_variation(
 
 def _apply_object_mutation(
     document: Document, operation: ObjectMutation, objects: tuple[_ObjectRecord, ...]
-) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+) -> tuple[Document, tuple[str, ...], set[_AllowedDifference]]:
     matches = [item for item in objects if item.name == operation.object_name]
     if len(matches) != 1:
         raise MutationError(
@@ -678,27 +761,36 @@ def _apply_object_mutation(
             "Sphere mutations support only scale and position until more fields are verified"
         )
 
-    allowed: set[tuple[str, str, int | None]] = set()
+    allowed: set[_AllowedDifference] = set()
     if operation.scale is not None:
         document = _set_vector(document, obj.section, (0, 1, 2), operation.scale)
-        allowed.update((obj.section.decode(), "Transform", index) for index in (0, 1, 2))
+        allowed.update(
+            _allowed_difference(obj.section, "Transform", index)
+            for index in (0, 1, 2)
+        )
     if operation.rotation is not None:
         document = _set_vector(document, obj.section, (6, 7, 8), operation.rotation)
-        allowed.update((obj.section.decode(), "Transform", index) for index in (6, 7, 8))
+        allowed.update(
+            _allowed_difference(obj.section, "Transform", index)
+            for index in (6, 7, 8)
+        )
     if operation.position is not None:
         document = _set_vector(document, obj.section, (9, 10, 11), operation.position)
-        allowed.update((obj.section.decode(), "Transform", index) for index in (9, 10, 11))
+        allowed.update(
+            _allowed_difference(obj.section, "Transform", index)
+            for index in (9, 10, 11)
+        )
     if operation.color_density is not None:
         document = _replace_value(
             document, obj.section, b"GradDensity", operation.color_density, 3, None
         )
-        allowed.add((obj.section.decode(), "GradDensity", None))
+        allowed.add(_allowed_difference(obj.section, "GradDensity", None))
     if operation.face_warp is not None:
         metamorph = obj.section + b"\\MM\\0"
         document = _replace_value(
             document, metamorph, b"Pars", operation.face_warp, 4, 0
         )
-        allowed.add((metamorph.decode(), "Pars", 0))
+        allowed.add(_allowed_difference(metamorph, "Pars", 0))
     return document, (obj.name,), allowed
 
 
@@ -706,7 +798,7 @@ def _apply_sphere_metamorph_mutation(
     document: Document,
     operation: SphereMetamorphMutation,
     objects: tuple[_ObjectRecord, ...],
-) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+) -> tuple[Document, tuple[str, ...], set[_AllowedDifference]]:
     matches = [item for item in objects if item.name == operation.object_name]
     if len(matches) != 1:
         raise MutationError(
@@ -733,7 +825,8 @@ def _apply_sphere_metamorph_mutation(
             token.encode("ascii"),
         )
     allowed = {
-        (metamorph.decode(), "Pars", token_index) for token_index in range(12)
+        _allowed_difference(metamorph, "Pars", token_index)
+        for token_index in range(12)
     }
     return document, (obj.name,), allowed
 
@@ -741,31 +834,16 @@ def _apply_sphere_metamorph_mutation(
 def _cylinder_object(
     document: Document, object_name: str
 ) -> _ObjectRecord:
-    matches: list[_ObjectRecord] = []
-    for record in document.records:
-        if not isinstance(record, SectionRecord) or record.occurrence != 0:
-            continue
-        match = _HOLON_SECTION.fullmatch(record.name)
-        if not match or int(match.group(1)) <= 0:
-            continue
-        section = record.name
-        if _value(document, section, b"Type") != b"1":
-            continue
-        try:
-            name = _value(document, section, b"Name").decode("ascii")
-        except UnicodeDecodeError as error:
-            raise MutationError("verified object names must be ASCII") from error
-        if name == object_name:
-            matches.append(_ObjectRecord(section, name, "cylinder"))
-    if len(matches) != 1:
-        raise MutationError(f"object name {object_name!r} matched {len(matches)} objects")
-    return matches[0]
+    node = _target_node(document, object_name)
+    return _ObjectRecord(
+        f"Holon\\{node.holon_index}".encode("ascii"), object_name, "cylinder"
+    )
 
 
 def _apply_cylinder_metamorph_mutation(
     document: Document,
     operation: CylinderMetamorphMutation,
-) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+) -> tuple[Document, tuple[str, ...], set[_AllowedDifference]]:
     obj = _cylinder_object(document, operation.object_name)
     metamorph = obj.section + b"\\MM\\0"
     if _value(document, metamorph, b"Style") != b"13":
@@ -785,7 +863,8 @@ def _apply_cylinder_metamorph_mutation(
             token.encode("ascii"),
         )
     allowed = {
-        (metamorph.decode(), "Pars", token_index) for token_index in range(7)
+        _allowed_difference(metamorph, "Pars", token_index)
+        for token_index in range(7)
     }
     return document, (obj.name,), allowed
 
@@ -794,12 +873,12 @@ def _apply_row_mutation(
     document: Document,
     operation: CenteredRowMutation,
     objects: tuple[_ObjectRecord, ...],
-) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+) -> tuple[Document, tuple[str, ...], set[_AllowedDifference]]:
     signature = tuple(item.kind for item in objects)
     if signature not in _SUPPORTED_SIGNATURES:
         raise MutationError("row mutation requires a currently supported object sequence")
     start = operation.center.x - operation.spacing * Decimal(len(objects) - 1) / 2
-    allowed: set[tuple[str, str, int | None]] = set()
+    allowed: set[_AllowedDifference] = set()
     for index, obj in enumerate(objects):
         position = Vector3(
             start + operation.spacing * index,
@@ -807,7 +886,10 @@ def _apply_row_mutation(
             operation.center.z,
         )
         document = _set_vector(document, obj.section, (9, 10, 11), position)
-        allowed.update((obj.section.decode(), "Transform", token) for token in (9, 10, 11))
+        allowed.update(
+            _allowed_difference(obj.section, "Transform", token)
+            for token in (9, 10, 11)
+        )
     return document, tuple(item.name for item in objects), allowed
 
 
@@ -834,24 +916,63 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
         raise MutationError("input failed exact parser round trip")
     _require_xdx_1220(original)
     if isinstance(operation, CylinderMetamorphMutation):
+        node = _target_node(original, operation.object_name)
+        if node.constructor == "Cylinder":
+            _require_capability(
+                node,
+                operation.object_name,
+                SceneOperation.APPLY_CYLINDER_PROFILE,
+            )
         mutated, names, allowed = _apply_cylinder_metamorph_mutation(
             original, operation
         )
     else:
-        objects = _objects(original)
         if isinstance(operation, ObjectMutation):
+            node = _target_node(original, operation.object_name)
+            obj = _target_object(node, operation.object_name)
+            _require_object_capabilities(operation, node)
             mutated, names, allowed = _apply_object_mutation(
-                original, operation, objects
+                original, operation, (obj,)
             )
         elif isinstance(operation, CenteredRowMutation):
+            objects = _objects(
+                original,
+                {
+                    "cube": (SceneOperation.SET_POSITION,),
+                    "sphere": (SceneOperation.SET_POSITION,),
+                },
+            )
             mutated, names, allowed = _apply_row_mutation(
                 original, operation, objects
             )
         elif isinstance(operation, SphereMetamorphMutation):
+            node = _target_node(original, operation.object_name)
+            obj = _target_object(node, operation.object_name)
+            if node.constructor == "Sphere":
+                _require_capability(
+                    node,
+                    operation.object_name,
+                    SceneOperation.APPLY_SPHERE_PROFILE,
+                )
             mutated, names, allowed = _apply_sphere_metamorph_mutation(
-                original, operation, objects
+                original, operation, (obj,)
             )
         else:
+            objects = _objects(
+                original,
+                {
+                    "cube": (
+                        SceneOperation.SET_SCALE,
+                        SceneOperation.SET_ROTATION,
+                        SceneOperation.SET_POSITION,
+                        SceneOperation.SET_FACE_WARP,
+                    ),
+                    "sphere": (
+                        SceneOperation.SET_SCALE,
+                        SceneOperation.SET_POSITION,
+                    ),
+                },
+            )
             mutated, names, allowed = _apply_seeded_variation(
                 original, operation, objects
             )
@@ -861,7 +982,9 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
     for item in differences:
         locator = (
             item.get("section"),
+            item.get("section_occurrence"),
             item.get("key"),
+            item.get("key_occurrence"),
             item.get("token_index"),
         )
         if locator not in allowed:

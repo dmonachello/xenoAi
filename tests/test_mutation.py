@@ -287,6 +287,25 @@ def test_cylinder_profile_is_scoped_away_from_other_mutation_families() -> None:
         apply_verified_mutation(source, CenteredRowMutation(spacing=D("10")))
 
 
+def test_known_target_can_be_mutated_beside_an_opaque_object() -> None:
+    source = compile_project(
+        ProjectSpec(objects=(CubeSpec(), SphereSpec()))
+    ).replace(b"Style=1", b"Style=999", 1)
+    opaque_before = source[source.index(b"[Holon\\2]") :]
+
+    result = apply_verified_mutation(
+        source,
+        ObjectMutation("Cube2", position=Vector3(D("25"), D("0"), D("0"))),
+    )
+
+    assert result.changed is True
+    assert result.object_names == ("Cube2",)
+    assert result.data[result.data.index(b"[Holon\\2]") :] == opaque_before
+    assert [(item["section"], item["key"], item.get("token_index")) for item in result.differences] == [
+        ("Holon\\1", "Transform", 9)
+    ]
+
+
 def test_cylinder_profile_rejects_malformed_record_identity() -> None:
     source = compile_cylinder()
     operation = CylinderMetamorphMutation("Cylinder2", "length-three")

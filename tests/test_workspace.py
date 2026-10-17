@@ -97,6 +97,31 @@ def test_create_records_constraints_and_preserves_source(tmp_path) -> None:
     assert ProjectWorkspace.open(workspace.root).status() == status
 
 
+def test_describe_binds_scene_to_selected_revision_without_moving_head(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+    initial = workspace.status().head
+    changed = workspace.apply(
+        ObjectMutation("Cube2", position=Vector3(D("25"), D("0"), D("0"))),
+        message="move cube",
+    ).revision
+
+    scene = workspace.describe(initial.id)
+
+    assert scene.binding.revision_id == initial.id
+    assert scene.binding.artifact_sha256 == initial.artifact_sha256
+    assert scene.nodes[1].transform is not None
+    assert scene.nodes[1].transform.position.x == D("0.00000")
+    assert workspace.status().head.id == changed.id
+
+
+def test_describe_rejects_a_corrupted_content_addressed_artifact(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+    Path(workspace.status().artifact_path).write_bytes(b"corrupted")
+
+    with pytest.raises(WorkspaceError, match="artifact failed hash verification"):
+        workspace.describe()
+
+
 def test_apply_creates_revision_and_noop_is_idempotent(tmp_path) -> None:
     workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
     initial = workspace.status().head

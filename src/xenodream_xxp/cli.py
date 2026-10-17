@@ -37,6 +37,7 @@ from .generator import (
     compile_three_cubes,
 )
 from .report import inspect_document
+from .scene import scene_description_to_dict
 from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
@@ -224,6 +225,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     project_status.add_argument("workspace", type=Path)
 
+    project_describe = project_commands.add_parser(
+        "describe", help="describe one revision as a typed XenoDream scene"
+    )
+    project_describe.add_argument("workspace", type=Path)
+    project_describe.add_argument("--ref", default="HEAD")
+
     project_validate = project_commands.add_parser(
         "validate",
         help="evaluate a revision in isolated XenoDream and attach an STL report",
@@ -357,7 +364,7 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _print_json(value: object) -> None:
+def _print_json(value: object, *, sort_keys: bool = True) -> None:
     def encode(item: object) -> str:
         if isinstance(item, (Decimal, Path)):
             return str(item)
@@ -367,7 +374,7 @@ def _print_json(value: object) -> None:
         json.dumps(
             value,
             indent=2,
-            sort_keys=True,
+            sort_keys=sort_keys,
             default=encode,
         )
     )
@@ -391,6 +398,12 @@ def _handle_project(args: argparse.Namespace) -> int:
     workspace = ProjectWorkspace.open(args.workspace)
     if args.project_command == "status":
         _print_json(asdict(workspace.status()))
+        return 0
+    if args.project_command == "describe":
+        _print_json(
+            scene_description_to_dict(workspace.describe(args.ref)),
+            sort_keys=False,
+        )
         return 0
     if args.project_command == "validate":
         validation = workspace.validate_native(

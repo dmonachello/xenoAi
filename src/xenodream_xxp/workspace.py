@@ -44,6 +44,7 @@ from .planning import (
     plan_provenance_to_dict,
     validate_plan_provenance,
 )
+from .scene import SceneBinding, SceneDescription, describe_xdx_scene
 from xenosculpt.core.model import ApplyResult, ArtifactInfo, Revision
 from xenosculpt.core.workspace import RevisionWorkspace
 
@@ -391,6 +392,20 @@ class ProjectWorkspace(RevisionWorkspace):
             constraints=_constraints_from_dict(json.loads(raw_constraints)),
             latest_validation=latest_validation,
             latest_fabrication_assessment=latest_assessment,
+        )
+
+    def describe(self, ref: str = "HEAD") -> SceneDescription:
+        """Describe one verified workspace artifact without moving HEAD."""
+
+        with self._connect() as connection:
+            revision = self._get_revision(connection, ref)
+        data = self._artifact_data(revision)
+        return describe_xdx_scene(
+            data,
+            SceneBinding(
+                revision_id=revision.id,
+                artifact_sha256=revision.artifact_sha256,
+            ),
         )
 
     def assess_fabrication(
