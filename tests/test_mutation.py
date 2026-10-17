@@ -4,6 +4,7 @@ from decimal import Decimal as D
 
 import pytest
 
+from xenodream_xxp.composition import AddCube
 from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import parse_bytes
 from xenodream_xxp.generator import (
@@ -28,6 +29,7 @@ from xenodream_xxp.mutation import (
     cylinder_metamorph_profiles,
     sphere_metamorph_profile_evidence,
     sphere_metamorph_profiles,
+    verified_operation_details,
 )
 
 
@@ -73,6 +75,30 @@ def test_reapplying_same_value_is_byte_identical() -> None:
     assert result.changed is False
     assert result.data == source
     assert result.differences == ()
+
+
+def test_add_cube_is_a_verified_structural_mutation() -> None:
+    result = apply_verified_mutation(
+        compile_cube(),
+        AddCube(position=Vector3(D("75"), D("0"), D("0"))),
+    )
+
+    assert result.changed is True
+    assert result.object_names == ("Cube3",)
+    assert result.added is not None
+    assert result.added.name == "Cube3"
+    assert result.structural_changes[0].section == "Holon\\2"
+    assert result.native_validation_required is True
+    assert result.fabrication_suitable is False
+    assert verified_operation_details(
+        AddCube(position=Vector3(D("75"), D("0"), D("0")))
+    ) == {
+        "type": "add-cube-v1",
+        "position": ["75", "0", "0"],
+        "evidence": ["E055", "E056", "E057", "E060", "E061", "E062"],
+        "native_validation_required": True,
+        "fabrication_suitable": False,
+    }
 
 
 def test_sphere_rejects_unverified_properties() -> None:

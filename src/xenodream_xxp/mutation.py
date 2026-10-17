@@ -11,9 +11,16 @@ import random
 import re
 from typing import Any, TypeAlias
 
+from .composition import (
+    AddCube,
+    AddedCube,
+    CompositionError,
+    StructuralChange,
+    append_cube,
+)
 from .diffing import diff_documents
 from .document import Document, KeyValueRecord, parse_bytes
-from .generator import Vector3
+from .generator import TemplateMismatchError, Vector3
 from .scene import (
     SceneBinding,
     SceneNode,
@@ -138,6 +145,7 @@ VerifiedOperation: TypeAlias = (
     | SeededVariation
     | SphereMetamorphMutation
     | CylinderMetamorphMutation
+    | AddCube
 )
 
 
@@ -149,6 +157,8 @@ class MutationResult:
     object_names: tuple[str, ...]
     native_validation_required: bool = False
     fabrication_suitable: bool = False
+    structural_changes: tuple[StructuralChange, ...] = ()
+    added: AddedCube | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,6 +358,14 @@ def verified_operation_details(operation: VerifiedOperation) -> dict[str, object
     def vector(value: Vector3 | None) -> list[str] | None:
         return None if value is None else [str(value.x), str(value.y), str(value.z)]
 
+    if isinstance(operation, AddCube):
+        return {
+            "type": "add-cube-v1",
+            "position": vector(operation.position),
+            "evidence": ["E055", "E056", "E057", "E060", "E061", "E062"],
+            "native_validation_required": True,
+            "fabrication_suitable": False,
+        }
     if isinstance(operation, ObjectMutation):
         return {
             "type": "object-mutation",
@@ -911,17 +929,33 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
             SeededVariation,
             SphereMetamorphMutation,
             CylinderMetamorphMutation,
+            AddCube,
         ),
     ):
         raise TypeError(
             "operation must be ObjectMutation, CenteredRowMutation, "
             "SeededVariation, SphereMetamorphMutation, or "
-            "CylinderMetamorphMutation"
+            "CylinderMetamorphMutation, or AddCube"
         )
     original = parse_bytes(data)
     if original.to_bytes() != data:
         raise MutationError("input failed exact parser round trip")
     _require_xdx_1220(original)
+    if isinstance(operation, AddCube):
+        try:
+            rewrite = append_cube(data, operation)
+        except (CompositionError, TemplateMismatchError) as error:
+            raise MutationError(str(error)) from error
+        return MutationResult(
+            data=rewrite.data,
+            changed=rewrite.data != data,
+            differences=rewrite.differences,
+            object_names=(rewrite.added.name,),
+            native_validation_required=True,
+            fabrication_suitable=False,
+            structural_changes=rewrite.structural_changes,
+            added=rewrite.added,
+        )
     if isinstance(operation, CylinderMetamorphMutation):
         node = _target_node(original, operation.object_name)
         _require_capability(

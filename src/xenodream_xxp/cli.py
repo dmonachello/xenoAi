@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from .composition import AddCube
 from .diffing import diff_documents
 from .document import parse_bytes
 from .fabrication import fabrication_assessment_to_dict
@@ -270,6 +271,16 @@ def _parser() -> argparse.ArgumentParser:
     project_mutate.add_argument("--message", required=True)
     project_mutate.add_argument("--prompt")
 
+    project_add_cube = project_commands.add_parser(
+        "add-cube", help="append one Cube to a verified flat Cube composition"
+    )
+    project_add_cube.add_argument("workspace", type=Path)
+    project_add_cube.add_argument(
+        "--position", nargs=3, type=Decimal, metavar=("X", "Y", "Z"), required=True
+    )
+    project_add_cube.add_argument("--message", required=True)
+    project_add_cube.add_argument("--prompt")
+
     project_metamorph = project_commands.add_parser(
         "metamorph", help="apply one measured metamorph profile"
     )
@@ -467,6 +478,33 @@ def _handle_project(args: argparse.Namespace) -> int:
                 "differences": []
                 if result.mutation is None
                 else result.mutation.differences,
+            }
+        )
+        return 0
+    if args.project_command == "add-cube":
+        result = workspace.apply(
+            AddCube(position=Vector3(*args.position)),
+            message=args.message,
+            prompt=args.prompt,
+        )
+        mutation = result.mutation
+        _print_json(
+            {
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "added": None
+                if mutation is None or mutation.added is None
+                else asdict(mutation.added),
+                "differences": [] if mutation is None else mutation.differences,
+                "structural_changes": []
+                if mutation is None
+                else [asdict(item) for item in mutation.structural_changes],
+                "native_validation_required": False
+                if mutation is None
+                else mutation.native_validation_required,
+                "fabrication_suitable": False
+                if mutation is None
+                else mutation.fabrication_suitable,
             }
         )
         return 0

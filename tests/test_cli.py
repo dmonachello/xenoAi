@@ -586,6 +586,52 @@ def test_project_cli_describes_a_revision_bound_partial_scene(
     assert result["diagnostics"][0]["code"] == "holon-count-mismatch"
 
 
+def test_project_cli_adds_a_cube_and_reports_structural_result(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "source.xxp"
+    workspace = tmp_path / "sculpture.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "project", "add-cube", str(workspace),
+            "--position", "75", "0", "0",
+            "--message", "add right cube",
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["created"] is True
+    assert result["revision"]["operation"] == "add-cube-v1"
+    assert result["added"] == {
+        "id": 2,
+        "holon_index": 2,
+        "name": "Cube3",
+        "group_id": 0,
+        "constructor": "Cube",
+    }
+    assert result["structural_changes"] == [
+        {
+            "kind": "section_added",
+            "section": "Holon\\2",
+            "section_occurrence": 0,
+            "record_count": 30,
+        },
+        {
+            "kind": "section_added",
+            "section": "Holon\\2\\MM\\0",
+            "section_occurrence": 0,
+            "record_count": 9,
+        },
+    ]
+    assert result["differences"]
+    assert result["native_validation_required"] is True
+    assert result["fabrication_suitable"] is False
+
+
 def test_project_cli_creates_seeded_variation(tmp_path, capsys) -> None:
     source = tmp_path / "source.xxp"
     workspace = tmp_path / "sculpture.xsp"

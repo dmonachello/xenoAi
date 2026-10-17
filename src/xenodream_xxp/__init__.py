@@ -1,6 +1,7 @@
 """Lossless tools for observed XenoDream X parameter-file syntax."""
 
 from .document import Document, parse_bytes, parse_file
+from .composition import AddCube, AddedCube, CompositionError, StructuralChange
 from .fabrication import (
     CheckCode,
     CheckStatus,
@@ -95,6 +96,9 @@ from .workspace import (
 
 __all__ = [
     "CubeSpec",
+    "AddCube",
+    "AddedCube",
+    "CompositionError",
     "COMPILER_PROFILE",
     "CUBE_SPHERE_COMPILER_PROFILE",
     "CYLINDER_COMPILER_PROFILE",
@@ -138,6 +142,7 @@ __all__ = [
     "SolidifyError",
     "SolidifyReport",
     "SolidifySettings",
+    "StructuralChange",
     "Recognition",
     "SceneBinding",
     "SceneDescription",

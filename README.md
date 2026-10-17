@@ -179,6 +179,9 @@ commands. Use the explicit commands when you already know the operation.
 xxp project mutate output/project.xsp --object Cube2 `
   --scale 25 50 100 --message "elongate cube"
 
+xxp project add-cube output/project.xsp --position 75 0 0 `
+  --message "add right cube"
+
 xxp project row output/project.xsp --spacing 90 `
   --message "arrange objects"
 
@@ -197,9 +200,13 @@ Workspace commands also include `describe`, `status`, `log`, `branch`,
 `project describe` reads one hash-verified revision and does not change the
 workspace. It reports only edit capabilities supported by the exact XDX 1.220
 record shape. An empty capability list means that XenoSculpt can preserve the
-node but cannot safely edit it. See
-[XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the output
-contract and limits.
+node but cannot safely edit it. `project add-cube` supports only flat Group1
+projects containing one or two canonical Cubes. It preserves every existing
+record byte except the authorized `Header.NumHolons` value, allocates the next
+canonical Cube identity, and requires native validation of the new revision.
+See [Add Cubes to a bounded XenoDream composition](docs/m25-xenodream-composition.md)
+for the admitted workflow and limits, and
+[XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
 
 ## Validate a revision in XenoDream
 

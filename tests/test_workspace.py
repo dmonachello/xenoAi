@@ -9,12 +9,16 @@ import struct
 
 import pytest
 
+import xenodream_xxp.mutation as mutation_module
+from xenodream_xxp.composition import AddCube
 from xenodream_xxp.generator import (
     CubeSpec,
+    TemplateMismatchError,
     Vector3,
     compile_cube,
     compile_cylinder,
     compile_sphere,
+    compile_three_cubes,
 )
 from xenodream_xxp.fabrication import (
     CheckCode,
@@ -24,6 +28,7 @@ from xenodream_xxp.fabrication import (
 from xenodream_xxp.mutation import (
     CenteredRowMutation,
     CylinderMetamorphMutation,
+    MutationError,
     ObjectMutation,
     SeededVariation,
     SphereMetamorphMutation,
@@ -148,6 +153,79 @@ def test_apply_creates_revision_and_noop_is_idempotent(tmp_path) -> None:
     assert repeated.created is False
     assert repeated.revision.id == applied.revision.id
     assert len(workspace.history()) == 2
+
+
+def test_add_cube_creates_a_revision_and_the_new_cube_is_editable(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+
+    added = workspace.apply(
+        AddCube(position=Vector3(D("75"), D("0"), D("0"))),
+        message="add cube",
+    )
+
+    assert added.created is True
+    assert added.revision.operation == "add-cube-v1"
+    assert added.revision.details["position"] == ["75", "0", "0"]
+    assert added.mutation is not None
+    assert added.mutation.added is not None
+    assert added.mutation.added.name == "Cube3"
+    moved = workspace.apply(
+        ObjectMutation("Cube3", position=Vector3(D("100"), D("0"), D("0"))),
+        message="move added cube",
+    )
+    assert moved.created is True
+    assert workspace.describe().nodes[-1].transform is not None
+    assert workspace.describe().nodes[-1].transform.position.x == D("100.00000")
+
+
+def test_rejected_add_cube_does_not_change_head_database_or_artifacts(tmp_path) -> None:
+    source = tmp_path / "three-cubes.xxp"
+    source.write_bytes(compile_three_cubes())
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", source)
+    before_head = workspace.status().head
+    before_artifacts = {path.name for path in workspace.artifacts.iterdir()}
+    with sqlite3.connect(workspace.database) as connection:
+        before_revisions = connection.execute(
+            "SELECT COUNT(*) FROM revisions"
+        ).fetchone()[0]
+
+    with pytest.raises(MutationError, match="one or two"):
+        workspace.apply(
+            AddCube(position=Vector3(D("100"), D("0"), D("0"))),
+            message="unsupported fourth cube",
+        )
+
+    assert workspace.status().head == before_head
+    assert {path.name for path in workspace.artifacts.iterdir()} == before_artifacts
+    with sqlite3.connect(workspace.database) as connection:
+        after_revisions = connection.execute(
+            "SELECT COUNT(*) FROM revisions"
+        ).fetchone()[0]
+    assert after_revisions == before_revisions
+
+
+def test_add_cube_template_mismatch_is_atomic_mutation_error(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
+    before_head = workspace.status().head
+    before_history = workspace.history()
+    before_artifacts = {path.name for path in workspace.artifacts.iterdir()}
+
+    def reject_template(data, operation):
+        raise TemplateMismatchError("template resource digest mismatch")
+
+    monkeypatch.setattr(mutation_module, "append_cube", reject_template)
+
+    with pytest.raises(MutationError, match="template resource digest mismatch"):
+        workspace.apply(
+            AddCube(position=Vector3(D("75"), D("0"), D("0"))),
+            message="cannot use mismatched template",
+        )
+
+    assert workspace.status().head == before_head
+    assert workspace.history() == before_history
+    assert {path.name for path in workspace.artifacts.iterdir()} == before_artifacts
 
 
 def test_apply_plan_binds_head_and_records_planner_provenance(tmp_path) -> None:
