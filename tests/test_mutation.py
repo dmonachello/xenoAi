@@ -210,7 +210,7 @@ def test_sphere_metamorph_profiles_are_measured_and_replace_complete_state() -> 
 def test_sphere_metamorph_profile_rejects_unknown_profile_and_cube_target() -> None:
     with pytest.raises(MutationError, match="unknown Sphere metamorph profile"):
         SphereMetamorphMutation("Sphere2", "invented")
-    with pytest.raises(MutationError, match="require a verified Sphere"):
+    with pytest.raises(MutationError, match="does not support apply-sphere-profile-v1"):
         apply_verified_mutation(
             compile_cube(), SphereMetamorphMutation("Cube2", "cushion-core")
         )
@@ -267,7 +267,7 @@ def test_cylinder_profile_is_scoped_away_from_other_mutation_families() -> None:
 
     with pytest.raises(MutationError, match="unknown Cylinder metamorph profile"):
         CylinderMetamorphMutation("Cylinder2", "invented")
-    with pytest.raises(MutationError, match="requires Style 13"):
+    with pytest.raises(MutationError, match="does not support apply-cylinder-profile-v1"):
         apply_verified_mutation(
             compile_sphere(),
             CylinderMetamorphMutation("Sphere2", "length-three"),
@@ -310,11 +310,11 @@ def test_cylinder_profile_rejects_malformed_record_identity() -> None:
     source = compile_cylinder()
     operation = CylinderMetamorphMutation("Cylinder2", "length-three")
 
-    with pytest.raises(MutationError, match="requires Style 13"):
+    with pytest.raises(MutationError, match="does not support apply-cylinder-profile-v1"):
         apply_verified_mutation(source.replace(b"Style=13", b"Style=12"), operation)
-    with pytest.raises(MutationError, match="requires NumPars 7"):
+    with pytest.raises(MutationError, match="does not support apply-cylinder-profile-v1"):
         apply_verified_mutation(source.replace(b"NumPars=7", b"NumPars=8"), operation)
-    with pytest.raises(MutationError, match="requires seven Pars tokens"):
+    with pytest.raises(MutationError, match="does not support apply-cylinder-profile-v1"):
         apply_verified_mutation(
             source.replace(
                 b"Pars=1.00000 360.0000 2 0 0 0.000 2 ",
@@ -346,3 +346,80 @@ def test_cylinder_profile_requires_one_unique_named_target() -> None:
 
     with pytest.raises(MutationError, match="matched 2 objects"):
         apply_verified_mutation(duplicate, operation)
+
+
+def test_cylinder_profile_rejects_duplicate_constructor_metamorph() -> None:
+    source = compile_cylinder()
+    start = source.index(b"[Holon\\1\\MM\\0]")
+    end = source.index(b"[Gradients]")
+    duplicate = source[:end] + source[start:end] + source[end:]
+
+    with pytest.raises(
+        MutationError, match="does not support apply-cylinder-profile-v1"
+    ):
+        apply_verified_mutation(
+            duplicate,
+            CylinderMetamorphMutation("Cylinder2", "length-three"),
+        )
+
+
+def test_local_edits_require_only_the_records_and_tokens_they_consume() -> None:
+    source = (
+        compile_cube()
+        .replace(b"ID=1\r\n", b"ID=1\r\nID=99\r\n", 1)
+        .replace(b"GroupID=0\r\n", b"GroupID=0\r\nGroupID=99\r\n", 1)
+        .replace(
+            b"Transform=50.00000 50.00000 50.00000",
+            b"Transform=bad 50.00000 50.00000",
+            1,
+        )
+    )
+
+    result = apply_verified_mutation(
+        source,
+        ObjectMutation(
+            "Cube2", position=Vector3(D("1"), D("2"), D("3"))
+        ),
+    )
+
+    assert result.changed is True
+    assert [item["token_index"] for item in result.differences] == [9, 10, 11]
+
+
+def test_color_density_can_replace_an_unparseable_existing_value() -> None:
+    source = compile_cube().replace(b"GradDensity=1.000", b"GradDensity=bad")
+
+    result = apply_verified_mutation(
+        source, ObjectMutation("Cube2", color_density=D("0.5"))
+    )
+
+    assert b"GradDensity=0.500" in result.data
+
+
+def test_sphere_profile_does_not_depend_on_transform_parseability() -> None:
+    source = compile_sphere().replace(
+        b"Transform=50.00000 50.00000 50.00000",
+        b"Transform=bad 50.00000 50.00000",
+        1,
+    )
+
+    result = apply_verified_mutation(
+        source, SphereMetamorphMutation("Sphere2", "cushion-core")
+    )
+
+    assert result.changed is True
+
+
+def test_whole_scene_operations_keep_holon_index_order() -> None:
+    source = compile_project(ProjectSpec(objects=(CubeSpec(), CubeSpec())))
+    reordered_indexes = (
+        source.replace(b"Holon\\1", b"Holon\\99")
+        .replace(b"Holon\\2", b"Holon\\1")
+        .replace(b"Holon\\99", b"Holon\\2")
+    )
+
+    result = apply_verified_mutation(
+        reordered_indexes, CenteredRowMutation(spacing=D("10"))
+    )
+
+    assert result.object_names == ("Cube3", "Cube2")

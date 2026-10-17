@@ -42,10 +42,10 @@ def test_describes_verified_scene_without_normalizing_source() -> None:
     assert scene.declared_holon_count == 2
     assert [node.holon_index for node in scene.nodes] == [0, 1]
     assert [node.ordinal for node in scene.nodes] == [0, 1]
-    assert scene.nodes[0].parent_id is None
+    assert scene.nodes[0].group_id == 0
     sphere = scene.nodes[1]
     assert sphere.id == 1
-    assert sphere.parent_id == 0
+    assert sphere.group_id == 0
     assert sphere.constructor == "Sphere"
     assert sphere.recognition is Recognition.VERIFIED
     assert sphere.transform is not None
@@ -98,6 +98,7 @@ def test_description_reports_partial_structure_in_physical_order() -> None:
         "diagnostics",
     ]
     assert [node["holon_index"] for node in result["nodes"]] == [0, 1]
+    assert "parent_id" not in result["nodes"][1]
     assert result["nodes"][1]["transform"]["scale"] == ["50.00000"] * 3
     assert any(
         item["code"] == "holon-count-mismatch"
@@ -110,7 +111,28 @@ def test_historical_scene_does_not_advertise_writes() -> None:
     scene = describe_xdx_scene(source, BINDING)
 
     assert scene.nodes[1].constructor is None
+    assert scene.nodes[1].transform is None
     assert scene.nodes[1].allowed_operations == ()
+
+
+def test_non_ascii_name_remains_visible_but_is_not_a_write_target() -> None:
+    source = compile_cube().replace(b"Name=Cube2", b"Name=Cube\xff")
+
+    cube = describe_xdx_scene(source, BINDING).nodes[1]
+
+    assert cube.name == "Cube\\xff"
+    assert "non-ascii-name" in cube.write_blockers
+    assert cube.allowed_operations == ()
+    with pytest.raises(MutationError, match="does not support set-position-v1"):
+        apply_verified_mutation(
+            source,
+            ObjectMutation(
+                "Cube\\xff",
+                position=Vector3(
+                    Decimal("1"), Decimal("0"), Decimal("0")
+                ),
+            ),
+        )
 
 
 def test_duplicate_name_across_known_and_opaque_nodes_blocks_name_writes() -> None:
@@ -152,6 +174,10 @@ def test_duplicate_holon_section_keeps_occurrences_distinct_and_suppresses_write
         "ambiguous-metamorph-ownership" in node.write_blockers
         for node in duplicates
     )
+    assert any(
+        item.code == "ambiguous-metamorph-owner"
+        for item in scene.diagnostics
+    )
 
 
 def test_duplicate_target_field_suppresses_only_that_nodes_writes() -> None:
@@ -164,3 +190,32 @@ def test_duplicate_target_field_suppresses_only_that_nodes_writes() -> None:
     assert cube.name is None
     assert cube.allowed_operations == ()
     assert "duplicate-or-missing-Name" in cube.write_blockers
+
+
+def test_invalid_metamorph_schema_does_not_expose_operation_name() -> None:
+    source = compile_cube().replace(
+        b"Pars=0.0000 0 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0 ",
+        b"Pars=0.0000 0 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 ",
+    )
+
+    metamorph = describe_xdx_scene(source, BINDING).nodes[1].metamorphs[0]
+
+    assert metamorph.schema_verified is False
+    assert metamorph.operation_name is None
+
+
+def test_orphan_metamorph_is_reported_instead_of_disappearing() -> None:
+    source = compile_cube() + (
+        b"[Holon\\99\\MM\\0]\r\n"
+        b"Style=5\r\n"
+        b"NumPars=9\r\n"
+        b"Pars=0 0 0 0 0 0 0 0 0 \r\n"
+    )
+
+    scene = describe_xdx_scene(source, BINDING)
+
+    diagnostic = next(
+        item for item in scene.diagnostics if item.code == "orphan-metamorph"
+    )
+    assert diagnostic.section_occurrence == 0
+    assert diagnostic.ordinal == 1

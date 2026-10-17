@@ -82,6 +82,8 @@ class SceneDiagnostic:
     code: str
     message: str
     section: str | None = None
+    section_occurrence: int | None = None
+    ordinal: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,7 +95,6 @@ class SceneNode:
     type_code: int | None
     name: str | None
     group_id: int | None
-    parent_id: int | None
     constructor: str | None
     recognition: Recognition
     transform: SceneTransform | None
@@ -127,6 +128,15 @@ class _MetamorphRecord:
 
 def _text(value: bytes | None) -> str | None:
     return None if value is None else value.decode("ascii", errors="backslashreplace")
+
+
+def _ascii_text(value: bytes | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        return value.decode("ascii")
+    except UnicodeDecodeError:
+        return None
 
 
 def _section_fields(
@@ -250,7 +260,9 @@ def _describe_metamorph(
         declared_parameter_count=declared,
         parameters=tuple(parameters),
         operation_name=(
-            None if definition is None else str(definition.get("name"))
+            str(definition.get("name"))
+            if schema_verified and definition is not None
+            else None
         ),
         schema_verified=schema_verified,
     )
@@ -287,7 +299,6 @@ def _operation_capabilities(
     *,
     version: str | None,
     constructor: str | None,
-    transform: SceneTransform | None,
     fields: dict[bytes, list[bytes]],
     metamorphs: tuple[SceneMetamorph, ...],
     blockers: tuple[str, ...],
@@ -300,25 +311,27 @@ def _operation_capabilities(
         and item.schema_verified
         for item in metamorphs
     )
+    def has_tokens(key: bytes, indexes: tuple[int, ...]) -> bool:
+        values = fields.get(key, [])
+        return len(values) == 1 and len(values[0].split()) > max(indexes)
+
     operations: list[SceneOperation] = []
     if constructor == "Cube":
-        if transform is not None:
-            operations.extend(
-                (
-                    SceneOperation.SET_SCALE,
-                    SceneOperation.SET_ROTATION,
-                    SceneOperation.SET_POSITION,
-                )
-            )
-        density = _unique(fields, b"GradDensity")
-        if density is not None and _decimal(density) is not None:
+        if has_tokens(b"Transform", (0, 1, 2)):
+            operations.append(SceneOperation.SET_SCALE)
+        if has_tokens(b"Transform", (6, 7, 8)):
+            operations.append(SceneOperation.SET_ROTATION)
+        if has_tokens(b"Transform", (9, 10, 11)):
+            operations.append(SceneOperation.SET_POSITION)
+        if len(fields.get(b"GradDensity", [])) == 1:
             operations.append(SceneOperation.SET_COLOR_DENSITY)
         if mm0_verified:
             operations.append(SceneOperation.SET_FACE_WARP)
-    elif constructor == "Sphere" and transform is not None:
-        operations.extend(
-            (SceneOperation.SET_SCALE, SceneOperation.SET_POSITION)
-        )
+    elif constructor == "Sphere":
+        if has_tokens(b"Transform", (0, 1, 2)):
+            operations.append(SceneOperation.SET_SCALE)
+        if has_tokens(b"Transform", (9, 10, 11)):
+            operations.append(SceneOperation.SET_POSITION)
         if mm0_verified:
             operations.append(SceneOperation.APPLY_SPHERE_PROFILE)
     elif constructor == "Cylinder" and mm0_verified:
@@ -374,6 +387,42 @@ def _describe_document(
         )
 
     index_counts = Counter(index for _, _, index in holon_records)
+    metamorph_counts = Counter(
+        (item.holon_index, item.metamorph_index) for item in metamorph_records
+    )
+    for item in metamorph_records:
+        section_name = item.section.decode("ascii", errors="backslashreplace")
+        owner_count = index_counts[item.holon_index]
+        if owner_count == 0:
+            diagnostics.append(
+                SceneDiagnostic(
+                    "orphan-metamorph",
+                    f"Metamorph has no Holon\\{item.holon_index} owner",
+                    section_name,
+                    item.section_occurrence,
+                    item.ordinal,
+                )
+            )
+        elif owner_count > 1:
+            diagnostics.append(
+                SceneDiagnostic(
+                    "ambiguous-metamorph-owner",
+                    f"Metamorph matches {owner_count} Holon\\{item.holon_index} sections",
+                    section_name,
+                    item.section_occurrence,
+                    item.ordinal,
+                )
+            )
+        if metamorph_counts[(item.holon_index, item.metamorph_index)] > 1:
+            diagnostics.append(
+                SceneDiagnostic(
+                    "duplicate-metamorph-section",
+                    "Metamorph index occurs more than once for its Holon",
+                    section_name,
+                    item.section_occurrence,
+                    item.ordinal,
+                )
+            )
     raw_nodes: list[dict[str, Any]] = []
     for ordinal, section_record, holon_index in holon_records:
         section_name = section_record.name.decode("ascii", errors="backslashreplace")
@@ -382,7 +431,8 @@ def _describe_document(
         )
         node_id = _integer(_unique(fields, b"ID"))
         type_code = _integer(_unique(fields, b"Type"))
-        name = _text(_unique(fields, b"Name"))
+        raw_name = _unique(fields, b"Name")
+        name = _text(raw_name)
         group_id = _integer(_unique(fields, b"GroupID"))
         duplicate_fields = sorted(
             key.decode("ascii", errors="backslashreplace")
@@ -390,6 +440,8 @@ def _describe_document(
             if len(fields.get(key, [])) != 1
         )
         blockers = [f"duplicate-or-missing-{key}" for key in duplicate_fields]
+        if raw_name is not None and _ascii_text(raw_name) is None:
+            blockers.append("non-ascii-name")
         ownership_ambiguous = index_counts[holon_index] != 1
         if ownership_ambiguous:
             blockers.append("ambiguous-metamorph-ownership")
@@ -398,6 +450,8 @@ def _describe_document(
                     "duplicate-holon-index",
                     f"Holon index {holon_index} occurs more than once",
                     section_name,
+                    section_record.occurrence,
+                    ordinal,
                 )
             )
         owned_records = (
@@ -436,11 +490,6 @@ def _describe_document(
     id_counts = Counter(
         item["id"] for item in raw_nodes if item["id"] is not None
     )
-    group_id_counts = Counter(
-        item["id"]
-        for item in raw_nodes
-        if item["type_code"] == 0 and item["id"] is not None
-    )
     nodes: list[SceneNode] = []
     for item in raw_nodes:
         blockers = list(item["blockers"])
@@ -452,6 +501,8 @@ def _describe_document(
                     "duplicate-holon-name",
                     f"Holon name {name!r} occurs more than once",
                     item["section"],
+                    item["section_occurrence"],
+                    item["ordinal"],
                 )
             )
         node_id = item["id"]
@@ -462,6 +513,8 @@ def _describe_document(
                     "duplicate-holon-id",
                     f"Holon ID {node_id} occurs more than once",
                     item["section"],
+                    item["section_occurrence"],
+                    item["ordinal"],
                 )
             )
         constructor = _constructor(
@@ -479,35 +532,25 @@ def _describe_document(
             recognition = Recognition.OBSERVED
         else:
             recognition = Recognition.UNKNOWN
-        group_id = item["group_id"]
-        parent_id = (
-            None
-            if item["type_code"] == 0 and group_id == item["id"]
-            else group_id if group_id_counts[group_id] == 1 else None
-        )
-        if group_id is not None and parent_id is None and not (
-            item["type_code"] == 0 and group_id == item["id"]
-        ):
-            diagnostics.append(
-                SceneDiagnostic(
-                    "unresolved-group-id",
-                    f"GroupID {group_id} does not identify one observed group",
-                    item["section"],
-                )
-            )
-            blockers.append(
-                "ambiguous-group-id"
-                if group_id_counts[group_id] > 1
-                else "unresolved-group-id"
-            )
         blocker_tuple = tuple(dict.fromkeys(blockers))
+        local_blockers = tuple(
+            blocker
+            for blocker in blocker_tuple
+            if blocker
+            in {
+                "duplicate-or-missing-Name",
+                "non-ascii-name",
+                "ambiguous-metamorph-ownership",
+                "duplicate-name",
+                "unverified-constructor-record",
+            }
+        )
         operations = _operation_capabilities(
             version=version,
             constructor=constructor,
-            transform=item["transform"],
             fields=item["fields"],
             metamorphs=item["metamorphs"],
-            blockers=blocker_tuple,
+            blockers=local_blockers,
         )
         nodes.append(
             SceneNode(
@@ -517,11 +560,14 @@ def _describe_document(
                 ordinal=item["ordinal"],
                 type_code=item["type_code"],
                 name=name,
-                group_id=group_id,
-                parent_id=parent_id,
+                group_id=item["group_id"],
                 constructor=constructor,
                 recognition=recognition,
-                transform=item["transform"],
+                transform=(
+                    item["transform"]
+                    if constructor in {"Cube", "Sphere"}
+                    else None
+                ),
                 metamorphs=item["metamorphs"],
                 allowed_operations=operations,
                 write_blockers=blocker_tuple,
@@ -593,7 +639,6 @@ def scene_description_to_dict(scene: SceneDescription) -> dict[str, object]:
             "type_code": item.type_code,
             "name": item.name,
             "group_id": item.group_id,
-            "parent_id": item.parent_id,
             "constructor": item.constructor,
             "recognition": item.recognition.value,
             "transform": (
@@ -625,6 +670,8 @@ def scene_description_to_dict(scene: SceneDescription) -> dict[str, object]:
                 "code": item.code,
                 "message": item.message,
                 "section": item.section,
+                "section_occurrence": item.section_occurrence,
+                "ordinal": item.ordinal,
             }
             for item in scene.diagnostics
         ],

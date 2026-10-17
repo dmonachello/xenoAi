@@ -430,7 +430,14 @@ def _objects(
     required: dict[str, tuple[SceneOperation, ...]] | None = None,
 ) -> tuple[_ObjectRecord, ...]:
     objects: list[_ObjectRecord] = []
-    for node in _scene_nodes(document):
+    for node in sorted(
+        _scene_nodes(document),
+        key=lambda item: (
+            item.holon_index,
+            item.section_occurrence,
+            item.ordinal,
+        ),
+    ):
         if node.holon_index <= 0 or node.type_code != 1:
             continue
         if node.name is None or node.constructor not in {"Cube", "Sphere"}:
@@ -917,12 +924,11 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
     _require_xdx_1220(original)
     if isinstance(operation, CylinderMetamorphMutation):
         node = _target_node(original, operation.object_name)
-        if node.constructor == "Cylinder":
-            _require_capability(
-                node,
-                operation.object_name,
-                SceneOperation.APPLY_CYLINDER_PROFILE,
-            )
+        _require_capability(
+            node,
+            operation.object_name,
+            SceneOperation.APPLY_CYLINDER_PROFILE,
+        )
         mutated, names, allowed = _apply_cylinder_metamorph_mutation(
             original, operation
         )
@@ -948,12 +954,11 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
         elif isinstance(operation, SphereMetamorphMutation):
             node = _target_node(original, operation.object_name)
             obj = _target_object(node, operation.object_name)
-            if node.constructor == "Sphere":
-                _require_capability(
-                    node,
-                    operation.object_name,
-                    SceneOperation.APPLY_SPHERE_PROFILE,
-                )
+            _require_capability(
+                node,
+                operation.object_name,
+                SceneOperation.APPLY_SPHERE_PROFILE,
+            )
             mutated, names, allowed = _apply_sphere_metamorph_mutation(
                 original, operation, (obj,)
             )
