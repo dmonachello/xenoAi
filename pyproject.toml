@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 
 [project.scripts]
 xxp = "xenodream_xxp.cli:main"
+xenosculpt = "xenosculpt.cli:main"
 
 [project.optional-dependencies]
 automation = ["pywinauto==0.6.9"]

@@ -1,9 +1,10 @@
 # XenoSculpt
 
-XenoSculpt is an evidence-based toolkit for XenoDream X 1.220 native project
-files. It can inspect and preserve `.xxp` files, generate a small set of
-verified projects, keep revision history, apply measured mutations, and ask
-XenoDream to export a mesh for validation.
+XenoSculpt is an evidence-based revision and execution toolkit for creative
+applications. Its mature XenoDream X 1.220 integration preserves and revises
+native `.xxp` files, generates verified projects, and exports meshes for
+validation. Its first ComfyUI integration revises API-format workflow JSON,
+submits an exact revision to a local server, and retains generated images.
 
 The project is intentionally narrow. It does not claim to be a general
 XenoDream file editor, a slicer, or a printability checker.
@@ -17,8 +18,9 @@ revisions, branches, history, and atomic updates. The
 native mutations, and XDX comparison. XenoDream execution, STL validation, and
 fabrication assessment remain application-specific capabilities.
 
-Future ComfyUI and MoI integrations can reuse the revision core while keeping
-their own document formats and operations. The project does not force workflow
+The ComfyUI integration now reuses this core while keeping its graph operations
+and execution records separate. A future MoI integration can follow the same
+boundary. The project does not force workflow
 graphs, CAD solids, XenoDream holons, images, and meshes into one scene model.
 See [the multi-application core design](.architect/m21-multi-app-core/design.md)
 for the current boundary and its deliberate limits.
@@ -44,6 +46,9 @@ for the current boundary and its deliberate limits.
   pass.
 - Optional STL solidification that creates a derived mesh without changing the
   editable native project.
+- ComfyUI API-workflow projects with strict JSON admission, deterministic
+  artifacts, typed existing-input edits, branches, semantic comparison, and
+  image-producing runs against a local ComfyUI 0.3.45 server.
 
 ## Current limits
 
@@ -62,6 +67,10 @@ for the current boundary and its deliberate limits.
   self-intersection, minimum-feature, and process-specific checks do not exist.
 - Native evaluation requires Windows and an installed copy of XenoDream X.
   XenoDream is not included in this repository.
+- ComfyUI support currently accepts API-format workflow JSON, not the frontend
+  workflow format with layout and groups. It edits existing inputs only and
+  retains PNG, JPEG, and WebP outputs. Custom-node and model provenance is not
+  yet complete.
 
 ## Install from source
 
@@ -75,8 +84,32 @@ python -m venv .venv
 python -m pip install -e .
 ```
 
-The Python package installs the `xxp` command. Run `xxp --help` to list all
-commands.
+The Python package installs `xenosculpt` for all integrations and preserves the
+historical `xxp` command for XenoDream. Run either command with `--help`.
+
+## Revise and run a ComfyUI workflow
+
+Export a workflow in ComfyUI's API format, then create a project and change an
+existing input:
+
+```powershell
+xenosculpt comfyui init output/image.csp output/workflow-api.json
+xenosculpt comfyui set-input output/image.csp 1 width `
+  --value-json 768 --message "increase width"
+```
+
+Run the active revision against the tested local server:
+
+```powershell
+xenosculpt comfyui run output/image.csp `
+  --server http://127.0.0.1:8188 --timeout-seconds 600
+```
+
+XenoSculpt records the run and prompt ID before submission, never automatically
+retries an ambiguous submission, and stores returned images by content hash.
+Use `comfyui resume` to continue polling an existing run without submitting it
+again. See [the ComfyUI vertical slice](docs/m22-comfyui-vertical-slice.md) for
+the supported format, commands, and evidence limits.
 
 ## Create and revise a native project
 
@@ -196,8 +229,8 @@ Its provenance and hash are recorded in
 
 ## Build the Windows executable
 
-The standalone build produces `xenosculpt.exe`, which exposes the same command
-tree as `xxp`.
+The standalone build produces `xenosculpt.exe`. It exposes the existing
+XenoDream command tree and the new `comfyui` command group.
 
 ```powershell
 python -m pip install -e ".[build,fabrication]"
@@ -235,6 +268,8 @@ Start with these documents:
 - [Measured Cylinder mutations](docs/m18-cylinder-metamorph-mutation.md)
 - [Deterministic prompt planning](docs/m19-natural-language-planner.md)
 - [Fabrication assessments](docs/m20-fabrication-assessment.md)
+- [Multi-application revision core](.architect/m21-multi-app-core/design.md)
+- [ComfyUI vertical slice](docs/m22-comfyui-vertical-slice.md)
 
 Generated files belong under `output/`. Do not overwrite files under
 `samples/originals/`.
@@ -247,9 +282,9 @@ python -m pytest
 python scripts/verify_reference.py
 ```
 
-The test suite covers the parser, generators, mutation policies, revision
-workspace, planner, command-line interface, mesh inspection, and automation
-helpers. Live XenoDream validation requires the installed Windows application.
+The test suite covers both application workspaces, parsers, mutation policies,
+revision history, command-line routing, mesh inspection, and automation
+helpers. Live application checks require their respective installed programs.
 
 ## License
 

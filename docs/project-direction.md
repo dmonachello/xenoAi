@@ -15,9 +15,10 @@ The immediate outcome is an original procedural sculpture that the user can
 create, revise through later prompts, open in XenoDream, export as a mesh, and
 fabricate.
 
-MoI3D, ComfyUI, and HueForge are later candidates. Do not build a generic
-multi-application framework until the XenoDream implementation reveals which
-parts are genuinely reusable.
+ComfyUI is now the second application integration. MoI3D and HueForge remain
+later candidates. The shared layer is limited to the revision and artifact
+mechanics proven by both XenoDream and ComfyUI; document operations and runtime
+evidence remain application-owned.
 
 ## Investigation tool policy
 
@@ -78,9 +79,9 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 206 tests. The standalone `xenosculpt.exe` build can
-generate the supported native projects, inspect `.xxp`, compare files, and run
-basic binary-STL validation.
+The current suite has 263 tests. The standalone `xenosculpt.exe` build can
+run the supported XenoDream workflows and revise, execute, and retain image
+outputs from ComfyUI API workflows.
 
 ## What the current generator is
 

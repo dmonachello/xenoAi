@@ -1,0 +1,20 @@
+{
+  "artifact_sha256": "862745e1f089bb4913b6426a1fe694473d095b0ca7d6fc06ef72b47cab5b5a5e",
+  "comfyui_commit": "9a470e073e2742d4edd6e7ea1ce28d861a77d9c4",
+  "comfyui_version": "0.3.45",
+  "custom_nodes_disabled": true,
+  "executable": "dist/xenosculpt.exe",
+  "output": {
+    "bytes": 441,
+    "media_type": "image/png",
+    "sha256": "597d5bec0035eb1bb05164014ab4ebc55f460b06cc60dcc503a2631d2fd19377"
+  },
+  "prompt_id": "03200414-21ae-4c00-846f-b5c82ed465fa",
+  "revision_id": "55769af7f14f281fdc8dcb4e4b7327bf61c1310a04c2af44b7094e7cf8d3d4b7",
+  "run_id": "7f4d3a10-510d-41cb-9da0-9fe769ec6a0a",
+  "server": "http://127.0.0.1:8199",
+  "state": "succeeded",
+  "submitted_prompt_sha256": "877384063e8e7411db1c4e0e292b975714c7d6e6c9c94c20151625592b70e389",
+  "accepted_prompt_sha256": "877384063e8e7411db1c4e0e292b975714c7d6e6c9c94c20151625592b70e389",
+  "workflow": "EmptyImage -> SaveImage"
+}
