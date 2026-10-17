@@ -9,9 +9,16 @@ import struct
 
 import pytest
 
-from xenodream_xxp.generator import CubeSpec, Vector3, compile_cube, compile_sphere
+from xenodream_xxp.generator import (
+    CubeSpec,
+    Vector3,
+    compile_cube,
+    compile_cylinder,
+    compile_sphere,
+)
 from xenodream_xxp.mutation import (
     CenteredRowMutation,
+    CylinderMetamorphMutation,
     ObjectMutation,
     SeededVariation,
     SphereMetamorphMutation,
@@ -222,6 +229,39 @@ def test_sphere_metamorph_profile_records_evidence_and_validation_gate(
         "native_validation_required": True,
         "fabrication_suitable": False,
     }
+
+
+def test_cylinder_metamorph_profile_records_evidence_and_validation_gate(
+    tmp_path,
+) -> None:
+    source = tmp_path / "cylinder.xxp"
+    source.write_bytes(compile_cylinder())
+    workspace = ProjectWorkspace.create(tmp_path / "cylinder.xsp", source)
+
+    result = workspace.apply(
+        CylinderMetamorphMutation("Cylinder2", "bevel-25-back"),
+        message="measured back bevel",
+    )
+
+    assert result.created is True
+    assert result.mutation is not None
+    assert result.mutation.native_validation_required is True
+    assert result.revision.operation == "cylinder-metamorph-profile-v1"
+    assert result.revision.details == {
+        "type": "cylinder-metamorph-profile-v1",
+        "object_name": "Cylinder2",
+        "profile": "bevel-25-back",
+        "evidence": ["R036"],
+        "native_validation_required": True,
+        "fabrication_suitable": False,
+    }
+
+    repeated = workspace.apply(
+        CylinderMetamorphMutation("Cylinder2", "bevel-25-back"),
+        message="same measured back bevel",
+    )
+    assert repeated.created is False
+    assert repeated.revision.id == result.revision.id
 
 
 def test_native_validation_attaches_mesh_without_changing_head(

@@ -17,6 +17,7 @@ from xenodream_xxp.generator import (
     compile_sphere,
     compile_cylinder,
 )
+from xenodream_xxp.workspace import ProjectWorkspace
 
 
 SAMPLE = (
@@ -526,6 +527,77 @@ def test_project_cli_applies_measured_sphere_metamorph_profile(
     assert result["revision"]["operation"] == "sphere-metamorph-profile-v1"
     assert result["revision"]["details"]["evidence"] == ["R031", "E096"]
     assert [item["token_index"] for item in result["differences"]] == [8, 9, 10, 11]
+
+
+def test_project_cli_applies_measured_cylinder_metamorph_profile(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "cylinder.xxp"
+    workspace = tmp_path / "cylinder.xsp"
+    source.write_bytes(compile_cylinder())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "project", "metamorph", str(workspace),
+            "--operation", "Cylinder",
+            "--object", "Cylinder2",
+            "--profile", "bevel-25-front",
+            "--message", "measured front bevel",
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["created"] is True
+    assert result["native_validation_required"] is True
+    assert result["fabrication_suitable"] is False
+    assert result["revision"]["operation"] == "cylinder-metamorph-profile-v1"
+    assert result["revision"]["details"]["evidence"] == ["R036"]
+    assert [item["token_index"] for item in result["differences"]] == [5, 6]
+
+
+def test_project_cli_rejects_cross_operation_profiles_without_moving_head(
+    tmp_path, capsys
+) -> None:
+    sphere_source = tmp_path / "sphere.xxp"
+    sphere_workspace = tmp_path / "sphere.xsp"
+    sphere_source.write_bytes(compile_sphere())
+    assert main(["project", "init", str(sphere_workspace), str(sphere_source)]) == 0
+    capsys.readouterr()
+    sphere_head = ProjectWorkspace.open(sphere_workspace).status().head.id
+
+    assert main(
+        [
+            "project", "metamorph", str(sphere_workspace),
+            "--object", "Sphere2",
+            "--profile", "length-three",
+            "--message", "wrong operation",
+        ]
+    ) == 2
+    assert "unknown Sphere metamorph profile" in capsys.readouterr().err
+    assert ProjectWorkspace.open(sphere_workspace).status().head.id == sphere_head
+
+    cylinder_source = tmp_path / "cylinder.xxp"
+    cylinder_workspace = tmp_path / "cylinder.xsp"
+    cylinder_source.write_bytes(compile_cylinder())
+    assert main(
+        ["project", "init", str(cylinder_workspace), str(cylinder_source)]
+    ) == 0
+    capsys.readouterr()
+    cylinder_head = ProjectWorkspace.open(cylinder_workspace).status().head.id
+
+    assert main(
+        [
+            "project", "metamorph", str(cylinder_workspace),
+            "--operation", "Cylinder",
+            "--object", "Cylinder2",
+            "--profile", "cushion-core",
+            "--message", "wrong operation",
+        ]
+    ) == 2
+    assert "unknown Cylinder metamorph profile" in capsys.readouterr().err
+    assert ProjectWorkspace.open(cylinder_workspace).status().head.id == cylinder_head
 
 
 def test_project_cli_import_and_log(tmp_path, capsys) -> None:

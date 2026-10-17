@@ -1,0 +1,27 @@
+{
+  "schema": "xenosculpt-packaged-mutation-smoke/v1",
+  "executable": {
+    "path": "dist/xenosculpt.exe",
+    "sha256": "cc9b74ca92e2d29cbec49611fd8d3253569155e61dc88de9a65bd5814b138f97"
+  },
+  "operation": {
+    "type": "cylinder-metamorph-profile-v1",
+    "object_name": "Cylinder2",
+    "profile": "bevel-25-front",
+    "evidence": ["R036"]
+  },
+  "output": {
+    "path": "output/m18-packaged-bevel-25-front.xxp",
+    "bytes": 3361,
+    "sha256": "7f7c48375ecaf621e22250887538c8a67af9040611b7cca853ae465b3db618e8"
+  },
+  "accepted_m17_variant": {
+    "id": "bevel-25-front",
+    "sha256": "7f7c48375ecaf621e22250887538c8a67af9040611b7cca853ae465b3db618e8",
+    "native_evaluated": true,
+    "basic_topology_valid": true
+  },
+  "byte_identical_to_accepted_variant": true,
+  "new_revision_native_validation_required": true,
+  "fabrication_suitable": false
+}

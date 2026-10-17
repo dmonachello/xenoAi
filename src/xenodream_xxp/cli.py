@@ -43,9 +43,11 @@ from .native_export import DEFAULT_XENODREAM_EXECUTABLE, MeshExportSettings
 from .solidify import SolidifySettings, solidify_binary_stl
 from .mutation import (
     CenteredRowMutation,
+    CylinderMetamorphMutation,
     ObjectMutation,
     SeededVariation,
     SphereMetamorphMutation,
+    cylinder_metamorph_profiles,
     sphere_metamorph_profiles,
 )
 from .workspace import FabricationConstraints, ProjectWorkspace
@@ -252,12 +254,17 @@ def _parser() -> argparse.ArgumentParser:
     project_mutate.add_argument("--prompt")
 
     project_metamorph = project_commands.add_parser(
-        "metamorph", help="apply one measured Sphere metamorph profile"
+        "metamorph", help="apply one measured metamorph profile"
     )
     project_metamorph.add_argument("workspace", type=Path)
+    project_metamorph.add_argument(
+        "--operation", choices=("Sphere", "Cylinder"), default="Sphere"
+    )
     project_metamorph.add_argument("--object", required=True)
     project_metamorph.add_argument(
-        "--profile", required=True, choices=sphere_metamorph_profiles()
+        "--profile",
+        required=True,
+        choices=sphere_metamorph_profiles() + cylinder_metamorph_profiles(),
     )
     project_metamorph.add_argument("--message", required=True)
     project_metamorph.add_argument("--prompt")
@@ -404,10 +411,25 @@ def _handle_project(args: argparse.Namespace) -> int:
         )
         return 0
     if args.project_command == "metamorph":
+        operation = (
+            SphereMetamorphMutation(args.object, args.profile)
+            if args.operation == "Sphere"
+            else CylinderMetamorphMutation(args.object, args.profile)
+        )
         result = workspace.apply(
-            SphereMetamorphMutation(args.object, args.profile),
+            operation,
             message=args.message,
             prompt=args.prompt,
+        )
+        native_validation_required = (
+            result.mutation.native_validation_required
+            if result.mutation is not None
+            else bool(result.revision.details.get("native_validation_required"))
+        )
+        fabrication_suitable = (
+            result.mutation.fabrication_suitable
+            if result.mutation is not None
+            else bool(result.revision.details.get("fabrication_suitable"))
         )
         _print_json(
             {
@@ -416,8 +438,8 @@ def _handle_project(args: argparse.Namespace) -> int:
                 "differences": []
                 if result.mutation is None
                 else result.mutation.differences,
-                "native_validation_required": True,
-                "fabrication_suitable": False,
+                "native_validation_required": native_validation_required,
+                "fabrication_suitable": fabrication_suitable,
             }
         )
         return 0

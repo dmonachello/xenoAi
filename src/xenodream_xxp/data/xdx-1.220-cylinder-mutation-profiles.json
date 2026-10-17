@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "target": {
+    "product": "XenoDream X",
+    "format_version": "1.220",
+    "operation": "Cylinder",
+    "style": "13",
+    "num_pars": 7
+  },
+  "policy": {
+    "replace_complete_parameter_vector": true,
+    "source_profiles_native_evaluated": true,
+    "source_profiles_basic_topology_valid": true,
+    "new_revision_native_validation_required": true,
+    "fabrication_suitable": false,
+    "arbitrary_parameter_values_allowed": false
+  },
+  "profiles": [
+    {
+      "name": "length-three",
+      "pars": ["3.00000", "360.0000", "2", "0", "0", "0.000", "2"],
+      "evidence": ["R035"]
+    },
+    {
+      "name": "closed-ends-none",
+      "pars": ["1.00000", "360.0000", "0", "0", "0", "0.000", "2"],
+      "evidence": ["R035"]
+    },
+    {
+      "name": "closed-ends-back",
+      "pars": ["1.00000", "360.0000", "1", "0", "0", "0.000", "2"],
+      "evidence": ["R035"]
+    },
+    {
+      "name": "wedge-yes",
+      "pars": ["1.00000", "360.0000", "2", "1", "0", "0.000", "2"],
+      "evidence": ["R035"]
+    },
+    {
+      "name": "spherical-yes",
+      "pars": ["1.00000", "360.0000", "2", "0", "1", "0.000", "2"],
+      "evidence": ["R035"]
+    },
+    {
+      "name": "bevel-25-both",
+      "pars": ["1.00000", "360.0000", "2", "0", "0", "25.000", "2"],
+      "evidence": ["R036"]
+    },
+    {
+      "name": "bevel-25-front",
+      "pars": ["1.00000", "360.0000", "2", "0", "0", "25.000", "0"],
+      "evidence": ["R036"]
+    },
+    {
+      "name": "bevel-25-back",
+      "pars": ["1.00000", "360.0000", "2", "0", "0", "25.000", "1"],
+      "evidence": ["R036"]
+    }
+  ]
+}

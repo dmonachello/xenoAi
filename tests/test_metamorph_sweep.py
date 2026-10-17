@@ -106,6 +106,52 @@ def _generated_cylinder_plan(tmp_path: Path) -> Path:
     return path
 
 
+def _generated_cylinder_interaction_plan(tmp_path: Path) -> Path:
+    path = tmp_path / "cylinder-interaction-plan.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": sweep.SCHEMA_V4,
+                "operation": "Cylinder",
+                "source": {"kind": "generated", "constructor": "Cylinder"},
+                "holon": 1,
+                "baseline_replicates": 2,
+                "cases": [
+                    {
+                        "id": "bevel-25-both",
+                        "compare_to": "baseline",
+                        "source": "R034 control",
+                        "mutations": [
+                            {"parameter": "Bevel Edges", "value": "25"},
+                            {"parameter": "Bevel", "value": "Both Ends"},
+                        ],
+                    },
+                    {
+                        "id": "bevel-25-front",
+                        "compare_to": "bevel-25-both",
+                        "source": "R034 interaction",
+                        "mutations": [
+                            {"parameter": "Bevel Edges", "value": "25"},
+                            {"parameter": "Bevel", "value": "Front"},
+                        ],
+                    },
+                    {
+                        "id": "bevel-25-back",
+                        "compare_to": "bevel-25-both",
+                        "source": "R034 interaction",
+                        "mutations": [
+                            {"parameter": "Bevel Edges", "value": "25"},
+                            {"parameter": "Bevel", "value": "Back"},
+                        ],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def _mesh(source: Path, changed: bool) -> dict[str, object]:
     return {
         "sha256": f"mesh-{source.stem}",
@@ -325,6 +371,71 @@ def test_v3_allows_multiple_values_for_one_recovered_parameter(tmp_path: Path) -
     plan.write_text(json.dumps(value), encoding="utf-8")
 
     assert len(sweep.load_plan(plan)["cases"]) == 2
+
+
+def test_v4_generated_cylinder_builds_and_compares_bevel_interactions(
+    tmp_path: Path,
+) -> None:
+    plan = _generated_cylinder_interaction_plan(tmp_path)
+    output = tmp_path / "cylinder-interactions"
+
+    def fake_exporter(
+        executable, source, run_directory, report_path, timeout, poll, settings
+    ):
+        del executable, timeout, poll, settings
+        meshes = {
+            "bevel-25-both": _stl(110, 9.0, 450.0),
+            "bevel-25-front": _stl(120, 8.0, 400.0),
+            "bevel-25-back": _stl(130, 7.0, 350.0),
+        }
+        mesh = meshes.get(source.stem, _stl(100, 10.0, 500.0))
+        report = {
+            "outcome": "succeeded",
+            "input": {"source_sha256_before": sweep._digest(source.read_bytes())},
+            "stl": {"sha256": f"mesh-{source.stem}", **mesh},
+        }
+        sweep._write_json(report_path, report)
+        return report
+
+    summary = sweep.run_sweep(plan, output, exporter=fake_exporter)
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    jobs = {job["id"]: job for job in manifest["jobs"]}
+    front = jobs["bevel-25-front"]
+    result = next(
+        item for item in summary["ranked_results"] if item["id"] == "bevel-25-front"
+    )
+
+    assert manifest["source"]["kind"] == "generated"
+    assert manifest["source"]["constructor"] == "Cylinder"
+    assert manifest["source"]["compiler_profile"].startswith("xdx-1.220-cylinder")
+    assert [item["token_index"] for item in jobs["bevel-25-both"]["diff"]] == [5]
+    assert [item["changed"] for item in jobs["bevel-25-both"]["mutations"]] == [
+        True,
+        False,
+    ]
+    assert [item["token_index"] for item in front["diff"]] == [5, 6]
+    assert front["compare_to"] == "bevel-25-both"
+    assert result["control_source_sha256"] == jobs["bevel-25-both"]["sha256"]
+    assert result["delta"]["triangle_count"] == 10
+    assert result["delta"]["dimensions"] == [-1.0, 0.0, 0.0]
+    assert result["delta"]["absolute_volume"] == -50.0
+
+
+def test_v4_rejects_file_sources_and_scalar_case_fields(tmp_path: Path) -> None:
+    plan = _generated_cylinder_interaction_plan(tmp_path)
+    value = json.loads(plan.read_text(encoding="utf-8"))
+    value["source"] = "cylinder.xxp"
+    plan.write_text(json.dumps(value), encoding="utf-8")
+    with pytest.raises(sweep.SweepError, match="generated source"):
+        sweep.load_plan(plan)
+
+    plan = _generated_cylinder_interaction_plan(tmp_path)
+    value = json.loads(plan.read_text(encoding="utf-8"))
+    value["cases"][0]["parameter"] = "Bevel Edges"
+    value["cases"][0]["value"] = "25"
+    plan.write_text(json.dumps(value), encoding="utf-8")
+    with pytest.raises(sweep.SweepError, match="must use mutations"):
+        sweep.load_plan(plan)
 
 
 def test_resume_skips_an_orphaned_attempt_directory(tmp_path: Path) -> None:

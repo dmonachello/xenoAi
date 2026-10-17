@@ -1,0 +1,39 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-plan/v4",
+  "operation": "Cylinder",
+  "source": {
+    "kind": "generated",
+    "constructor": "Cylinder"
+  },
+  "holon": 1,
+  "baseline_replicates": 2,
+  "cases": [
+    {
+      "id": "bevel-25-both",
+      "compare_to": "baseline",
+      "source": "REA descriptor R034 nonzero bevel control",
+      "mutations": [
+        {"parameter": "Bevel Edges", "value": "25"},
+        {"parameter": "Bevel", "value": "Both Ends"}
+      ]
+    },
+    {
+      "id": "bevel-25-front",
+      "compare_to": "bevel-25-both",
+      "source": "REA descriptor R034 Bevel choice coverage",
+      "mutations": [
+        {"parameter": "Bevel Edges", "value": "25"},
+        {"parameter": "Bevel", "value": "Front"}
+      ]
+    },
+    {
+      "id": "bevel-25-back",
+      "compare_to": "bevel-25-both",
+      "source": "REA descriptor R034 Bevel choice coverage",
+      "mutations": [
+        {"parameter": "Bevel Edges", "value": "25"},
+        {"parameter": "Bevel", "value": "Back"}
+      ]
+    }
+  ]
+}

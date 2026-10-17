@@ -24,8 +24,13 @@ from run_xenodream_batch_stl import MeshExportSettings, run_export
 SCHEMA_V1 = "xenosculpt-metamorph-sweep-plan/v1"
 SCHEMA_V2 = "xenosculpt-metamorph-sweep-plan/v2"
 SCHEMA_V3 = "xenosculpt-metamorph-sweep-plan/v3"
+SCHEMA_V4 = "xenosculpt-metamorph-sweep-plan/v4"
 SCHEMA = SCHEMA_V1
-PLAN_SCHEMAS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3}
+PLAN_SCHEMAS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4}
+SINGLE_MUTATION_SCHEMAS = {SCHEMA_V1, SCHEMA_V3}
+INTERACTION_SCHEMAS = {SCHEMA_V2, SCHEMA_V4}
+FILE_SOURCE_SCHEMAS = {SCHEMA_V1, SCHEMA_V2}
+GENERATED_CYLINDER_SCHEMAS = {SCHEMA_V3, SCHEMA_V4}
 MANIFEST_SCHEMA = "xenosculpt-metamorph-sweep/v1"
 SUMMARY_SCHEMA = "xenosculpt-metamorph-sweep-summary/v1"
 DEFAULT_EXECUTABLE = Path(
@@ -91,7 +96,7 @@ def load_plan(path: Path) -> dict[str, Any]:
             raise SweepError("case id 'baseline' is reserved")
         if not isinstance(evidence, str) or not evidence:
             raise SweepError(f"case {identifier!r} needs a source citation")
-        if plan["schema"] in {SCHEMA_V1, SCHEMA_V3}:
+        if plan["schema"] in SINGLE_MUTATION_SCHEMAS:
             parameter = case.get("parameter")
             value = case.get("value")
             if not isinstance(parameter, str) or not parameter:
@@ -104,7 +109,13 @@ def load_plan(path: Path) -> dict[str, Any]:
             if not isinstance(value, str) or not value:
                 raise SweepError(f"case {identifier!r} needs a string value")
             parameters.add(parameter.casefold())
-        else:
+        elif plan["schema"] in INTERACTION_SCHEMAS:
+            if plan["schema"] == SCHEMA_V4 and (
+                "parameter" in case or "value" in case
+            ):
+                raise SweepError(
+                    f"case {identifier!r} must use mutations, not parameter/value"
+                )
             compare_to = case.get("compare_to")
             if compare_to != "baseline" and compare_to not in ids:
                 raise SweepError(
@@ -132,20 +143,21 @@ def load_plan(path: Path) -> dict[str, Any]:
                 case_parameters.add(parameter.casefold())
         ids.add(identifier)
     source = plan.get("source")
-    if plan["schema"] == SCHEMA_V3:
+    if plan["schema"] in GENERATED_CYLINDER_SCHEMAS:
         if source != {"kind": "generated", "constructor": "Cylinder"}:
             raise SweepError(
-                "v3 source must be the recovered generated Cylinder constructor"
+                "generated source must be the recovered Cylinder constructor"
             )
-    elif not isinstance(source, str) or not source:
-        raise SweepError("source must be a path string")
+    elif plan["schema"] in FILE_SOURCE_SCHEMAS:
+        if not isinstance(source, str) or not source:
+            raise SweepError("source must be a path string")
     return plan
 
 
 def _case_mutations(
     plan: dict[str, Any], case: dict[str, Any]
 ) -> tuple[list[dict[str, str]], str]:
-    if plan["schema"] in {SCHEMA_V1, SCHEMA_V3}:
+    if plan["schema"] in SINGLE_MUTATION_SCHEMAS:
         return (
             [{"parameter": case["parameter"], "value": case["value"]}],
             "baseline",
@@ -278,7 +290,7 @@ def prepare_sweep(
             "diff": differences,
             "mutations": mutation_facts,
         }
-        if plan["schema"] in {SCHEMA_V1, SCHEMA_V3}:
+        if plan["schema"] in SINGLE_MUTATION_SCHEMAS:
             job.update(
                 {
                     "parameter": case["parameter"],

@@ -1,0 +1,35 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-evidence/v2",
+  "plan": "experiments/metamorph-sweeps/cylinder-bevel-interactions-v1.json",
+  "plan_sha256": "f94debd85c8eaf91959ecd43cdf4c84a88d7b9020b80356544cad4c5d4be6918",
+  "source_summary_sha256": "7332de1e7c8808357a731d3b422a7f8720db7ea0263cdd5ffd8c36527fe98c81",
+  "settings": {
+    "stl_max_dimension_mm": 120,
+    "mesh_size_percent": 10
+  },
+  "execution": {
+    "jobs": 5,
+    "successful_jobs": 5,
+    "jobs_requiring_retry": {}
+  },
+  "baseline": {
+    "replicates": 2,
+    "triangle_count": 3962,
+    "triangle_count_span": 0,
+    "absolute_volume_span": 1.107515256619081,
+    "dimension_spans": [0.0, 0.0, 0.0]
+  },
+  "ranked_results": [
+    {"id": "bevel-25-both", "compare_to": "baseline", "impact_score": 0.031339925981474254, "triangle_delta": -38, "absolute_volume_delta": -18259.0362328178, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30928564071655], "basic_topology_valid": true},
+    {"id": "bevel-25-back", "compare_to": "bevel-25-both", "impact_score": 0.01617870449234055, "triangle_delta": 18, "absolute_volume_delta": 9130.509781537578, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30928564071655], "basic_topology_valid": true},
+    {"id": "bevel-25-front", "compare_to": "bevel-25-both", "impact_score": 0.016176825640767747, "triangle_delta": 18, "absolute_volume_delta": 9129.449444928323, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30928564071655], "basic_topology_valid": true}
+  ],
+  "claims": {
+    "native_structure_valid": true,
+    "evaluates_to_3d_geometry": true,
+    "basic_mesh_predicates_pass": true,
+    "bevel_selector_requires_nonzero_amount": true,
+    "front_and_back_effects_match_within_observed_baseline_volume_span": true,
+    "fabrication_suitable": false
+  }
+}

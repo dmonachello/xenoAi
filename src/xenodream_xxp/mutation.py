@@ -108,8 +108,30 @@ class SphereMetamorphMutation:
             raise MutationError(f"unknown Sphere metamorph profile {self.profile!r}")
 
 
+@dataclass(frozen=True, slots=True)
+class CylinderMetamorphMutation:
+    """Apply one measured complete Cylinder metamorph profile."""
+
+    object_name: str
+    profile: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.object_name, str) or not self.object_name:
+            raise TypeError("object_name must be a non-empty string")
+        if not isinstance(self.profile, str) or not self.profile:
+            raise TypeError("profile must be a non-empty string")
+        if self.profile not in cylinder_metamorph_profiles():
+            raise MutationError(
+                f"unknown Cylinder metamorph profile {self.profile!r}"
+            )
+
+
 VerifiedOperation: TypeAlias = (
-    ObjectMutation | CenteredRowMutation | SeededVariation | SphereMetamorphMutation
+    ObjectMutation
+    | CenteredRowMutation
+    | SeededVariation
+    | SphereMetamorphMutation
+    | CylinderMetamorphMutation
 )
 
 
@@ -218,6 +240,92 @@ def _sphere_profile(name: str) -> dict[str, Any]:
         if profile["name"] == name:
             return profile
     raise MutationError(f"unknown Sphere metamorph profile {name!r}")
+
+
+@lru_cache(maxsize=1)
+def _cylinder_profile_registry() -> dict[str, Any]:
+    resource = files("xenodream_xxp").joinpath(
+        "data", "xdx-1.220-cylinder-mutation-profiles.json"
+    )
+    registry = json.loads(resource.read_text(encoding="utf-8"))
+    if registry.get("schema_version") != 1:
+        raise MutationError("unsupported Cylinder metamorph profile schema")
+    target = registry.get("target")
+    if not isinstance(target, dict) or target != {
+        "product": "XenoDream X",
+        "format_version": "1.220",
+        "operation": "Cylinder",
+        "style": "13",
+        "num_pars": 7,
+    }:
+        raise MutationError("Cylinder metamorph profile target is invalid")
+    policy = registry.get("policy")
+    if policy != {
+        "replace_complete_parameter_vector": True,
+        "source_profiles_native_evaluated": True,
+        "source_profiles_basic_topology_valid": True,
+        "new_revision_native_validation_required": True,
+        "fabrication_suitable": False,
+        "arbitrary_parameter_values_allowed": False,
+    }:
+        raise MutationError("Cylinder metamorph profile policy is invalid")
+    profiles = registry.get("profiles")
+    if not isinstance(profiles, list) or not profiles:
+        raise MutationError("Cylinder metamorph profile registry is empty")
+    names: set[str] = set()
+    for profile in profiles:
+        if not isinstance(profile, dict):
+            raise MutationError("Cylinder metamorph profiles must be objects")
+        name = profile.get("name")
+        pars = profile.get("pars")
+        evidence = profile.get("evidence")
+        if not isinstance(name, str) or not name or name in names:
+            raise MutationError("Cylinder metamorph profile names must be unique")
+        if (
+            not isinstance(pars, list)
+            or len(pars) != 7
+            or any(
+                not isinstance(token, str)
+                or not token
+                or any(character.isspace() for character in token)
+                or not token.isascii()
+                for token in pars
+            )
+        ):
+            raise MutationError(
+                f"Cylinder metamorph profile {name!r} has invalid Pars"
+            )
+        if (
+            not isinstance(evidence, list)
+            or not evidence
+            or any(not isinstance(item, str) or not item for item in evidence)
+        ):
+            raise MutationError(
+                f"Cylinder metamorph profile {name!r} lacks evidence"
+            )
+        names.add(name)
+    return registry
+
+
+def cylinder_metamorph_profiles() -> tuple[str, ...]:
+    """Return stable names of measured Cylinder metamorph profiles."""
+
+    return tuple(
+        profile["name"] for profile in _cylinder_profile_registry()["profiles"]
+    )
+
+
+def cylinder_metamorph_profile_evidence(name: str) -> tuple[str, ...]:
+    """Return evidence identifiers for one measured Cylinder profile."""
+
+    return tuple(_cylinder_profile(name)["evidence"])
+
+
+def _cylinder_profile(name: str) -> dict[str, Any]:
+    for profile in _cylinder_profile_registry()["profiles"]:
+        if profile["name"] == name:
+            return profile
+    raise MutationError(f"unknown Cylinder metamorph profile {name!r}")
 
 
 def _matching_records(
@@ -577,6 +685,58 @@ def _apply_sphere_metamorph_mutation(
     return document, (obj.name,), allowed
 
 
+def _cylinder_object(
+    document: Document, object_name: str
+) -> _ObjectRecord:
+    matches: list[_ObjectRecord] = []
+    for record in document.records:
+        if not isinstance(record, SectionRecord) or record.occurrence != 0:
+            continue
+        match = _HOLON_SECTION.fullmatch(record.name)
+        if not match or int(match.group(1)) <= 0:
+            continue
+        section = record.name
+        if _value(document, section, b"Type") != b"1":
+            continue
+        try:
+            name = _value(document, section, b"Name").decode("ascii")
+        except UnicodeDecodeError as error:
+            raise MutationError("verified object names must be ASCII") from error
+        if name == object_name:
+            matches.append(_ObjectRecord(section, name, "cylinder"))
+    if len(matches) != 1:
+        raise MutationError(f"object name {object_name!r} matched {len(matches)} objects")
+    return matches[0]
+
+
+def _apply_cylinder_metamorph_mutation(
+    document: Document,
+    operation: CylinderMetamorphMutation,
+) -> tuple[Document, tuple[str, ...], set[tuple[str, str, int | None]]]:
+    obj = _cylinder_object(document, operation.object_name)
+    metamorph = obj.section + b"\\MM\\0"
+    if _value(document, metamorph, b"Style") != b"13":
+        raise MutationError("Cylinder metamorph profile requires Style 13")
+    if _value(document, metamorph, b"NumPars") != b"7":
+        raise MutationError("Cylinder metamorph profile requires NumPars 7")
+    if len(_value(document, metamorph, b"Pars").split()) != 7:
+        raise MutationError("Cylinder metamorph profile requires seven Pars tokens")
+
+    profile = _cylinder_profile(operation.profile)
+    for token_index, token in enumerate(profile["pars"]):
+        document = _replace_token(
+            document,
+            metamorph,
+            b"Pars",
+            token_index,
+            token.encode("ascii"),
+        )
+    allowed = {
+        (metamorph.decode(), "Pars", token_index) for token_index in range(7)
+    }
+    return document, (obj.name,), allowed
+
+
 def _apply_row_mutation(
     document: Document,
     operation: CenteredRowMutation,
@@ -608,29 +768,40 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
             CenteredRowMutation,
             SeededVariation,
             SphereMetamorphMutation,
+            CylinderMetamorphMutation,
         ),
     ):
         raise TypeError(
             "operation must be ObjectMutation, CenteredRowMutation, "
-            "SeededVariation, or SphereMetamorphMutation"
+            "SeededVariation, SphereMetamorphMutation, or "
+            "CylinderMetamorphMutation"
         )
     original = parse_bytes(data)
     if original.to_bytes() != data:
         raise MutationError("input failed exact parser round trip")
     _require_xdx_1220(original)
-    objects = _objects(original)
-    if isinstance(operation, ObjectMutation):
-        mutated, names, allowed = _apply_object_mutation(original, operation, objects)
-    elif isinstance(operation, CenteredRowMutation):
-        mutated, names, allowed = _apply_row_mutation(original, operation, objects)
-    elif isinstance(operation, SphereMetamorphMutation):
-        mutated, names, allowed = _apply_sphere_metamorph_mutation(
-            original, operation, objects
+    if isinstance(operation, CylinderMetamorphMutation):
+        mutated, names, allowed = _apply_cylinder_metamorph_mutation(
+            original, operation
         )
     else:
-        mutated, names, allowed = _apply_seeded_variation(
-            original, operation, objects
-        )
+        objects = _objects(original)
+        if isinstance(operation, ObjectMutation):
+            mutated, names, allowed = _apply_object_mutation(
+                original, operation, objects
+            )
+        elif isinstance(operation, CenteredRowMutation):
+            mutated, names, allowed = _apply_row_mutation(
+                original, operation, objects
+            )
+        elif isinstance(operation, SphereMetamorphMutation):
+            mutated, names, allowed = _apply_sphere_metamorph_mutation(
+                original, operation, objects
+            )
+        else:
+            mutated, names, allowed = _apply_seeded_variation(
+                original, operation, objects
+            )
 
     differences = tuple(diff_documents(original, mutated))
     unexpected = []
@@ -652,6 +823,8 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
         output != data,
         differences,
         names,
-        native_validation_required=isinstance(operation, SphereMetamorphMutation),
+        native_validation_required=isinstance(
+            operation, (SphereMetamorphMutation, CylinderMetamorphMutation)
+        ),
         fabrication_suitable=False,
     )

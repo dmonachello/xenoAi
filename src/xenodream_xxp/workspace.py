@@ -26,12 +26,14 @@ from .native_export import (
 )
 from .mutation import (
     CenteredRowMutation,
+    CylinderMetamorphMutation,
     MutationResult,
     ObjectMutation,
     SeededVariation,
     SphereMetamorphMutation,
     VerifiedOperation,
     apply_verified_mutation,
+    cylinder_metamorph_profile_evidence,
     sphere_metamorph_profile_evidence,
 )
 
@@ -205,6 +207,15 @@ def _operation_details(operation: VerifiedOperation) -> dict[str, object]:
             "object_name": operation.object_name,
             "profile": operation.profile,
             "evidence": list(sphere_metamorph_profile_evidence(operation.profile)),
+            "native_validation_required": True,
+            "fabrication_suitable": False,
+        }
+    if isinstance(operation, CylinderMetamorphMutation):
+        return {
+            "type": "cylinder-metamorph-profile-v1",
+            "object_name": operation.object_name,
+            "profile": operation.profile,
+            "evidence": list(cylinder_metamorph_profile_evidence(operation.profile)),
             "native_validation_required": True,
             "fabrication_suitable": False,
         }

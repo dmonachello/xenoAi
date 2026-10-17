@@ -35,12 +35,15 @@ from .solidify import (
 )
 from .mutation import (
     CenteredRowMutation,
+    CylinderMetamorphMutation,
     MutationError,
     MutationResult,
     ObjectMutation,
     SeededVariation,
     SphereMetamorphMutation,
     apply_verified_mutation,
+    cylinder_metamorph_profile_evidence,
+    cylinder_metamorph_profiles,
     sphere_metamorph_profile_evidence,
     sphere_metamorph_profiles,
 )
@@ -64,6 +67,7 @@ __all__ = [
     "CylinderSpec",
     "Document",
     "CenteredRowMutation",
+    "CylinderMetamorphMutation",
     "MutationError",
     "MutationResult",
     "ObjectMutation",
@@ -98,6 +102,8 @@ __all__ = [
     "compile_three_cubes",
     "centered_x_row",
     "apply_verified_mutation",
+    "cylinder_metamorph_profile_evidence",
+    "cylinder_metamorph_profiles",
     "sphere_metamorph_profile_evidence",
     "sphere_metamorph_profiles",
     "inspect_binary_stl",

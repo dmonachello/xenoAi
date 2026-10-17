@@ -12,16 +12,20 @@ from xenodream_xxp.generator import (
     SphereSpec,
     Vector3,
     compile_cube,
+    compile_cylinder,
     compile_project,
     compile_sphere,
 )
 from xenodream_xxp.mutation import (
     CenteredRowMutation,
+    CylinderMetamorphMutation,
     MutationError,
     ObjectMutation,
     SeededVariation,
     SphereMetamorphMutation,
     apply_verified_mutation,
+    cylinder_metamorph_profile_evidence,
+    cylinder_metamorph_profiles,
     sphere_metamorph_profile_evidence,
     sphere_metamorph_profiles,
 )
@@ -210,3 +214,116 @@ def test_sphere_metamorph_profile_rejects_unknown_profile_and_cube_target() -> N
         apply_verified_mutation(
             compile_cube(), SphereMetamorphMutation("Cube2", "cushion-core")
         )
+
+
+def test_cylinder_metamorph_profiles_are_measured_complete_states() -> None:
+    expected = {
+        "length-three": b"3.00000 360.0000 2 0 0 0.000 2",
+        "closed-ends-none": b"1.00000 360.0000 0 0 0 0.000 2",
+        "closed-ends-back": b"1.00000 360.0000 1 0 0 0.000 2",
+        "wedge-yes": b"1.00000 360.0000 2 1 0 0.000 2",
+        "spherical-yes": b"1.00000 360.0000 2 0 1 0.000 2",
+        "bevel-25-both": b"1.00000 360.0000 2 0 0 25.000 2",
+        "bevel-25-front": b"1.00000 360.0000 2 0 0 25.000 0",
+        "bevel-25-back": b"1.00000 360.0000 2 0 0 25.000 1",
+    }
+    assert cylinder_metamorph_profiles() == tuple(expected)
+    assert cylinder_metamorph_profile_evidence("length-three") == ("R035",)
+    assert cylinder_metamorph_profile_evidence("bevel-25-back") == ("R036",)
+
+    source = compile_cylinder()
+    for profile, pars in expected.items():
+        result = apply_verified_mutation(
+            source, CylinderMetamorphMutation("Cylinder2", profile)
+        )
+        assert parse_bytes(result.data).to_bytes() == result.data
+        assert result.changed is True
+        assert result.native_validation_required is True
+        assert result.fabrication_suitable is False
+        assert b"Pars=" + pars + b" " in result.data
+        assert all(
+            item["section"] == "Holon\\1\\MM\\0" and item["key"] == "Pars"
+            for item in result.differences
+        )
+
+    beveled = apply_verified_mutation(
+        source, CylinderMetamorphMutation("Cylinder2", "bevel-25-front")
+    )
+    switched = apply_verified_mutation(
+        beveled.data, CylinderMetamorphMutation("Cylinder2", "length-three")
+    )
+    assert b"Pars=" + expected["length-three"] + b" " in switched.data
+    assert [item["token_index"] for item in switched.differences] == [0, 5, 6]
+
+    repeated = apply_verified_mutation(
+        switched.data, CylinderMetamorphMutation("Cylinder2", "length-three")
+    )
+    assert repeated.changed is False
+    assert repeated.data == switched.data
+
+
+def test_cylinder_profile_is_scoped_away_from_other_mutation_families() -> None:
+    source = compile_cylinder()
+
+    with pytest.raises(MutationError, match="unknown Cylinder metamorph profile"):
+        CylinderMetamorphMutation("Cylinder2", "invented")
+    with pytest.raises(MutationError, match="requires Style 13"):
+        apply_verified_mutation(
+            compile_sphere(),
+            CylinderMetamorphMutation("Sphere2", "length-three"),
+        )
+    with pytest.raises(MutationError, match="Cube or Sphere"):
+        apply_verified_mutation(
+            source, SphereMetamorphMutation("Cylinder2", "cushion-core")
+        )
+    with pytest.raises(MutationError, match="Cube or Sphere"):
+        apply_verified_mutation(
+            source,
+            ObjectMutation("Cylinder2", position=Vector3(D("1"), D("0"), D("0"))),
+        )
+    with pytest.raises(MutationError, match="Cube or Sphere"):
+        apply_verified_mutation(source, SeededVariation(seed=17))
+    with pytest.raises(MutationError, match="Cube or Sphere"):
+        apply_verified_mutation(source, CenteredRowMutation(spacing=D("10")))
+
+
+def test_cylinder_profile_rejects_malformed_record_identity() -> None:
+    source = compile_cylinder()
+    operation = CylinderMetamorphMutation("Cylinder2", "length-three")
+
+    with pytest.raises(MutationError, match="requires Style 13"):
+        apply_verified_mutation(source.replace(b"Style=13", b"Style=12"), operation)
+    with pytest.raises(MutationError, match="requires NumPars 7"):
+        apply_verified_mutation(source.replace(b"NumPars=7", b"NumPars=8"), operation)
+    with pytest.raises(MutationError, match="requires seven Pars tokens"):
+        apply_verified_mutation(
+            source.replace(
+                b"Pars=1.00000 360.0000 2 0 0 0.000 2 ",
+                b"Pars=1.00000 360.0000 2 0 0 0.000 ",
+            ),
+            operation,
+        )
+
+
+def test_cylinder_profile_requires_one_unique_named_target() -> None:
+    source = compile_cylinder()
+    operation = CylinderMetamorphMutation("Cylinder2", "length-three")
+
+    with pytest.raises(MutationError, match="matched 0 objects"):
+        apply_verified_mutation(
+            source, CylinderMetamorphMutation("missing", "length-three")
+        )
+
+    block_start = source.index(b"[Holon\\1]")
+    block_end = source.index(b"[Gradients]")
+    duplicate_block = source[block_start:block_end].replace(
+        b"Holon\\1", b"Holon\\2"
+    ).replace(b"ID=1", b"ID=2", 1)
+    duplicate = (
+        source[:block_end].replace(b"NumHolons=2", b"NumHolons=3")
+        + duplicate_block
+        + source[block_end:]
+    )
+
+    with pytest.raises(MutationError, match="matched 2 objects"):
+        apply_verified_mutation(duplicate, operation)

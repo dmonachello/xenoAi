@@ -78,6 +78,9 @@ xenosculpt project evolve sculpture.xsp --seed 17 --strength 0.5 `
   --message "seeded physical-form variation"
 xenosculpt project metamorph sculpture.xsp --object Sphere2 `
   --profile cushion-core --message "measured cushion form"
+xenosculpt project metamorph sculpture.xsp --operation Cylinder `
+  --object Cylinder2 --profile bevel-25-front `
+  --message "measured front bevel"
 xenosculpt project validate sculpture.xsp `
   --stl-max-dimension-mm 120 --mesh-size-percent 50
 xenosculpt project compare sculpture.xsp main alternate
@@ -105,25 +108,28 @@ Warp. Spheres support scale and position. A requested edit outside those rules
 is rejected. Every mutation audits its structural diff and preserves all
 unrelated bytes.
 
-`project metamorph` applies one measured Sphere parameter profile. The current
-profiles cover strong isolated effects and tested Warp Shape, Shear Bias, Taper
-Type, and Taper Shape interactions. Run the command with `--help` to list their
-stable names. A profile replaces the complete twelve-token Sphere metamorph
-vector, preventing values from a previous profile from leaking into an
-unmeasured combination. The resulting revision remains editable in XenoDream,
-but the command reports `native_validation_required: true` and
-`fabrication_suitable: false`. It does not turn the recovered descriptor ranges
-into unrestricted write permission.
+`project metamorph` applies one measured parameter profile. Sphere remains the
+default operation. Use `--operation Cylinder` for the measured Cylinder forms.
+Run the command with `--help` to list stable names. A profile replaces the
+complete operation-specific metamorph vector, preventing values from a prior
+profile from leaking into an unmeasured combination. The resulting revision
+remains editable in XenoDream, but the command reports
+`native_validation_required: true` and `fabrication_suitable: false`. It does
+not turn recovered descriptor ranges into unrestricted write permission.
 
 `generate-cylinder` is the first constructor added without a manually created
 1.220 Cylinder template. Its Style 13 identity, seven parameter slots, names,
 domains, and defaults come from the executable operation registry and are
 reconciled with nine historical native records and installed presets. The
 default project passed isolated XenoDream evaluation and basic mesh validation.
-The public command currently exposes only verified transform controls;
-unrestricted Cylinder metamorph edits remain gated on automated measurements.
-The prepared M16 native sweep and its acceptance requirements are documented in
-[`docs/m16-cylinder-metamorph-sweep.md`](docs/m16-cylinder-metamorph-sweep.md).
+The public command currently exposes only verified transform controls. Native
+sweeps measured Length, Closed Ends, Wedge, Spherical, and conditional Bevel
+behavior at discovery detail. Eight exact complete states are available through
+evidence-gated profiles. `Arc=180` remains unresolved, and unrestricted
+Cylinder metamorph edits remain disabled. See the
+[`M16 isolated sweep`](docs/m16-cylinder-metamorph-sweep.md) and the
+[`M17 bevel interaction sweep`](docs/m17-cylinder-bevel-interaction-sweep.md),
+then the [`M18 mutation boundary`](docs/m18-cylinder-metamorph-mutation.md).
 
 `project evolve` derives a repeatable variation from the current revision.
 The same source revision, seed, and strength produce identical native bytes.

@@ -1,0 +1,38 @@
+{
+  "schema": "xenosculpt-metamorph-sweep-evidence/v2",
+  "plan": "experiments/metamorph-sweeps/cylinder-isolated-v1.json",
+  "plan_sha256": "847208283cf2cd55f676a2784e21d2602525d473284f62a58eb5c85eb3677ec5",
+  "source_summary_sha256": "af30d9210528b82641bd45c093793176c8b9833decf76c2505ab2524a582bbe0",
+  "settings": {
+    "stl_max_dimension_mm": 120,
+    "mesh_size_percent": 10
+  },
+  "execution": {
+    "jobs": 10,
+    "successful_jobs": 9,
+    "timed_out_active": ["arc-half"]
+  },
+  "baseline": {
+    "replicates": 2,
+    "triangle_count": 3962,
+    "triangle_count_span": 0,
+    "absolute_volume_span": 0.11324164271354675,
+    "dimension_spans": [0.0, 0.0, 0.0]
+  },
+  "ranked_results": [
+    {"id": "length-three", "impact_score": 1.0082838405111505, "triangle_delta": -8, "absolute_volume_delta": -46742.32052283746, "dimensions_mm": [77.00032329559326, 77.00032329559326, 115.09331226348877], "basic_topology_valid": true},
+    {"id": "closed-ends-none", "impact_score": 0.971018136147168, "triangle_delta": 506, "absolute_volume_delta": -565727.6601123103, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30743932723999], "basic_topology_valid": true},
+    {"id": "closed-ends-back", "impact_score": 0.9567272820503477, "triangle_delta": 2152, "absolute_volume_delta": -557401.6246365164, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30836248397827], "basic_topology_valid": true},
+    {"id": "wedge-yes", "impact_score": 0.3219796298505961, "triangle_delta": 1076, "absolute_volume_delta": -187589.47523056186, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30743932723999], "basic_topology_valid": true},
+    {"id": "spherical-yes", "impact_score": 0.1563518213001531, "triangle_delta": -30, "absolute_volume_delta": -91092.58285267267, "dimensions_mm": [114.19961547851562, 114.18813252449036, 51.527658462524414], "basic_topology_valid": true},
+    {"id": "bevel-edges-two", "impact_score": 0.00038994305813278745, "triangle_delta": 0, "absolute_volume_delta": -227.18584302638192, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30928564071655], "basic_topology_valid": true},
+    {"id": "bevel-back", "impact_score": 6.902979077030536e-7, "triangle_delta": 0, "absolute_volume_delta": 0.4021764430217445, "dimensions_mm": [113.7897379398346, 113.7897379398346, 57.30928564071655], "basic_topology_valid": true}
+  ],
+  "claims": {
+    "native_structure_valid": true,
+    "completed_cases_evaluate_to_3d_geometry": true,
+    "completed_cases_pass_basic_mesh_predicates": true,
+    "arc_180_resolved": false,
+    "fabrication_suitable": false
+  }
+}

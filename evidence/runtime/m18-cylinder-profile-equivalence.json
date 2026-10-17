@@ -1,0 +1,20 @@
+{
+  "schema": "xenosculpt-profile-equivalence/v1",
+  "operation": "Cylinder",
+  "profile": "bevel-25-front",
+  "generated_source": {
+    "producer": "xenodream_xxp.generator.compile_cylinder",
+    "sha256": "99d74c4fe1220d4cbf9fdfe09425eb0fcb76a9ababad081dce4241e59f02f651"
+  },
+  "profile_result": {
+    "producer": "CylinderMetamorphMutation",
+    "sha256": "7f7c48375ecaf621e22250887538c8a67af9040611b7cca853ae465b3db618e8"
+  },
+  "retained_sweep_variant": {
+    "campaign": "experiments/metamorph-sweeps/cylinder-bevel-interactions-v1.json",
+    "case": "bevel-25-front",
+    "path": "output/cylinder-bevel-interactions-preview-v1/variants/bevel-25-front.xxp",
+    "sha256": "7f7c48375ecaf621e22250887538c8a67af9040611b7cca853ae465b3db618e8"
+  },
+  "byte_identical": true
+}
