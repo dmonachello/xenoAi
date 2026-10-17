@@ -215,6 +215,11 @@ before it replaces any template path.
 
 ### 3. Close the prompt-to-fabrication loop
 
+Status: in progress. Revision-bound fabrication assessments now evaluate the
+existing basic mesh predicate and current-orientation build-volume fit. The
+report marks self-intersection, minimum-feature, and process-specific checks as
+`not_evaluated`, so partial evidence cannot set `fabrication_suitable: true`.
+
 Add a text command that maps a request to a versioned, inspectable operation
 plan, applies it to the active revision, exports a measured mesh, and runs a
 fabrication profile. Add external checks for intersections, thickness,

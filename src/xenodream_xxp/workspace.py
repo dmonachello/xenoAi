@@ -5,7 +5,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from decimal import Decimal
 from hashlib import sha256
 import json
 import os
@@ -17,8 +16,23 @@ from uuid import uuid4
 
 from .diffing import diff_documents
 from .document import KeyValueRecord, parse_bytes
-from .generator import Vector3
-from .mesh import StlReport, basic_mesh_valid
+from .errors import WorkspaceError
+from .fabrication import (
+    ASSESSMENT_SCHEMA,
+    WORKSPACE_POLICY,
+    FabricationAssessment,
+    FabricationCheck,
+    FabricationConstraints,
+    FabricationVerdict,
+    constraints_from_dict,
+    constraints_to_dict,
+    derive_fabrication_verdict,
+    evaluate_fabrication,
+    fabrication_assessment_from_dict,
+    fabrication_assessment_to_dict,
+    fabrication_check_to_dict,
+)
+from .mesh import StlReport, basic_mesh_valid, inspect_binary_stl
 from .native_export import (
     DEFAULT_XENODREAM_EXECUTABLE,
     MeshExportSettings,
@@ -35,40 +49,6 @@ from .planning import (
     plan_provenance_to_dict,
     validate_plan_provenance,
 )
-
-
-class WorkspaceError(ValueError):
-    """A workspace operation would violate revision or artifact invariants."""
-
-
-@dataclass(frozen=True, slots=True)
-class FabricationConstraints:
-    process: str | None = None
-    build_volume_mm: Vector3 | None = None
-    min_feature_mm: Decimal | None = None
-
-    def __post_init__(self) -> None:
-        if self.process is not None and (
-            not isinstance(self.process, str) or not self.process.strip()
-        ):
-            raise TypeError("process must be a non-empty string or None")
-        if self.build_volume_mm is not None:
-            if not isinstance(self.build_volume_mm, Vector3):
-                raise TypeError("build_volume_mm must be Vector3 or None")
-            if any(
-                value <= 0
-                for value in (
-                    self.build_volume_mm.x,
-                    self.build_volume_mm.y,
-                    self.build_volume_mm.z,
-                )
-            ):
-                raise WorkspaceError("build volume dimensions must be positive")
-        if self.min_feature_mm is not None:
-            if not isinstance(self.min_feature_mm, Decimal):
-                raise TypeError("min_feature_mm must be Decimal or None")
-            if not self.min_feature_mm.is_finite() or self.min_feature_mm <= 0:
-                raise WorkspaceError("minimum feature size must be finite and positive")
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +73,7 @@ class WorkspaceStatus:
     xdx_version: str
     constraints: FabricationConstraints
     latest_validation: NativeValidation | None
+    latest_fabrication_assessment: FabricationAssessment | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,9 +107,18 @@ class ArtifactInfo:
     revision_id: str
 
 
-_SCHEMA_VERSION = "2"
+_SCHEMA_VERSION = "3"
 _DATABASE_NAME = "project.sqlite3"
 _BRANCH_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+_ASSESSMENT_SELECT = (
+    "SELECT assessment.*, "
+    "validation.revision_id AS evidence_revision_id, "
+    "validation.mesh_sha256 AS evidence_mesh_sha256, "
+    "revision.artifact_sha256 AS evidence_artifact_sha256 "
+    "FROM fabrication_assessments AS assessment "
+    "JOIN validations AS validation ON validation.id = assessment.validation_id "
+    "JOIN revisions AS revision ON revision.id = validation.revision_id "
+)
 
 
 def _now() -> str:
@@ -140,34 +130,11 @@ def _json_bytes(value: object) -> bytes:
 
 
 def _constraints_to_dict(value: FabricationConstraints) -> dict[str, object]:
-    return {
-        "process": value.process,
-        "build_volume_mm": None
-        if value.build_volume_mm is None
-        else [
-            str(value.build_volume_mm.x),
-            str(value.build_volume_mm.y),
-            str(value.build_volume_mm.z),
-        ],
-        "min_feature_mm": None
-        if value.min_feature_mm is None
-        else str(value.min_feature_mm),
-    }
+    return constraints_to_dict(value)
 
 
 def _constraints_from_dict(value: dict[str, object]) -> FabricationConstraints:
-    raw_volume = value.get("build_volume_mm")
-    volume = None
-    if raw_volume is not None:
-        if not isinstance(raw_volume, list) or len(raw_volume) != 3:
-            raise WorkspaceError("workspace has invalid build-volume metadata")
-        volume = Vector3(*(Decimal(str(item)) for item in raw_volume))
-    raw_feature = value.get("min_feature_mm")
-    return FabricationConstraints(
-        process=value.get("process") if isinstance(value.get("process"), str) else None,
-        build_volume_mm=volume,
-        min_feature_mm=None if raw_feature is None else Decimal(str(raw_feature)),
-    )
+    return constraints_from_dict(value)
 
 
 def _header_value(data: bytes, key: bytes) -> str:
@@ -278,6 +245,17 @@ class ProjectWorkspace:
                     );
                     CREATE INDEX validations_revision_created
                     ON validations(revision_id, created_at DESC);
+                    CREATE TABLE fabrication_assessments (
+                        id TEXT PRIMARY KEY,
+                        request_key TEXT NOT NULL UNIQUE,
+                        validation_id TEXT NOT NULL REFERENCES validations(id),
+                        created_at TEXT NOT NULL,
+                        policy_json TEXT NOT NULL,
+                        constraints_json TEXT NOT NULL,
+                        result_json TEXT NOT NULL
+                    );
+                    CREATE INDEX fabrication_assessments_validation_created
+                    ON fabrication_assessments(validation_id, created_at DESC, id DESC);
                     """
                 )
                 metadata = {
@@ -333,7 +311,7 @@ class ProjectWorkspace:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE key = 'schema_version'"
             ).fetchone()
-            if row is None or row[0] not in {"1", _SCHEMA_VERSION}:
+            if row is None or row[0] not in {"1", "2", _SCHEMA_VERSION}:
                 raise WorkspaceError("unsupported or missing workspace schema")
             if row[0] == "1":
                 connection.executescript(
@@ -356,6 +334,26 @@ class ProjectWorkspace:
                     CREATE INDEX validations_revision_created
                     ON validations(revision_id, created_at DESC);
                     UPDATE metadata SET value = '2' WHERE key = 'schema_version';
+                    COMMIT;
+                    """
+                )
+                row = ("2",)
+            if row[0] == "2":
+                connection.executescript(
+                    """
+                    BEGIN IMMEDIATE;
+                    CREATE TABLE fabrication_assessments (
+                        id TEXT PRIMARY KEY,
+                        request_key TEXT NOT NULL UNIQUE,
+                        validation_id TEXT NOT NULL REFERENCES validations(id),
+                        created_at TEXT NOT NULL,
+                        policy_json TEXT NOT NULL,
+                        constraints_json TEXT NOT NULL,
+                        result_json TEXT NOT NULL
+                    );
+                    CREATE INDEX fabrication_assessments_validation_created
+                    ON fabrication_assessments(validation_id, created_at DESC, id DESC);
+                    UPDATE metadata SET value = '3' WHERE key = 'schema_version';
                     COMMIT;
                     """
                 )
@@ -505,6 +503,75 @@ class ProjectWorkspace:
         ).fetchone()
         return None if row is None else self._validation(row)
 
+    @staticmethod
+    def _assessment_request(
+        assessment: FabricationAssessment,
+    ) -> dict[str, object]:
+        return {
+            "schema": assessment.schema,
+            "policy": {
+                "name": assessment.policy.name,
+                "version": assessment.policy.version,
+            },
+            "revision_id": assessment.revision_id,
+            "artifact_sha256": assessment.artifact_sha256,
+            "validation_id": assessment.validation_id,
+            "mesh_sha256": assessment.mesh_sha256,
+            "constraints": _constraints_to_dict(assessment.constraints),
+        }
+
+    @staticmethod
+    def _assessment_id(
+        request: dict[str, object],
+        verdict: FabricationVerdict,
+        checks: tuple[FabricationCheck, ...],
+    ) -> str:
+        identity_payload = {
+            "request": request,
+            "verdict": verdict.value,
+            "checks": [fabrication_check_to_dict(item) for item in checks],
+        }
+        return sha256(_json_bytes(identity_payload)).hexdigest()
+
+    @classmethod
+    def _fabrication_assessment(cls, row: sqlite3.Row) -> FabricationAssessment:
+        assessment = fabrication_assessment_from_dict(json.loads(row["result_json"]))
+        request = cls._assessment_request(assessment)
+        stored_policy = json.loads(row["policy_json"])
+        stored_constraints = json.loads(row["constraints_json"])
+        provenance_matches = all(
+            (
+                row["id"] == assessment.id,
+                row["validation_id"] == assessment.validation_id,
+                stored_policy == request["policy"],
+                stored_constraints == request["constraints"],
+                row["evidence_revision_id"] == assessment.revision_id,
+                row["evidence_mesh_sha256"] == assessment.mesh_sha256,
+                row["evidence_artifact_sha256"] == assessment.artifact_sha256,
+                row["request_key"] == sha256(_json_bytes(request)).hexdigest(),
+                assessment.id
+                == cls._assessment_id(
+                    request,
+                    assessment.verdict,
+                    assessment.checks,
+                ),
+            )
+        )
+        if not provenance_matches:
+            raise WorkspaceError("fabrication assessment provenance is inconsistent")
+        return assessment
+
+    def _latest_fabrication_assessment(
+        self, connection: sqlite3.Connection, revision_id: str
+    ) -> FabricationAssessment | None:
+        row = connection.execute(
+            _ASSESSMENT_SELECT
+            + "WHERE validation.revision_id = ? "
+            + "ORDER BY assessment.created_at DESC, assessment.id DESC LIMIT 1",
+            (revision_id,),
+        ).fetchone()
+        return None if row is None else self._fabrication_assessment(row)
+
     def status(self) -> WorkspaceStatus:
         with self._connect() as connection:
             revision = self._get_revision(connection, "HEAD")
@@ -522,6 +589,9 @@ class ProjectWorkspace:
                 ).fetchall()
             }
             latest_validation = self._latest_validation(connection, revision.id)
+            latest_assessment = self._latest_fabrication_assessment(
+                connection, revision.id
+            )
         return WorkspaceStatus(
             root=str(self.root),
             current_branch=branch,
@@ -531,7 +601,124 @@ class ProjectWorkspace:
             xdx_version=version,
             constraints=_constraints_from_dict(json.loads(raw_constraints)),
             latest_validation=latest_validation,
+            latest_fabrication_assessment=latest_assessment,
         )
+
+    def assess_fabrication(
+        self,
+        *,
+        ref: str = "HEAD",
+        validation_id: str | None = None,
+    ) -> FabricationAssessment:
+        """Assess an exact retained validation mesh without changing HEAD."""
+
+        if validation_id is not None and (
+            not isinstance(validation_id, str)
+            or re.fullmatch(r"[0-9a-f]{64}", validation_id) is None
+        ):
+            raise WorkspaceError(
+                "validation ID must be 64 lowercase hexadecimal characters"
+            )
+        with self._connect() as connection:
+            revision = self._get_revision(connection, ref)
+            if validation_id is None:
+                row = connection.execute(
+                    "SELECT * FROM validations WHERE revision_id = ? "
+                    "AND outcome = 'succeeded' AND mesh_sha256 IS NOT NULL "
+                    "ORDER BY created_at DESC, id DESC LIMIT 1",
+                    (revision.id,),
+                ).fetchone()
+            else:
+                row = connection.execute(
+                    "SELECT * FROM validations WHERE id = ? AND revision_id = ? "
+                    "AND outcome = 'succeeded' AND mesh_sha256 IS NOT NULL",
+                    (validation_id, revision.id),
+                ).fetchone()
+            raw_constraints = connection.execute(
+                "SELECT value FROM metadata WHERE key = 'constraints_json'"
+            ).fetchone()["value"]
+        if row is None:
+            raise WorkspaceError(
+                "no successful mesh-bearing validation matches the selected revision"
+            )
+        validation = self._validation(row)
+        if validation.mesh_sha256 is None:
+            raise WorkspaceError("selected validation has no retained mesh")
+        mesh_path = self.meshes / f"{validation.mesh_sha256}.stl"
+        if not mesh_path.is_file():
+            raise WorkspaceError(f"retained validation mesh is missing: {mesh_path}")
+        mesh_bytes = mesh_path.read_bytes()
+        if sha256(mesh_bytes).hexdigest() != validation.mesh_sha256:
+            raise WorkspaceError(f"mesh failed hash verification: {mesh_path}")
+        mesh = inspect_binary_stl(mesh_path)
+        if mesh.sha256 != validation.mesh_sha256:
+            raise WorkspaceError("mesh inspection identity disagrees with validation")
+
+        constraints = _constraints_from_dict(json.loads(raw_constraints))
+        request = {
+            "schema": ASSESSMENT_SCHEMA,
+            "policy": {
+                "name": WORKSPACE_POLICY.name,
+                "version": WORKSPACE_POLICY.version,
+            },
+            "revision_id": revision.id,
+            "artifact_sha256": revision.artifact_sha256,
+            "validation_id": validation.id,
+            "mesh_sha256": validation.mesh_sha256,
+            "constraints": _constraints_to_dict(constraints),
+        }
+        request_key = sha256(_json_bytes(request)).hexdigest()
+        with self._connect() as connection:
+            cached = connection.execute(
+                _ASSESSMENT_SELECT + "WHERE assessment.request_key = ?",
+                (request_key,),
+            ).fetchone()
+        if cached is not None:
+            return self._fabrication_assessment(cached)
+
+        checks = evaluate_fabrication(
+            mesh,
+            constraints=constraints,
+            policy=WORKSPACE_POLICY,
+        )
+        verdict = derive_fabrication_verdict(checks, policy=WORKSPACE_POLICY)
+        assessment = FabricationAssessment(
+            id=self._assessment_id(request, verdict, checks),
+            created_at=_now(),
+            revision_id=revision.id,
+            artifact_sha256=revision.artifact_sha256,
+            validation_id=validation.id,
+            mesh_sha256=validation.mesh_sha256,
+            policy=WORKSPACE_POLICY,
+            constraints=constraints,
+            verdict=verdict,
+            checks=checks,
+        )
+        result_json = _json_bytes(fabrication_assessment_to_dict(assessment)).decode()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "INSERT OR IGNORE INTO fabrication_assessments "
+                "(id, request_key, validation_id, created_at, policy_json, "
+                "constraints_json, result_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    assessment.id,
+                    request_key,
+                    validation.id,
+                    assessment.created_at,
+                    _json_bytes(request["policy"]).decode(),
+                    _json_bytes(request["constraints"]).decode(),
+                    result_json,
+                ),
+            )
+            stored = connection.execute(
+                _ASSESSMENT_SELECT + "WHERE assessment.request_key = ?",
+                (request_key,),
+            ).fetchone()
+            connection.commit()
+        if stored is None:
+            raise WorkspaceError("fabrication assessment was not recorded")
+        return self._fabrication_assessment(stored)
 
     def validate_native(
         self,

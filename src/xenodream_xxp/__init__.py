@@ -1,6 +1,16 @@
 """Lossless tools for observed XenoDream X parameter-file syntax."""
 
 from .document import Document, parse_bytes, parse_file
+from .fabrication import (
+    CheckCode,
+    CheckStatus,
+    FabricationAssessment,
+    FabricationCheck,
+    FabricationConstraints,
+    FabricationError,
+    FabricationVerdict,
+    PolicyIdentity,
+)
 from .generator import (
     COMPILER_PROFILE,
     CUBE_SPHERE_COMPILER_PROFILE,
@@ -61,7 +71,6 @@ from .planning import (
 from .workspace import (
     ApplyResult,
     ArtifactInfo,
-    FabricationConstraints,
     NativeValidation,
     ProjectWorkspace,
     Revision,
@@ -92,7 +101,14 @@ __all__ = [
     "PlanningError",
     "ApplyResult",
     "ArtifactInfo",
+    "CheckCode",
+    "CheckStatus",
+    "FabricationAssessment",
+    "FabricationCheck",
     "FabricationConstraints",
+    "FabricationError",
+    "FabricationVerdict",
+    "PolicyIdentity",
     "NativeValidation",
     "ProjectWorkspace",
     "Revision",

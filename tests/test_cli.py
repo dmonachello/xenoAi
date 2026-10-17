@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 import struct
 
@@ -18,6 +19,7 @@ from xenodream_xxp.generator import (
     compile_sphere,
     compile_cylinder,
 )
+from xenodream_xxp.mesh import inspect_binary_stl
 from xenodream_xxp.workspace import ProjectWorkspace
 
 
@@ -27,6 +29,28 @@ SAMPLE = (
     / "originals"
     / "20061109Sirps08.xxp"
 )
+
+
+def _closed_tetrahedron(path: Path) -> None:
+    origin = (0.0, 0.0, 0.0)
+    x = (1.0, 0.0, 0.0)
+    y = (0.0, 1.0, 0.0)
+    z = (0.0, 0.0, 1.0)
+
+    def triangle(a, b, c):
+        return struct.pack("<12fH", 0.0, 0.0, 1.0, *a, *b, *c, 0)
+
+    triangles = (
+        triangle(origin, y, x),
+        triangle(origin, x, z),
+        triangle(origin, z, y),
+        triangle(x, y, z),
+    )
+    path.write_bytes(
+        b"validation".ljust(80, b"\0")
+        + struct.pack("<I", len(triangles))
+        + b"".join(triangles)
+    )
 
 
 def test_inspect_prints_json(capsys) -> None:
@@ -406,6 +430,70 @@ def test_generate_row_refuses_to_overwrite(tmp_path, capsys) -> None:
     ) == 2
     assert output.read_bytes() == b"keep"
     assert "already exists" in capsys.readouterr().err
+
+
+def test_project_cli_assesses_a_validated_revision_without_claiming_printability(
+    tmp_path, capsys, monkeypatch
+) -> None:
+    source = tmp_path / "source.xxp"
+    workspace_path = tmp_path / "sculpture.xsp"
+    executable = tmp_path / "XenoDreamX.exe"
+    source.write_bytes(compile_cube())
+    executable.write_bytes(b"test executable")
+
+    assert main(
+        [
+            "project", "init", str(workspace_path), str(source),
+            "--process", "FDM",
+            "--build-volume", "2", "2", "2",
+            "--min-feature-mm", "0.8",
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    assert main(
+        [
+            "project", "validate", str(workspace_path),
+            "--executable", str(executable),
+        ]
+    ) == 0
+    validation = json.loads(capsys.readouterr().out)
+    head_before = ProjectWorkspace.open(workspace_path).status().head.id
+
+    assert main(["project", "assess", str(workspace_path)]) == 1
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["validation_id"] == validation["id"]
+    assert result["verdict"] == "incomplete"
+    assert result["fabrication_suitable"] is False
+    checks = {item["code"]: item for item in result["checks"]}
+    assert checks["basic-mesh"]["status"] == "pass"
+    assert checks["build-volume"]["status"] == "pass"
+    assert checks["self-intersections"]["status"] == "not_evaluated"
+    assert ProjectWorkspace.open(workspace_path).status().head.id == head_before
 
 
 def test_project_cli_creates_mutates_branches_and_exports(tmp_path, capsys) -> None:

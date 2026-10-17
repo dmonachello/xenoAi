@@ -1,0 +1,21 @@
+{
+  "assessment_id": "2ec09ac87f9d9e9e81c32f3bd6ffba4b6bb7ef437b35eb6ef5fdf63246f43575",
+  "checks": {
+    "basic-mesh": "pass",
+    "build-volume": "not_applicable",
+    "minimum-feature": "not_applicable",
+    "process": "not_applicable",
+    "self-intersections": "not_evaluated"
+  },
+  "command": "xenosculpt-m20-final.exe project assess m20-final-assessment.xsp",
+  "exit_code": 1,
+  "executable_sha256": "1abddae8240f32d8de5bcc1d96c727dbe618706e20f37aa1f4c81675f2ac8ee6",
+  "fabrication_suitable": false,
+  "head_unchanged": true,
+  "mesh_sha256": "db72dc022f9afc899b03c30a08d0bab7667166132805df89e8d822446a14c9ee",
+  "revision_id": "fd04e29aa744e729cb03a00d264c0aaa9dbaa2a5f6b9a3669477323afd00bbeb",
+  "schema": "xenosculpt-packaged-fabrication-assessment-smoke/v1",
+  "validation_id": "9ad033cc093e62917b011c7dba9a603b2f11532e57374955f2468cae86d47146",
+  "verdict": "incomplete",
+  "workspace_copy": "C:\\Users\\dmona\\xenoAITest\\m20-final-assessment.xsp"
+}

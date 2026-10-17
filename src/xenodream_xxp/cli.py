@@ -13,6 +13,7 @@ from typing import Sequence
 
 from .diffing import diff_documents
 from .document import parse_bytes
+from .fabrication import fabrication_assessment_to_dict
 from .generator import (
     COMPILER_PROFILE,
     CUBE_SPHERE_COMPILER_PROFILE,
@@ -237,6 +238,14 @@ def _parser() -> argparse.ArgumentParser:
     project_validate.add_argument("--timeout-seconds", type=float, default=600)
     project_validate.add_argument("--poll-seconds", type=float, default=1)
 
+    project_assess = project_commands.add_parser(
+        "assess",
+        help="assess stored fabrication constraints against a validated revision",
+    )
+    project_assess.add_argument("workspace", type=Path)
+    project_assess.add_argument("--ref", default="HEAD")
+    project_assess.add_argument("--validation")
+
     project_mutate = project_commands.add_parser(
         "mutate", help="apply verified fields to one uniquely named object"
     )
@@ -396,6 +405,13 @@ def _handle_project(args: argparse.Namespace) -> int:
         )
         _print_json(asdict(validation))
         return 0 if validation.basic_mesh_valid else 1
+    if args.project_command == "assess":
+        assessment = workspace.assess_fabrication(
+            ref=args.ref,
+            validation_id=args.validation,
+        )
+        _print_json(fabrication_assessment_to_dict(assessment))
+        return 0 if assessment.fabrication_suitable else 1
     if args.project_command == "prompt":
         plan = plan_prompt(
             args.prompt,

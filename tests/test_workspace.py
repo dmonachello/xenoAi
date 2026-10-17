@@ -16,6 +16,11 @@ from xenodream_xxp.generator import (
     compile_cylinder,
     compile_sphere,
 )
+from xenodream_xxp.fabrication import (
+    CheckCode,
+    CheckStatus,
+    FabricationVerdict,
+)
 from xenodream_xxp.mutation import (
     CenteredRowMutation,
     CylinderMetamorphMutation,
@@ -413,9 +418,159 @@ def test_native_validation_attaches_mesh_without_changing_head(
     assert _source(tmp_path).read_bytes() == compile_cube()
 
 
+def test_fabrication_assessment_is_cached_and_does_not_change_head(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(
+        tmp_path / "assessed.xsp",
+        _source(tmp_path),
+        FabricationConstraints(
+            process="FDM",
+            build_volume_mm=Vector3(D("2"), D("2"), D("2")),
+            min_feature_mm=D("0.8"),
+        ),
+    )
+    initial = workspace.status().head
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    validation = workspace.validate_native(executable=executable)
+
+    first = workspace.assess_fabrication()
+    second = workspace.assess_fabrication(validation_id=validation.id)
+
+    assert first == second
+    assert first.revision_id == initial.id
+    assert first.artifact_sha256 == initial.artifact_sha256
+    assert first.validation_id == validation.id
+    assert first.mesh_sha256 == validation.mesh_sha256
+    assert first.verdict is FabricationVerdict.INCOMPLETE
+    assert first.fabrication_suitable is False
+    by_code = {item.code: item for item in first.checks}
+    assert by_code[CheckCode.BUILD_VOLUME].status is CheckStatus.PASS
+    assert by_code[CheckCode.SELF_INTERSECTIONS].status is CheckStatus.NOT_EVALUATED
+    status = workspace.status()
+    assert status.head == initial
+    assert status.latest_fabrication_assessment == first
+    with sqlite3.connect(workspace.database) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM fabrication_assessments"
+        ).fetchone()[0] == 1
+
+
+def test_fabrication_assessment_rejects_cached_provenance_tampering(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "tampered.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    workspace.validate_native(executable=executable)
+    workspace.assess_fabrication()
+
+    with sqlite3.connect(workspace.database) as connection:
+        raw = connection.execute(
+            "SELECT result_json FROM fabrication_assessments"
+        ).fetchone()[0]
+        payload = json.loads(raw)
+        payload["revision_id"] = "f" * 64
+        connection.execute(
+            "UPDATE fabrication_assessments SET result_json = ?",
+            (json.dumps(payload),),
+        )
+
+    with pytest.raises(WorkspaceError, match="provenance"):
+        workspace.assess_fabrication()
+
+
+def test_fabrication_assessment_rejects_corrupted_retained_mesh(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "corrupt.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    validation = workspace.validate_native(executable=executable)
+    assert validation.mesh_path is not None
+    Path(validation.mesh_path).write_bytes(b"corrupted")
+
+    with pytest.raises(WorkspaceError, match="mesh failed hash verification"):
+        workspace.assess_fabrication(validation_id=validation.id)
+
+
 def test_open_migrates_schema_one_workspace(tmp_path) -> None:
     workspace = ProjectWorkspace.create(tmp_path / "project.xsp", _source(tmp_path))
     with sqlite3.connect(workspace.database) as connection:
+        connection.execute("DROP TABLE fabrication_assessments")
         connection.execute("DROP TABLE validations")
         connection.execute(
             "UPDATE metadata SET value = '1' WHERE key = 'schema_version'"
@@ -428,7 +583,10 @@ def test_open_migrates_schema_one_workspace(tmp_path) -> None:
     with sqlite3.connect(workspace.database) as connection:
         assert connection.execute(
             "SELECT value FROM metadata WHERE key = 'schema_version'"
-        ).fetchone()[0] == "2"
+        ).fetchone()[0] == "3"
+        assert connection.execute(
+            "SELECT COUNT(*) FROM fabrication_assessments"
+        ).fetchone()[0] == 0
 
 
 def test_rejects_invalid_workspace_and_constraints(tmp_path) -> None:

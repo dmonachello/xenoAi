@@ -24,6 +24,9 @@ XenoDream file editor, a slicer, or a printability checker.
   model.
 - Supervised XenoDream export with binary STL inspection and revision-attached
   validation reports.
+- Revision-bound fabrication assessments that evaluate basic mesh validity and
+  current-orientation build-volume fit without treating missing checks as a
+  pass.
 - Optional STL solidification that creates a derived mesh without changing the
   editable native project.
 
@@ -40,7 +43,8 @@ XenoDream file editor, a slicer, or a printability checker.
   does not check self-intersections, minimum wall thickness, supports,
   tolerances, or process suitability.
 - Generated and mutated projects remain `fabrication_suitable: false` until
-  process-specific checks exist.
+  every required check passes. The current policy cannot pass because exact
+  self-intersection, minimum-feature, and process-specific checks do not exist.
 - Native evaluation requires Windows and an installed copy of XenoDream X.
   XenoDream is not included in this repository.
 
@@ -107,7 +111,7 @@ xxp project metamorph output/project.xsp --operation Cylinder `
 ```
 
 Workspace commands also include `status`, `log`, `branch`, `checkout`,
-`compare`, `import`, `export`, and `validate`. Run
+`compare`, `import`, `export`, `validate`, and `assess`. Run
 `xxp project <command> --help` for the exact arguments.
 
 ## Validate a revision in XenoDream
@@ -138,6 +142,26 @@ C:\Program Files (x86)\XenoDream Software\XenoDreamX\XenoDreamX.exe
 ```
 
 Pass `--executable` to `project validate` if XenoDream is installed elsewhere.
+
+## Assess fabrication constraints
+
+After `project validate` succeeds, assess its retained STL against the
+workspace constraints:
+
+```powershell
+xxp project assess output/cylinder.xsp
+```
+
+The assessment records the exact revision, validation, mesh hash, policy, and
+constraints. It checks the current basic mesh predicate and compares measured
+STL dimensions with the configured build-volume axes. It does not rotate or
+rescale the mesh.
+
+The command returns exit code `1` for both `fail` and `incomplete`. An
+`incomplete` result means that the available checks passed, but required
+evidence is missing. It is not fabrication approval. See
+[fabrication assessments](docs/m20-fabrication-assessment.md) for the check
+statuses and selection options.
 
 ## Inspect and compare files
 
@@ -195,6 +219,7 @@ Start with these documents:
 - [Cylinder bevel interactions](docs/m17-cylinder-bevel-interaction-sweep.md)
 - [Measured Cylinder mutations](docs/m18-cylinder-metamorph-mutation.md)
 - [Deterministic prompt planning](docs/m19-natural-language-planner.md)
+- [Fabrication assessments](docs/m20-fabrication-assessment.md)
 
 Generated files belong under `output/`. Do not overwrite files under
 `samples/originals/`.
