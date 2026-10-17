@@ -14,6 +14,7 @@ from xenodream_xxp.generator import (
     SPHERE_COMPILER_PROFILE,
     THREE_CUBE_COMPILER_PROFILE,
     TWO_CUBE_COMPILER_PROFILE,
+    compile_cube,
     compile_sphere,
     compile_cylinder,
 )
@@ -598,6 +599,59 @@ def test_project_cli_rejects_cross_operation_profiles_without_moving_head(
     ) == 2
     assert "unknown Cylinder metamorph profile" in capsys.readouterr().err
     assert ProjectWorkspace.open(cylinder_workspace).status().head.id == cylinder_head
+
+
+def test_project_cli_plans_and_applies_one_controlled_language_operation(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "prompt-source.xxp"
+    workspace = tmp_path / "prompt.xsp"
+    source.write_bytes(compile_cylinder())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    prompt = "apply Cylinder profile bevel-25-front to object Cylinder2"
+    assert main(
+        [
+            "project", "prompt", str(workspace), prompt,
+            "--message", "planned front bevel",
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["created"] is True
+    assert result["plan"]["schema"] == "xenosculpt-operation-plan/v1"
+    assert result["plan"]["rule"] == "apply-cylinder-profile-v1"
+    assert result["plan"]["prompt"] == prompt
+    assert result["plan"]["operation"]["profile"] == "bevel-25-front"
+    assert result["revision"]["operation"] == "cylinder-metamorph-profile-v1"
+    assert result["revision"]["prompt"] == prompt
+    assert result["revision"]["details"]["planning"]["planner"] == {
+        "name": "xenosculpt-controlled-english",
+        "version": "1",
+    }
+    assert [item["token_index"] for item in result["differences"]] == [5, 6]
+
+
+def test_project_cli_rejects_vague_prompt_without_moving_head(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "vague-source.xxp"
+    workspace = tmp_path / "vague.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+    head = ProjectWorkspace.open(workspace).status().head.id
+
+    assert main(
+        [
+            "project", "prompt", str(workspace), "make it more organic",
+            "--message", "vague request",
+        ]
+    ) == 2
+
+    assert "supported absolute operation" in capsys.readouterr().err
+    assert ProjectWorkspace.open(workspace).status().head.id == head
 
 
 def test_project_cli_import_and_log(tmp_path, capsys) -> None:

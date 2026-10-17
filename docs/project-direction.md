@@ -78,7 +78,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 157 tests. The standalone `xenosculpt.exe` build can
+The current suite has 206 tests. The standalone `xenosculpt.exe` build can
 generate the supported native projects, inspect `.xxp`, compare files, and run
 basic binary-STL validation.
 
@@ -182,13 +182,14 @@ answer, especially artistic judgment and final fabrication assessment.
 ### 1. Add persistent revisions and controlled mutations
 
 Status: initial implementation completed on 2026-10-16 and extended with
-measured Sphere metamorph profiles on 2026-10-17. The packaged
-executable now creates workspaces, records fabrication constraints and prompts,
+measured Sphere and Cylinder metamorph profiles on 2026-10-17. A deterministic
+controlled-English planner now maps exact prompts to one typed operation. The
+packaged executable now creates workspaces, records fabrication constraints and prompts,
 applies verified object, row, seeded-variation, and Sphere metamorph-profile
 mutations, manages branches and checkout,
 compares revisions, imports manual edits, and exports the active native
-artifact. The next extension is natural-language plan generation over this
-typed boundary.
+artifact. Broader model-backed interpretation remains deferred until its
+structured-output, provenance, and privacy boundaries are defined.
 
 Create a project workspace format that records the active `.xxp`, its hash,
 the XenoDream version, fabrication constraints, and an append-only revision

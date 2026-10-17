@@ -1,0 +1,33 @@
+{
+  "schema": "xenosculpt-packaged-prompt-smoke/v1",
+  "executable": {
+    "path": "dist/xenosculpt.exe",
+    "sha256": "2463c19ffc25d97831af167efe15342332f9ad821cb3a58455b3fd354823e476"
+  },
+  "plan": {
+    "schema": "xenosculpt-operation-plan/v1",
+    "planner": {
+      "name": "xenosculpt-controlled-english",
+      "version": "1"
+    },
+    "rule": "apply-cylinder-profile-v1",
+    "prompt": "apply Cylinder profile bevel-25-front to object Cylinder2"
+  },
+  "source": {
+    "path": "output/m19-packaged-prompt-source.xxp",
+    "sha256": "99d74c4fe1220d4cbf9fdfe09425eb0fcb76a9ababad081dce4241e59f02f651"
+  },
+  "prompt_output": {
+    "path": "output/m19-packaged-prompt.xxp",
+    "bytes": 3361,
+    "sha256": "7f7c48375ecaf621e22250887538c8a67af9040611b7cca853ae465b3db618e8"
+  },
+  "explicit_output": {
+    "path": "output/m19-packaged-explicit.xxp",
+    "bytes": 3361,
+    "sha256": "7f7c48375ecaf621e22250887538c8a67af9040611b7cca853ae465b3db618e8"
+  },
+  "byte_identical_to_explicit_operation": true,
+  "native_validation_required": true,
+  "fabrication_suitable": false
+}

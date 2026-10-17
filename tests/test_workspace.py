@@ -30,6 +30,14 @@ from xenodream_xxp.workspace import (
 )
 from xenodream_xxp.mesh import inspect_binary_stl
 from xenodream_xxp.native_export import MeshExportSettings
+from xenodream_xxp.planning import (
+    HeadBinding,
+    MutationPlan,
+    PlannerIdentity,
+    PlanningError,
+    plan_prompt,
+    plan_provenance_to_dict,
+)
 
 
 def _source(tmp_path: Path) -> Path:
@@ -109,6 +117,95 @@ def test_apply_creates_revision_and_noop_is_idempotent(tmp_path) -> None:
     )
     assert repeated.created is False
     assert repeated.revision.id == applied.revision.id
+    assert len(workspace.history()) == 2
+
+
+def test_apply_plan_binds_head_and_records_planner_provenance(tmp_path) -> None:
+    planned_workspace = ProjectWorkspace.create(
+        tmp_path / "planned.xsp", _source(tmp_path)
+    )
+    explicit_source = tmp_path / "explicit-source.xxp"
+    explicit_source.write_bytes(compile_cube())
+    explicit_workspace = ProjectWorkspace.create(
+        tmp_path / "explicit.xsp", explicit_source
+    )
+    initial = planned_workspace.status().head
+    prompt = "set object Cube2 position to 25 0 0"
+    plan = plan_prompt(prompt, base=HeadBinding.from_revision(initial))
+
+    planned = planned_workspace.apply_plan(plan, message="planned move")
+    explicit = explicit_workspace.apply(
+        ObjectMutation("Cube2", position=Vector3(D("25"), D("0"), D("0"))),
+        message="explicit move",
+    )
+
+    assert planned.created is True
+    assert planned.revision.artifact_sha256 == explicit.revision.artifact_sha256
+    assert planned.revision.prompt == prompt
+    assert planned.revision.details["planning"] == plan_provenance_to_dict(plan)
+
+    repeated_plan = plan_prompt(
+        prompt,
+        base=HeadBinding.from_revision(planned_workspace.status().head),
+    )
+    repeated = planned_workspace.apply_plan(repeated_plan, message="planned repeat")
+    assert repeated.created is False
+    assert len(planned_workspace.history()) == 2
+
+
+def test_apply_plan_rejects_forged_controlled_english_provenance(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "forged.xsp", _source(tmp_path))
+    initial = workspace.status().head
+    forged = MutationPlan(
+        prompt="make it prettier",
+        rule="set-position-v1",
+        base=HeadBinding.from_revision(initial),
+        operation=ObjectMutation(
+            "Cube2", position=Vector3(D("25"), D("0"), D("0"))
+        ),
+        planner=PlannerIdentity("xenosculpt-controlled-english", "1"),
+    )
+
+    with pytest.raises(PlanningError):
+        workspace.apply_plan(forged, message="forged")
+
+    assert workspace.status().head.id == initial.id
+
+
+def test_apply_plan_records_a_distinct_planner_identity(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "other-planner.xsp", _source(tmp_path))
+    initial = workspace.status().head
+    plan = MutationPlan(
+        prompt="structured input",
+        rule="test-position-v2",
+        base=HeadBinding.from_revision(initial),
+        operation=ObjectMutation(
+            "Cube2", position=Vector3(D("25"), D("0"), D("0"))
+        ),
+        planner=PlannerIdentity("test-planner", "2"),
+    )
+
+    applied = workspace.apply_plan(plan, message="other planner")
+
+    assert applied.revision.details["planning"] == plan_provenance_to_dict(plan)
+
+
+def test_apply_plan_rejects_stale_head_without_moving_current_head(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "stale.xsp", _source(tmp_path))
+    initial = workspace.status().head
+    stale_plan = plan_prompt(
+        "set object Cube2 position to 25 0 0",
+        base=HeadBinding.from_revision(initial),
+    )
+    intervening = workspace.apply(
+        ObjectMutation("Cube2", face_warp=D("0.25")),
+        message="intervening change",
+    )
+
+    with pytest.raises(WorkspaceError, match="different HEAD"):
+        workspace.apply_plan(stale_plan, message="stale planned move")
+
+    assert workspace.status().head.id == intervening.revision.id
     assert len(workspace.history()) == 2
 
 

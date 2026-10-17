@@ -50,6 +50,7 @@ from .mutation import (
     cylinder_metamorph_profiles,
     sphere_metamorph_profiles,
 )
+from .planning import HeadBinding, mutation_plan_to_dict, plan_prompt
 from .workspace import FabricationConstraints, ProjectWorkspace
 
 
@@ -295,6 +296,14 @@ def _parser() -> argparse.ArgumentParser:
     project_evolve.add_argument("--message", required=True)
     project_evolve.add_argument("--prompt")
 
+    project_prompt = project_commands.add_parser(
+        "prompt",
+        help="apply one deterministic controlled-language operation",
+    )
+    project_prompt.add_argument("workspace", type=Path)
+    project_prompt.add_argument("prompt")
+    project_prompt.add_argument("--message", required=True)
+
     project_branch = project_commands.add_parser(
         "branch", help="create a branch at a revision or the current HEAD"
     )
@@ -387,6 +396,28 @@ def _handle_project(args: argparse.Namespace) -> int:
         )
         _print_json(asdict(validation))
         return 0 if validation.basic_mesh_valid else 1
+    if args.project_command == "prompt":
+        plan = plan_prompt(
+            args.prompt,
+            base=HeadBinding.from_revision(workspace.status().head),
+        )
+        result = workspace.apply_plan(plan, message=args.message)
+        mutation = result.mutation
+        _print_json(
+            {
+                "plan": mutation_plan_to_dict(plan),
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "differences": () if mutation is None else mutation.differences,
+                "native_validation_required": False
+                if mutation is None
+                else mutation.native_validation_required,
+                "fabrication_suitable": False
+                if mutation is None
+                else mutation.fabrication_suitable,
+            }
+        )
+        return 0
     if args.project_command == "mutate":
         result = workspace.apply(
             ObjectMutation(

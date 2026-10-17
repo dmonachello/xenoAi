@@ -54,8 +54,9 @@ and a successful result is not by itself a printability guarantee.
 
 The executable exposes the same evidence-backed commands as `xxp`, including
 native project generation, persistent project revisions, controlled mutations,
-and `validate-stl`. Natural-language planning will build on the typed revision
-interface; unrestricted text-to-scene interpretation is not yet available.
+and `validate-stl`. Deterministic natural-language planning maps supported
+controlled-English prompts onto the typed revision interface. Unrestricted
+text-to-scene interpretation is not available.
 
 ## Persistent projects and controlled mutations
 
@@ -81,6 +82,9 @@ xenosculpt project metamorph sculpture.xsp --object Sphere2 `
 xenosculpt project metamorph sculpture.xsp --operation Cylinder `
   --object Cylinder2 --profile bevel-25-front `
   --message "measured front bevel"
+xenosculpt project prompt sculpture.xsp `
+  "apply Cylinder profile bevel-25-front to object Cylinder2" `
+  --message "planned front bevel"
 xenosculpt project validate sculpture.xsp `
   --stl-max-dimension-mm 120 --mesh-size-percent 50
 xenosculpt project compare sculpture.xsp main alternate
@@ -116,6 +120,12 @@ profile from leaking into an unmeasured combination. The resulting revision
 remains editable in XenoDream, but the command reports
 `native_validation_required: true` and `fabrication_suitable: false`. It does
 not turn recovered descriptor ranges into unrestricted write permission.
+
+`project prompt` maps one controlled-English sentence to one existing typed
+operation. It requires exact object names and absolute values, rejects vague or
+compound requests, and binds the plan to the current revision and artifact
+hash. The planner works offline and does not call a language model. See
+[`M19 deterministic planning`](docs/m19-natural-language-planner.md).
 
 `generate-cylinder` is the first constructor added without a manually created
 1.220 Cylinder template. Its Style 13 identity, seven parameter slots, names,

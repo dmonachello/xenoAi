@@ -25,16 +25,15 @@ from .native_export import (
     run_export,
 )
 from .mutation import (
-    CenteredRowMutation,
-    CylinderMetamorphMutation,
     MutationResult,
-    ObjectMutation,
-    SeededVariation,
-    SphereMetamorphMutation,
     VerifiedOperation,
     apply_verified_mutation,
-    cylinder_metamorph_profile_evidence,
-    sphere_metamorph_profile_evidence,
+    verified_operation_details,
+)
+from .planning import (
+    MutationPlan,
+    plan_provenance_to_dict,
+    validate_plan_provenance,
 )
 
 
@@ -169,57 +168,6 @@ def _constraints_from_dict(value: dict[str, object]) -> FabricationConstraints:
         build_volume_mm=volume,
         min_feature_mm=None if raw_feature is None else Decimal(str(raw_feature)),
     )
-
-
-def _operation_details(operation: VerifiedOperation) -> dict[str, object]:
-    def vector(value: Vector3 | None) -> list[str] | None:
-        return None if value is None else [str(value.x), str(value.y), str(value.z)]
-
-    if isinstance(operation, ObjectMutation):
-        return {
-            "type": "object-mutation",
-            "object_name": operation.object_name,
-            "scale": vector(operation.scale),
-            "rotation": vector(operation.rotation),
-            "position": vector(operation.position),
-            "color_density": None
-            if operation.color_density is None
-            else str(operation.color_density),
-            "face_warp": None
-            if operation.face_warp is None
-            else str(operation.face_warp),
-        }
-    if isinstance(operation, CenteredRowMutation):
-        return {
-            "type": "centered-row",
-            "spacing": str(operation.spacing),
-            "center": vector(operation.center),
-        }
-    if isinstance(operation, SeededVariation):
-        return {
-            "type": "seeded-variation-v1",
-            "seed": operation.seed,
-            "strength": str(operation.strength),
-        }
-    if isinstance(operation, SphereMetamorphMutation):
-        return {
-            "type": "sphere-metamorph-profile-v1",
-            "object_name": operation.object_name,
-            "profile": operation.profile,
-            "evidence": list(sphere_metamorph_profile_evidence(operation.profile)),
-            "native_validation_required": True,
-            "fabrication_suitable": False,
-        }
-    if isinstance(operation, CylinderMetamorphMutation):
-        return {
-            "type": "cylinder-metamorph-profile-v1",
-            "object_name": operation.object_name,
-            "profile": operation.profile,
-            "evidence": list(cylinder_metamorph_profile_evidence(operation.profile)),
-            "native_validation_required": True,
-            "fabrication_suitable": False,
-        }
-    raise TypeError("unsupported verified operation")
 
 
 def _header_value(data: bytes, key: bytes) -> str:
@@ -753,15 +701,60 @@ class ProjectWorkspace:
         message: str,
         prompt: str | None = None,
     ) -> ApplyResult:
+        return self._apply_operation(
+            operation,
+            message=message,
+            prompt=prompt,
+            plan=None,
+        )
+
+    def apply_plan(self, plan: MutationPlan, *, message: str) -> ApplyResult:
+        """Apply one typed plan only to the HEAD it was created for."""
+
+        if not isinstance(plan, MutationPlan):
+            raise TypeError("plan must be MutationPlan")
+        validate_plan_provenance(plan)
+        return self._apply_operation(
+            plan.operation,
+            message=message,
+            prompt=plan.prompt,
+            plan=plan,
+        )
+
+    def _apply_operation(
+        self,
+        operation: VerifiedOperation,
+        *,
+        message: str,
+        prompt: str | None,
+        plan: MutationPlan | None,
+    ) -> ApplyResult:
         if not isinstance(message, str) or not message.strip():
             raise WorkspaceError("message must be a non-empty string")
         with self._connect() as connection:
             parent = self._get_revision(connection, "HEAD")
+        if plan is not None and (
+            parent.id != plan.base.revision_id
+            or parent.artifact_sha256 != plan.base.artifact_sha256
+        ):
+            raise WorkspaceError("operation plan was created for a different HEAD")
         source = self._artifact_data(parent)
         result = apply_verified_mutation(source, operation)
         if not result.changed:
+            if plan is not None:
+                with self._connect() as connection:
+                    current = self._get_revision(connection, "HEAD")
+                if current.id != parent.id:
+                    raise WorkspaceError(
+                        "operation plan was created for a different HEAD"
+                    )
             return ApplyResult(parent, False, result)
-        details = _operation_details(operation)
+        details = verified_operation_details(operation)
+        if plan is not None:
+            details = {
+                **details,
+                "planning": plan_provenance_to_dict(plan),
+            }
         revision = self._record_revision(
             result.data,
             str(details["type"]),

@@ -328,6 +328,59 @@ def _cylinder_profile(name: str) -> dict[str, Any]:
     raise MutationError(f"unknown Cylinder metamorph profile {name!r}")
 
 
+def verified_operation_details(operation: VerifiedOperation) -> dict[str, object]:
+    """Return the stable normalized description of one verified operation."""
+
+    def vector(value: Vector3 | None) -> list[str] | None:
+        return None if value is None else [str(value.x), str(value.y), str(value.z)]
+
+    if isinstance(operation, ObjectMutation):
+        return {
+            "type": "object-mutation",
+            "object_name": operation.object_name,
+            "scale": vector(operation.scale),
+            "rotation": vector(operation.rotation),
+            "position": vector(operation.position),
+            "color_density": None
+            if operation.color_density is None
+            else str(operation.color_density),
+            "face_warp": None
+            if operation.face_warp is None
+            else str(operation.face_warp),
+        }
+    if isinstance(operation, CenteredRowMutation):
+        return {
+            "type": "centered-row",
+            "spacing": str(operation.spacing),
+            "center": vector(operation.center),
+        }
+    if isinstance(operation, SeededVariation):
+        return {
+            "type": "seeded-variation-v1",
+            "seed": operation.seed,
+            "strength": str(operation.strength),
+        }
+    if isinstance(operation, SphereMetamorphMutation):
+        return {
+            "type": "sphere-metamorph-profile-v1",
+            "object_name": operation.object_name,
+            "profile": operation.profile,
+            "evidence": list(sphere_metamorph_profile_evidence(operation.profile)),
+            "native_validation_required": True,
+            "fabrication_suitable": False,
+        }
+    if isinstance(operation, CylinderMetamorphMutation):
+        return {
+            "type": "cylinder-metamorph-profile-v1",
+            "object_name": operation.object_name,
+            "profile": operation.profile,
+            "evidence": list(cylinder_metamorph_profile_evidence(operation.profile)),
+            "native_validation_required": True,
+            "fabrication_suitable": False,
+        }
+    raise TypeError("unsupported verified operation")
+
+
 def _matching_records(
     document: Document, section: bytes, key: bytes
 ) -> list[tuple[int, KeyValueRecord]]:
