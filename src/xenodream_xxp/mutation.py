@@ -435,7 +435,7 @@ def _objects(
         key=lambda item: (
             item.holon_index,
             item.section_occurrence,
-            item.ordinal,
+            item.section_ordinal,
         ),
     ):
         if node.holon_index <= 0 or node.type_code != 1:

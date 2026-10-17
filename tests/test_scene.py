@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from decimal import Decimal
 
 from xenodream_xxp.generator import (
@@ -14,10 +15,13 @@ from xenodream_xxp.generator import (
 from xenodream_xxp.scene import (
     Recognition,
     SceneBinding,
+    SceneDescriptionError,
     SceneOperation,
     describe_xdx_scene,
     scene_description_to_dict,
 )
+from xenodream_xxp.metamorph import load_metamorph_registry
+import xenodream_xxp.scene as scene_module
 from xenodream_xxp.mutation import MutationError, ObjectMutation, apply_verified_mutation
 from xenodream_xxp.generator import Vector3
 import pytest
@@ -41,7 +45,7 @@ def test_describes_verified_scene_without_normalizing_source() -> None:
     assert scene.xdx_version == "1.220"
     assert scene.declared_holon_count == 2
     assert [node.holon_index for node in scene.nodes] == [0, 1]
-    assert [node.ordinal for node in scene.nodes] == [0, 1]
+    assert [node.section_ordinal for node in scene.nodes] == [0, 1]
     assert scene.nodes[0].group_id == 0
     sphere = scene.nodes[1]
     assert sphere.id == 1
@@ -98,12 +102,22 @@ def test_description_reports_partial_structure_in_physical_order() -> None:
         "diagnostics",
     ]
     assert [node["holon_index"] for node in result["nodes"]] == [0, 1]
+    assert [node["section_ordinal"] for node in result["nodes"]] == [0, 1]
+    assert "ordinal" not in result["nodes"][1]
     assert "parent_id" not in result["nodes"][1]
     assert result["nodes"][1]["transform"]["scale"] == ["50.00000"] * 3
     assert any(
         item["code"] == "holon-count-mismatch"
         for item in result["diagnostics"]
     )
+    assert list(result["diagnostics"][0]) == [
+        "code",
+        "message",
+        "section",
+        "holon_index",
+        "section_occurrence",
+        "section_ordinal",
+    ]
 
 
 def test_historical_scene_does_not_advertise_writes() -> None:
@@ -190,6 +204,13 @@ def test_duplicate_target_field_suppresses_only_that_nodes_writes() -> None:
     assert cube.name is None
     assert cube.allowed_operations == ()
     assert "duplicate-or-missing-Name" in cube.write_blockers
+    diagnostic = next(
+        item for item in scene.diagnostics
+        if item.code == "duplicate-node-field"
+    )
+    assert diagnostic.holon_index == 1
+    assert diagnostic.section_occurrence == 0
+    assert diagnostic.section_ordinal == 1
 
 
 def test_invalid_metamorph_schema_does_not_expose_operation_name() -> None:
@@ -202,6 +223,10 @@ def test_invalid_metamorph_schema_does_not_expose_operation_name() -> None:
 
     assert metamorph.schema_verified is False
     assert metamorph.operation_name is None
+    assert any(
+        item.code == "metamorph-count-mismatch"
+        for item in describe_xdx_scene(source, BINDING).diagnostics
+    )
 
 
 def test_orphan_metamorph_is_reported_instead_of_disappearing() -> None:
@@ -217,5 +242,78 @@ def test_orphan_metamorph_is_reported_instead_of_disappearing() -> None:
     diagnostic = next(
         item for item in scene.diagnostics if item.code == "orphan-metamorph"
     )
+    assert diagnostic.holon_index == 99
     assert diagnostic.section_occurrence == 0
-    assert diagnostic.ordinal == 1
+    assert diagnostic.section_ordinal == 1
+
+
+def test_transform_slices_are_independent_and_malformed_shape_is_diagnosed() -> None:
+    source = compile_cube().replace(
+        b"Transform=50.00000 50.00000 50.00000",
+        b"Transform=bad 50.00000 50.00000",
+        1,
+    )
+
+    scene = describe_xdx_scene(source, BINDING)
+    transform = scene.nodes[1].transform
+
+    assert transform is not None
+    assert transform.scale is None
+    assert transform.rotation is not None
+    assert transform.position is not None
+    assert transform.raw_tokens[0] == "bad"
+    assert any(item.code == "malformed-transform" for item in scene.diagnostics)
+
+
+def test_malformed_metamorph_parameter_and_unresolved_group_are_diagnosed() -> None:
+    source = (
+        compile_cube()
+        .replace(b"Pars=0.0000 0 ", b"Pars=junk 0 ", 1)
+        .replace(b"GroupID=0\r\nType=1", b"GroupID=99\r\nType=1", 1)
+    )
+
+    scene = describe_xdx_scene(source, BINDING)
+    codes = [item.code for item in scene.diagnostics]
+
+    assert "malformed-metamorph-parameter" in codes
+    assert "unresolved-group-id" in codes
+    assert codes == sorted(codes)
+
+
+def test_missing_group_fact_is_diagnosed_without_blocking_local_edit() -> None:
+    source = compile_cube().replace(b"GroupID=0\r\nType=1", b"Type=1", 1)
+
+    scene = describe_xdx_scene(source, BINDING)
+    cube = scene.nodes[1]
+
+    assert any(
+        item.code == "missing-node-field" and item.holon_index == 1
+        for item in scene.diagnostics
+    )
+    assert SceneOperation.SET_POSITION in cube.allowed_operations
+
+
+@pytest.mark.parametrize("key", [b"Program", b"Progversion"])
+def test_non_ascii_required_header_is_fatal(key: bytes) -> None:
+    source = compile_cube()
+    old = b"Program=XDX" if key == b"Program" else b"Progversion=1.220"
+    new = b"Program=XD\xff" if key == b"Program" else b"Progversion=1.22\xff"
+
+    with pytest.raises(SceneDescriptionError, match="ASCII"):
+        describe_xdx_scene(source.replace(old, new), BINDING)
+
+
+def test_constructor_recognition_requires_constructor_registry_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = deepcopy(load_metamorph_registry())
+    cube = next(item for item in registry["operations"] if item["name"] == "Cube")
+    cube["role"] = "modifier"
+    monkeypatch.setattr(
+        scene_module, "load_metamorph_registry", lambda: registry
+    )
+
+    node = describe_xdx_scene(compile_cube(), BINDING).nodes[1]
+
+    assert node.constructor is None
+    assert node.allowed_operations == ()
