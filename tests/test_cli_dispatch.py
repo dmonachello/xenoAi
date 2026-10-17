@@ -30,6 +30,12 @@ def test_top_level_help_lists_both_application_surfaces(capsys) -> None:
     assert "XenoDream" in output
 
 
+def test_top_level_help_lists_moi_surface(capsys) -> None:
+    assert main(["--help"]) == 0
+    output = capsys.readouterr().out
+    assert "moi" in output
+
+
 def test_cli_rejects_link_shaped_literal_without_advancing_head(tmp_path, capsys) -> None:
     root = tmp_path / "image.csp"
     assert main(["comfyui", "init", str(root), str(FIXTURE)]) == 0

@@ -5,6 +5,8 @@ applications. Its mature XenoDream X 1.220 integration preserves and revises
 native `.xxp` files, generates verified projects, and exports meshes for
 validation. Its first ComfyUI integration revises API-format workflow JSON,
 submits an exact revision to a local server, and retains generated images.
+Its first MoI 4 integration creates a native editable cylinder, reopens it in
+a fresh MoI process, and retains a measured STL as revision evidence.
 
 The project is intentionally narrow. It does not claim to be a general
 XenoDream file editor, a slicer, or a printability checker.
@@ -18,9 +20,8 @@ revisions, branches, history, and atomic updates. The
 native mutations, and XDX comparison. XenoDream execution, STL validation, and
 fabrication assessment remain application-specific capabilities.
 
-The ComfyUI integration now reuses this core while keeping its graph operations
-and execution records separate. A future MoI integration can follow the same
-boundary. The project does not force workflow
+The ComfyUI and MoI integrations now reuse this core while keeping their graph,
+CAD, and execution evidence separate. The project does not force workflow
 graphs, CAD solids, XenoDream holons, images, and meshes into one scene model.
 See [the multi-application core design](.architect/m21-multi-app-core/design.md)
 for the current boundary and its deliberate limits.
@@ -49,6 +50,8 @@ for the current boundary and its deliberate limits.
 - ComfyUI API-workflow projects with strict JSON admission, deterministic
   artifacts, typed existing-input edits, branches, semantic comparison, and
   image-producing runs against a local ComfyUI 0.3.45 server.
+- MoI 4 cylinder projects with editable `.3dm` history and a topology-checked,
+  dimension-checked STL exported from a fresh reopen of the native document.
 
 ## Current limits
 
@@ -71,6 +74,9 @@ for the current boundary and its deliberate limits.
   workflow format with layout and groups. It edits existing inputs only and
   retains PNG, JPEG, and WebP outputs. Custom-node and model provenance is not
   yet complete.
+- MoI support is create-only and pinned to stable MoI 4.0.2020.1222. It creates
+  one origin-aligned cylinder and does not yet import arbitrary `.3dm` files,
+  revise CAD objects, perform booleans, or claim fabrication suitability.
 
 ## Install from source
 
@@ -110,6 +116,25 @@ retries an ambiguous submission, and stores returned images by content hash.
 Use `comfyui resume` to continue polling an existing run without submitting it
 again. See [the ComfyUI vertical slice](docs/m22-comfyui-vertical-slice.md) for
 the supported format, commands, and evidence limits.
+
+## Create a native MoI cylinder
+
+Create a 15 mm radius by 40 mm high native CAD project with stable MoI 4:
+
+```powershell
+xenosculpt moi create-cylinder output/demo-cylinder.msp `
+  --radius-mm 15 --height-mm 40 `
+  --moi-executable "C:\Program Files\MoI 4.0\MoI.exe"
+
+xenosculpt moi export output/demo-cylinder.msp output/demo-cylinder.3dm
+xenosculpt moi export-stl output/demo-cylinder.msp output/demo-cylinder.stl
+```
+
+Creation succeeds only after a second fresh MoI process reopens the `.3dm`,
+exports the fixed-detail STL without a dialog, and the mesh passes the current
+topology and dimension checks. The STL is evidence derived from the native
+revision; it is not the editable source and is not printability approval. See
+[the MoI cylinder proof](docs/m23-moi-cylinder.md).
 
 ## Create and revise a native project
 
@@ -230,7 +255,7 @@ Its provenance and hash are recorded in
 ## Build the Windows executable
 
 The standalone build produces `xenosculpt.exe`. It exposes the existing
-XenoDream command tree and the new `comfyui` command group.
+XenoDream command tree and the `comfyui` and `moi` command groups.
 
 ```powershell
 python -m pip install -e ".[build,fabrication]"
@@ -270,6 +295,7 @@ Start with these documents:
 - [Fabrication assessments](docs/m20-fabrication-assessment.md)
 - [Multi-application revision core](.architect/m21-multi-app-core/design.md)
 - [ComfyUI vertical slice](docs/m22-comfyui-vertical-slice.md)
+- [MoI native cylinder proof](docs/m23-moi-cylinder.md)
 
 Generated files belong under `output/`. Do not overwrite files under
 `samples/originals/`.
@@ -282,9 +308,10 @@ python -m pytest
 python scripts/verify_reference.py
 ```
 
-The test suite covers both application workspaces, parsers, mutation policies,
-revision history, command-line routing, mesh inspection, and automation
-helpers. Live application checks require their respective installed programs.
+The test suite covers all three application workspaces, parsers, mutation
+policies, revision history, command-line routing, mesh inspection, and
+automation helpers. Live application checks require their respective installed
+programs.
 
 ## License
 
