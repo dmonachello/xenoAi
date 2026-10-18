@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-10-18T14:20:00Z	frame	stop before physical fabrication and process-profile approval	the software can measure evidence but cannot choose the user's printer material tolerances or artistic acceptance	conversation scope; docs/project-direction.md	M25 through M29 in scope; M30 out of scope
+2026-10-18T14:21:00Z	frame	require every milestone to pass tests and a real artifact check before the next starts	later work must not build on an unverified native assumption	scripts/verify_reference.py; evidence/runtime/	verification gate defined
+2026-10-18T14:22:00Z	frame	keep all XDX scene and constructor knowledge inside xenodream_xxp	ComfyUI and MoI proved that only revision storage is shared	tests/test_architecture.py; src/xenosculpt/core/	core boundary retained
