@@ -374,7 +374,15 @@ def verified_operation_details(operation: VerifiedOperation) -> dict[str, object
         return {
             "type": "add-sphere-v1",
             "position": vector(operation.position),
-            "evidence": ["E063", "E064", "E066", "E069", "E085", "E106"],
+            "evidence": [
+                "E063",
+                "E064",
+                "E066",
+                "E069",
+                "E085",
+                "E106",
+                "E108",
+            ],
             "native_validation_required": True,
             "fabrication_suitable": False,
         }

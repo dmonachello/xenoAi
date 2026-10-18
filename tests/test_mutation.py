@@ -118,7 +118,15 @@ def test_add_sphere_is_a_verified_structural_mutation() -> None:
     ) == {
         "type": "add-sphere-v1",
         "position": ["75", "0", "0"],
-        "evidence": ["E063", "E064", "E066", "E069", "E085", "E106"],
+        "evidence": [
+            "E063",
+            "E064",
+            "E066",
+            "E069",
+            "E085",
+            "E106",
+            "E108",
+        ],
         "native_validation_required": True,
         "fabrication_suitable": False,
     }

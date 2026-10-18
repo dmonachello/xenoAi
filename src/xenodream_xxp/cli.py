@@ -371,7 +371,7 @@ def _parser() -> argparse.ArgumentParser:
 
     project_prompt = project_commands.add_parser(
         "prompt",
-        help="apply one deterministic controlled-language operation",
+        help="apply one deterministic controlled-language operation or bounded recipe",
     )
     project_prompt.add_argument("workspace", type=Path)
     project_prompt.add_argument("prompt")
@@ -560,7 +560,11 @@ def _handle_project(args: argparse.Namespace) -> int:
                 "created": result.created,
                 "revision": asdict(result.revision),
                 **(
-                    {"steps": result.revision.details.get("steps", [])}
+                    {
+                        "steps": result.revision.details.get("steps", [])
+                        if result.created
+                        else []
+                    }
                     if isinstance(plan, OperationSequencePlan)
                     else {}
                 ),

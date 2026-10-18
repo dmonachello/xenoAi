@@ -801,6 +801,37 @@ def test_project_cli_dry_runs_then_applies_an_atomic_sequence(tmp_path, capsys) 
     assert applied["revision"]["artifact_sha256"] == preview["output_artifact_sha256"]
 
 
+def test_project_cli_no_op_sequence_does_not_report_parent_steps(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "no-op-source.xxp"
+    workspace = tmp_path / "no-op.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main([
+        "project", "prompt", str(workspace),
+        "set object Cube2 position to 10 0 0; "
+        "set object Cube2 scale to 60 60 60",
+        "--message", "establish parent recipe",
+    ]) == 0
+    parent = json.loads(capsys.readouterr().out)
+    assert parent["created"] is True
+    assert len(parent["steps"]) == 2
+
+    assert main([
+        "project", "prompt", str(workspace),
+        "set object Cube2 position to 20 0 0; "
+        "set object Cube2 position to 10 0 0",
+        "--message", "cancel back to current state",
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["created"] is False
+    assert result["steps"] == []
+    assert result["revision"]["id"] == parent["revision"]["id"]
+
+
 def test_project_cli_reports_revision_bound_addition_capabilities(tmp_path, capsys) -> None:
     source = tmp_path / "offers-source.xxp"
     workspace = tmp_path / "offers.xsp"

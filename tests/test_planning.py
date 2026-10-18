@@ -26,6 +26,8 @@ from xenodream_xxp.planning import (
     plan_prompt,
     plan_request,
     workspace_plan_to_dict,
+    validate_plan_provenance,
+    validate_workspace_plan_provenance,
 )
 
 
@@ -230,3 +232,41 @@ def test_plan_request_builds_a_bounded_operation_sequence() -> None:
 def test_plan_request_rejects_invalid_sequences(prompt) -> None:
     with pytest.raises(PlanningError):
         plan_request(prompt, base=BASE)
+
+
+def test_signed_zero_cannot_forge_single_plan_provenance() -> None:
+    plan = MutationPlan(
+        prompt="set object Cube2 position to 0 0 0",
+        rule="set-position-v1",
+        base=BASE,
+        operation=ObjectMutation(
+            "Cube2", position=Vector3(D("-0"), D("0"), D("0"))
+        ),
+        planner=CONTROLLED_ENGLISH_PLANNER,
+    )
+
+    with pytest.raises(PlanningError, match="does not match"):
+        validate_plan_provenance(plan)
+
+
+def test_signed_zero_cannot_forge_sequence_plan_provenance() -> None:
+    parsed = plan_request(
+        "add Sphere at 0 0 0; apply Sphere profile cushion-core to object Sphere3",
+        base=BASE,
+    )
+    assert isinstance(parsed, OperationSequencePlan)
+    forged = OperationSequencePlan(
+        prompt=parsed.prompt,
+        base=parsed.base,
+        steps=(
+            type(parsed.steps[0])(
+                parsed.steps[0].rule,
+                AddSphere(Vector3(D("-0"), D("0"), D("0"))),
+            ),
+            parsed.steps[1],
+        ),
+        planner=parsed.planner,
+    )
+
+    with pytest.raises(PlanningError, match="does not match"):
+        validate_workspace_plan_provenance(forged)

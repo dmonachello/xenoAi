@@ -427,7 +427,11 @@ def validate_plan_provenance(plan: MutationPlan) -> None:
     if plan.planner != CONTROLLED_ENGLISH_PLANNER:
         return
     expected = plan_prompt(plan.prompt, base=plan.base)
-    if plan.rule != expected.rule or plan.operation != expected.operation:
+    if (
+        plan.rule != expected.rule
+        or verified_operation_details(plan.operation)
+        != verified_operation_details(expected.operation)
+    ):
         raise PlanningError(
             "controlled-English plan does not match its prompt and grammar rule"
         )
@@ -442,7 +446,17 @@ def validate_workspace_plan_provenance(plan: WorkspacePlan) -> None:
     if plan.planner != CONTROLLED_ENGLISH_PLANNER:
         return
     expected = plan_request(plan.prompt, base=plan.base)
-    if not isinstance(expected, OperationSequencePlan) or plan.steps != expected.steps:
+    matches = isinstance(expected, OperationSequencePlan) and len(plan.steps) == len(
+        expected.steps
+    )
+    if matches:
+        matches = all(
+            actual.rule == wanted.rule
+            and verified_operation_details(actual.operation)
+            == verified_operation_details(wanted.operation)
+            for actual, wanted in zip(plan.steps, expected.steps, strict=True)
+        )
+    if not matches:
         raise PlanningError(
             "controlled-English sequence does not match its prompt and grammar rules"
         )
