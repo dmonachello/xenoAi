@@ -54,7 +54,12 @@ from .mutation import (
     cylinder_metamorph_profiles,
     sphere_metamorph_profiles,
 )
-from .planning import HeadBinding, mutation_plan_to_dict, plan_prompt
+from .planning import (
+    HeadBinding,
+    OperationSequencePlan,
+    plan_request,
+    workspace_plan_to_dict,
+)
 from .workspace import FabricationConstraints, ProjectWorkspace
 
 
@@ -316,6 +321,12 @@ def _parser() -> argparse.ArgumentParser:
     project_add_sphere.add_argument("--message", required=True)
     project_add_sphere.add_argument("--prompt")
 
+    project_additions = project_commands.add_parser(
+        "additions", help="report additions admitted by an exact revision"
+    )
+    project_additions.add_argument("workspace", type=Path)
+    project_additions.add_argument("--ref", default="HEAD")
+
     project_metamorph = project_commands.add_parser(
         "metamorph", help="apply one measured metamorph profile"
     )
@@ -365,6 +376,11 @@ def _parser() -> argparse.ArgumentParser:
     project_prompt.add_argument("workspace", type=Path)
     project_prompt.add_argument("prompt")
     project_prompt.add_argument("--message", required=True)
+    project_prompt.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="evaluate the bound operation or recipe without changing the workspace",
+    )
 
     project_branch = project_commands.add_parser(
         "branch", help="create a branch at a revision or the current HEAD"
@@ -501,17 +517,53 @@ def _handle_project(args: argparse.Namespace) -> int:
         _print_json(fabrication_assessment_to_dict(assessment))
         return 0 if assessment.fabrication_suitable else 1
     if args.project_command == "prompt":
-        plan = plan_prompt(
+        plan = plan_request(
             args.prompt,
             base=HeadBinding.from_revision(workspace.status().head),
         )
+        if args.dry_run:
+            preview = workspace.preview_plan(plan)
+            _print_json(
+                {
+                    "plan": workspace_plan_to_dict(plan),
+                    "dry_run": True,
+                    "created": False,
+                    "operation": preview.operation,
+                    "base_revision_id": preview.base_revision_id,
+                    "output_artifact_sha256": preview.output_artifact_sha256,
+                    "steps": [
+                        {
+                            "index": index,
+                            "changed": step.changed,
+                            "output_artifact_sha256": sha256(step.data).hexdigest(),
+                            "differences": step.differences,
+                            "structural_changes": [
+                                asdict(item) for item in step.structural_changes
+                            ],
+                        }
+                        for index, step in enumerate(preview.steps)
+                    ],
+                    "differences": preview.differences,
+                    "structural_changes": [
+                        asdict(item) for item in preview.structural_changes
+                    ],
+                    "native_validation_required": preview.native_validation_required,
+                    "fabrication_suitable": False,
+                }
+            )
+            return 0
         result = workspace.apply_plan(plan, message=args.message)
         mutation = result.mutation
         _print_json(
             {
-                "plan": mutation_plan_to_dict(plan),
+                "plan": workspace_plan_to_dict(plan),
                 "created": result.created,
                 "revision": asdict(result.revision),
+                **(
+                    {"steps": result.revision.details.get("steps", [])}
+                    if isinstance(plan, OperationSequencePlan)
+                    else {}
+                ),
                 "differences": () if mutation is None else mutation.differences,
                 "native_validation_required": False
                 if mutation is None
@@ -544,6 +596,9 @@ def _handle_project(args: argparse.Namespace) -> int:
                 else result.mutation.differences,
             }
         )
+        return 0
+    if args.project_command == "additions":
+        _print_json(asdict(workspace.addition_capabilities(args.ref)), sort_keys=False)
         return 0
     if args.project_command in ("add-cube", "add-sphere"):
         operation = (

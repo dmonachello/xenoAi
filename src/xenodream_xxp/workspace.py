@@ -14,6 +14,7 @@ import sqlite3
 from uuid import uuid4
 
 from .adapter import XENODREAM_APPLICATION, XenoDreamArtifactAdapter
+from .composition import AdditionCapabilities, addition_capabilities
 from .errors import WorkspaceError
 from .fabrication import (
     ASSESSMENT_SCHEMA,
@@ -42,7 +43,11 @@ from .mutation import (
 )
 from .planning import (
     MutationPlan,
+    OperationSequencePlan,
+    WorkspacePlan,
     plan_provenance_to_dict,
+    validate_workspace_plan_provenance,
+    workspace_plan_provenance_to_dict,
     validate_plan_provenance,
 )
 from .scene import SceneBinding, SceneDescription, describe_xdx_scene
@@ -71,6 +76,19 @@ class WorkspaceStatus:
     constraints: FabricationConstraints
     latest_validation: NativeValidation | None
     latest_fabrication_assessment: FabricationAssessment | None
+
+
+@dataclass(frozen=True, slots=True)
+class PlanPreview:
+    created: bool
+    operation: str
+    base_revision_id: str
+    output_artifact_sha256: str
+    differences: tuple[dict[str, object], ...]
+    structural_changes: tuple[object, ...]
+    steps: tuple[MutationResult, ...]
+    native_validation_required: bool
+    fabrication_suitable: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -808,18 +826,132 @@ class ProjectWorkspace(RevisionWorkspace):
             plan=None,
         )
 
-    def apply_plan(self, plan: MutationPlan, *, message: str) -> ApplyResult:
+    def _plan_parent_and_source(self, plan: WorkspacePlan) -> tuple[Revision, bytes]:
+        if not isinstance(plan, (MutationPlan, OperationSequencePlan)):
+            raise TypeError("plan must be MutationPlan or OperationSequencePlan")
+        validate_workspace_plan_provenance(plan)
+        with self._connect() as connection:
+            parent = self._get_revision(connection, "HEAD")
+        if (
+            parent.id != plan.base.revision_id
+            or parent.artifact_sha256 != plan.base.artifact_sha256
+        ):
+            raise WorkspaceError("operation plan was created for a different HEAD")
+        return parent, self._artifact_data(parent)
+
+    def _evaluate_sequence(
+        self, source: bytes, plan: OperationSequencePlan
+    ) -> tuple[MutationResult, tuple[MutationResult, ...]]:
+        data = source
+        steps: list[MutationResult] = []
+        names: list[str] = []
+        structural: list[object] = []
+        added = None
+        for step in plan.steps:
+            mutation = self.adapter.apply(data, step.operation).result
+            data = mutation.data
+            steps.append(mutation)
+            names.extend(mutation.object_names)
+            structural.extend(mutation.structural_changes)
+            if mutation.added is not None:
+                added = mutation.added
+        result = MutationResult(
+            data=data,
+            changed=data != source,
+            differences=tuple(self.adapter.compare(source, data)),
+            object_names=tuple(dict.fromkeys(names)),
+            native_validation_required=any(
+                step.native_validation_required for step in steps
+            ),
+            fabrication_suitable=False,
+            structural_changes=tuple(structural),
+            added=added,
+        )
+        return result, tuple(steps)
+
+    def addition_capabilities(self, ref: str = "HEAD") -> AdditionCapabilities:
+        """Describe whole-scene additions admitted for one exact revision."""
+
+        with self._connect() as connection:
+            revision = self._get_revision(connection, ref)
+        data = self._artifact_data(revision)
+        return addition_capabilities(
+            data,
+            SceneBinding(revision.id, revision.artifact_sha256),
+        )
+
+    def preview_plan(self, plan: WorkspacePlan) -> PlanPreview:
+        """Evaluate a bound plan without changing durable workspace state."""
+
+        parent, source = self._plan_parent_and_source(plan)
+        if isinstance(plan, MutationPlan):
+            applied = self.adapter.apply(source, plan.operation)
+            result = applied.result
+            steps = (result,)
+            operation = applied.operation
+        else:
+            result, steps = self._evaluate_sequence(source, plan)
+            operation = "operation-sequence-v1"
+        return PlanPreview(
+            created=False,
+            operation=operation,
+            base_revision_id=parent.id,
+            output_artifact_sha256=sha256(result.data).hexdigest(),
+            differences=result.differences,
+            structural_changes=tuple(result.structural_changes),
+            steps=steps,
+            native_validation_required=result.native_validation_required,
+        )
+
+    def apply_plan(self, plan: WorkspacePlan, *, message: str) -> ApplyResult:
         """Apply one typed plan only to the HEAD it was created for."""
 
-        if not isinstance(plan, MutationPlan):
-            raise TypeError("plan must be MutationPlan")
-        validate_plan_provenance(plan)
-        return self._apply_operation(
-            plan.operation,
-            message=message,
-            prompt=plan.prompt,
-            plan=plan,
+        if isinstance(plan, MutationPlan):
+            validate_plan_provenance(plan)
+            return self._apply_operation(
+                plan.operation,
+                message=message,
+                prompt=plan.prompt,
+                plan=plan,
+            )
+        if not isinstance(plan, OperationSequencePlan):
+            raise TypeError("plan must be MutationPlan or OperationSequencePlan")
+        if not isinstance(message, str) or not message.strip():
+            raise WorkspaceError("message must be a non-empty string")
+        parent, source = self._plan_parent_and_source(plan)
+        result, steps = self._evaluate_sequence(source, plan)
+        if not result.changed:
+            with self._connect() as connection:
+                current = self._get_revision(connection, "HEAD")
+            if current.id != parent.id:
+                raise WorkspaceError("operation plan was created for a different HEAD")
+            return ApplyResult(parent, False, result)
+        details = {
+            "type": "operation-sequence-v1",
+            "planning": workspace_plan_provenance_to_dict(plan),
+            "steps": [
+                {
+                    "index": index,
+                    "input_sha256": sha256(
+                        source if index == 0 else steps[index - 1].data
+                    ).hexdigest(),
+                    "output_sha256": sha256(step.data).hexdigest(),
+                    "changed": step.changed,
+                }
+                for index, step in enumerate(steps)
+            ],
+            "native_validation_required": result.native_validation_required,
+            "fabrication_suitable": False,
+        }
+        revision = self._record_revision(
+            result.data,
+            "operation-sequence-v1",
+            details,
+            message.strip(),
+            plan.prompt,
+            parent.id,
         )
+        return ApplyResult(revision, True, result)
 
     def _apply_operation(
         self,

@@ -11,6 +11,7 @@ from xenodream_xxp.composition import (
     AddSphere,
     CompositionError,
     StructuralChange,
+    addition_capabilities,
     append_cube,
     append_sphere,
 )
@@ -155,6 +156,24 @@ def test_append_sphere_preserves_admitted_cube_edits_and_rejects_two_cubes() -> 
 
     with pytest.raises(CompositionError, match="exactly one existing Cube"):
         append_sphere(_two_cubes(), AddSphere(position=Vector3()))
+
+
+def test_addition_capabilities_are_derived_from_writer_admission() -> None:
+    one = addition_capabilities(compile_cube(), BINDING)
+    assert [offer.operation for offer in one.available] == [
+        "add-cube-v1", "add-sphere-v1"
+    ]
+    assert one.blockers == ()
+
+    two = addition_capabilities(_two_cubes(), BINDING)
+    assert [offer.operation for offer in two.available] == ["add-cube-v1"]
+    assert [blocker.operation for blocker in two.blockers] == ["add-sphere-v1"]
+
+    three = addition_capabilities(compile_three_cubes(), BINDING)
+    assert three.available == ()
+    assert [blocker.operation for blocker in three.blockers] == [
+        "add-cube-v1", "add-sphere-v1"
+    ]
 
 
 def test_append_cube_allocates_cube4_from_the_two_cube_profile() -> None:

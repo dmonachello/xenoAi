@@ -197,7 +197,7 @@ xxp project metamorph output/project.xsp --operation Cylinder `
 ```
 
 Workspace commands also include `describe`, `status`, `log`, `branch`,
-`checkout`, `compare`, `import`, `export`, `validate`, and `assess`. Run
+`additions`, `checkout`, `compare`, `import`, `export`, `validate`, and `assess`. Run
 `xxp project <command> --help` for the exact arguments.
 
 `project describe` reads one hash-verified revision and does not change the
@@ -212,6 +212,8 @@ for the admitted Cube workflow and limits,
 [Add a Sphere to a bounded XenoDream composition](docs/m27-xenodream-sphere-composition.md)
 for the one-Cube to Cube/Sphere transition, and
 [XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
+See [Controlled recipes](docs/m28-m29-xenodream-controlled-recipes.md) for
+revision-bound addition offers, dry-run, and atomic multi-step prompts.
 
 ## Validate a revision in XenoDream
 

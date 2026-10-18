@@ -770,6 +770,54 @@ def test_project_cli_adds_a_sphere_and_reports_structural_result(
     assert result["fabrication_suitable"] is False
 
 
+def test_project_cli_dry_runs_then_applies_an_atomic_sequence(tmp_path, capsys) -> None:
+    source = tmp_path / "plan-source.xxp"
+    workspace = tmp_path / "plan-sculpture.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+    prompt = (
+        "add Sphere at 55 0 0; "
+        "apply Sphere profile cushion-core to object Sphere3"
+    )
+
+    assert main([
+        "project", "prompt", str(workspace), prompt,
+        "--message", "add and shape", "--dry-run",
+    ]) == 0
+    preview = json.loads(capsys.readouterr().out)
+    assert preview["dry_run"] is True
+    assert preview["created"] is False
+    assert preview["operation"] == "operation-sequence-v1"
+    assert len(preview["steps"]) == 2
+
+    assert main([
+        "project", "prompt", str(workspace), prompt,
+        "--message", "add and shape",
+    ]) == 0
+    applied = json.loads(capsys.readouterr().out)
+    assert applied["created"] is True
+    assert applied["revision"]["operation"] == "operation-sequence-v1"
+    assert applied["revision"]["artifact_sha256"] == preview["output_artifact_sha256"]
+
+
+def test_project_cli_reports_revision_bound_addition_capabilities(tmp_path, capsys) -> None:
+    source = tmp_path / "offers-source.xxp"
+    workspace = tmp_path / "offers.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(["project", "additions", str(workspace)]) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["schema"] == "xenosculpt-xenodream-additions/v1"
+    assert [offer["operation"] for offer in result["available"]] == [
+        "add-cube-v1", "add-sphere-v1"
+    ]
+    assert result["binding"]["revision_id"]
+
+
 def test_project_cli_creates_seeded_variation(tmp_path, capsys) -> None:
     source = tmp_path / "source.xxp"
     workspace = tmp_path / "sculpture.xsp"

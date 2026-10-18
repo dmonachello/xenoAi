@@ -87,6 +87,31 @@ class CompositionRewrite:
 
 
 @dataclass(frozen=True, slots=True)
+class AdditionOffer:
+    operation: Literal["add-cube-v1", "add-sphere-v1"]
+    constructor: Literal["Cube", "Sphere"]
+    allocated_name: str
+    allocated_id: int
+    holon_index: int
+    group_id: int
+
+
+@dataclass(frozen=True, slots=True)
+class AdditionBlocker:
+    operation: Literal["add-cube-v1", "add-sphere-v1"]
+    code: str
+    message: str
+
+
+@dataclass(frozen=True, slots=True)
+class AdditionCapabilities:
+    binding: SceneBinding
+    available: tuple[AdditionOffer, ...]
+    blockers: tuple[AdditionBlocker, ...]
+    schema: str = "xenosculpt-xenodream-additions/v1"
+
+
+@dataclass(frozen=True, slots=True)
 class _FlatCubeAppendContext:
     source: Document
     cube_count: int
@@ -555,3 +580,39 @@ def append_sphere(data: bytes, operation: AddSphere) -> CompositionRewrite:
         structural_changes=changes,
         added=added,
     )
+
+
+def addition_capabilities(
+    data: bytes, binding: SceneBinding
+) -> AdditionCapabilities:
+    """Report additions admitted by the exact writer predicates."""
+
+    if not isinstance(data, bytes):
+        raise TypeError("data must be bytes")
+    if not isinstance(binding, SceneBinding):
+        raise TypeError("binding must be SceneBinding")
+    available: list[AdditionOffer] = []
+    blockers: list[AdditionBlocker] = []
+    for operation, constructor, admit in (
+        ("add-cube-v1", "Cube", _admit),
+        ("add-sphere-v1", "Sphere", _admit_sphere),
+    ):
+        try:
+            context = admit(data)
+        except CompositionError as error:
+            blockers.append(
+                AdditionBlocker(operation, "source-profile-not-admitted", str(error))
+            )
+            continue
+        index = context.new_holon_index
+        available.append(
+            AdditionOffer(
+                operation=operation,
+                constructor=constructor,
+                allocated_name=f"{constructor}{index + 1}",
+                allocated_id=index,
+                holon_index=index,
+                group_id=0,
+            )
+        )
+    return AdditionCapabilities(binding, tuple(available), tuple(blockers))

@@ -4,6 +4,7 @@ from decimal import Decimal as D
 
 import pytest
 
+from xenodream_xxp.composition import AddCube, AddSphere
 from xenodream_xxp.generator import Vector3
 from xenodream_xxp.mutation import (
     CenteredRowMutation,
@@ -17,11 +18,14 @@ from xenodream_xxp.planning import (
     CONTROLLED_ENGLISH_PLANNER,
     HeadBinding,
     MutationPlan,
+    OperationSequencePlan,
     PlannerIdentity,
     PlanningError,
     mutation_plan_to_dict,
     plan_provenance_to_dict,
     plan_prompt,
+    plan_request,
+    workspace_plan_to_dict,
 )
 
 
@@ -85,6 +89,16 @@ BASE = HeadBinding("a" * 64, "b" * 64)
             "apply Cylinder profile bevel-25-front to object Cylinder2",
             "apply-cylinder-profile-v1",
             CylinderMetamorphMutation("Cylinder2", "bevel-25-front"),
+        ),
+        (
+            "add Cube at 75 0 0",
+            "add-cube-v1",
+            AddCube(Vector3(D("75"), D("0"), D("0"))),
+        ),
+        (
+            "add Sphere at 55 0 0",
+            "add-sphere-v1",
+            AddSphere(Vector3(D("55"), D("0"), D("0"))),
         ),
     ],
 )
@@ -183,3 +197,36 @@ def test_plan_serialization_preserves_an_explicit_planner_identity() -> None:
         "rule": "test-position-v2",
         "base_artifact_sha256": "b" * 64,
     }
+
+
+def test_plan_request_builds_a_bounded_operation_sequence() -> None:
+    prompt = (
+        "add Sphere at 55 0 0; "
+        "apply Sphere profile cushion-core to object Sphere3"
+    )
+    plan = plan_request(prompt, base=BASE)
+
+    assert isinstance(plan, OperationSequencePlan)
+    assert [step.rule for step in plan.steps] == [
+        "add-sphere-v1",
+        "apply-sphere-profile-v1",
+    ]
+    assert plan.steps[0].operation == AddSphere(Vector3(D("55"), D("0"), D("0")))
+    serialized = workspace_plan_to_dict(plan)
+    assert serialized["schema"] == "xenosculpt-operation-sequence-plan/v1"
+    assert len(serialized["steps"]) == 2
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "add Sphere at 55 0 0;",
+        "; add Sphere at 55 0 0",
+        "add Sphere at 55 0 0;; set object Sphere3 scale to 40 40 40",
+        "add Sphere at 55 0 0\nset object Sphere3 scale to 40 40 40",
+        ";".join(["add Sphere at 55 0 0"] * 6),
+    ],
+)
+def test_plan_request_rejects_invalid_sequences(prompt) -> None:
+    with pytest.raises(PlanningError):
+        plan_request(prompt, base=BASE)

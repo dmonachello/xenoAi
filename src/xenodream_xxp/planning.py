@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal, DecimalException
 import re
-from typing import Callable, Match
+from typing import Callable, Match, TypeAlias
 
+from .composition import AddCube, AddSphere
 from .generator import Vector3
 from .mutation import (
     CenteredRowMutation,
@@ -21,6 +22,7 @@ from .mutation import (
 
 
 PLAN_SCHEMA = "xenosculpt-operation-plan/v1"
+SEQUENCE_PLAN_SCHEMA = "xenosculpt-operation-sequence-plan/v1"
 
 
 class PlanningError(ValueError):
@@ -91,11 +93,57 @@ class MutationPlan:
                 SeededVariation,
                 SphereMetamorphMutation,
                 CylinderMetamorphMutation,
+                AddCube,
+                AddSphere,
             ),
         ):
             raise TypeError("operation must be a verified operation")
         if not isinstance(self.planner, PlannerIdentity):
             raise TypeError("planner must be PlannerIdentity")
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedStep:
+    rule: str
+    operation: VerifiedOperation
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.rule, str) or not self.rule:
+            raise PlanningError("step rule must be non-empty text")
+        if not isinstance(self.operation, (
+            ObjectMutation,
+            CenteredRowMutation,
+            SeededVariation,
+            SphereMetamorphMutation,
+            CylinderMetamorphMutation,
+            AddCube,
+            AddSphere,
+        )):
+            raise TypeError("step operation must be a verified operation")
+
+
+@dataclass(frozen=True, slots=True)
+class OperationSequencePlan:
+    prompt: str
+    base: HeadBinding
+    steps: tuple[PlannedStep, ...]
+    planner: PlannerIdentity
+    schema: str = field(default=SEQUENCE_PLAN_SCHEMA, init=False)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.prompt, str) or not self.prompt.strip():
+            raise PlanningError("prompt must be non-empty text")
+        if not isinstance(self.base, HeadBinding):
+            raise TypeError("base must be HeadBinding")
+        if not isinstance(self.steps, tuple) or not 2 <= len(self.steps) <= 5:
+            raise PlanningError("operation sequence must contain two through five steps")
+        if any(not isinstance(step, PlannedStep) for step in self.steps):
+            raise TypeError("steps must contain PlannedStep values")
+        if not isinstance(self.planner, PlannerIdentity):
+            raise TypeError("planner must be PlannerIdentity")
+
+
+WorkspacePlan: TypeAlias = MutationPlan | OperationSequencePlan
 
 
 _NUMBER = r"[+-]?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?"
@@ -140,6 +188,22 @@ def _object_decimal(field_name: str) -> Callable[[Match[str]], VerifiedOperation
 _GRAMMAR: tuple[
     tuple[str, re.Pattern[str], Callable[[Match[str]], VerifiedOperation]], ...
 ] = (
+    (
+        "add-cube-v1",
+        re.compile(
+            rf"add Cube at (?P<x>{_NUMBER}) (?P<y>{_NUMBER}) (?P<z>{_NUMBER})",
+            re.IGNORECASE | re.ASCII,
+        ),
+        lambda match: AddCube(_vector(match)),
+    ),
+    (
+        "add-sphere-v1",
+        re.compile(
+            rf"add Sphere at (?P<x>{_NUMBER}) (?P<y>{_NUMBER}) (?P<z>{_NUMBER})",
+            re.IGNORECASE | re.ASCII,
+        ),
+        lambda match: AddSphere(_vector(match)),
+    ),
     (
         "set-scale-v1",
         re.compile(
@@ -261,6 +325,29 @@ def plan_prompt(prompt: str, *, base: HeadBinding) -> MutationPlan:
     )
 
 
+def plan_request(prompt: str, *, base: HeadBinding) -> WorkspacePlan:
+    """Parse one operation or a bounded semicolon-separated operation sequence."""
+
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise PlanningError("prompt must be non-empty text")
+    if "\n" in prompt or "\r" in prompt:
+        raise PlanningError("prompt must be one line")
+    if ";" not in prompt:
+        return plan_prompt(prompt, base=base)
+    clauses = tuple(part.strip() for part in prompt.split(";"))
+    if any(not clause for clause in clauses):
+        raise PlanningError("operation sequence cannot contain an empty step")
+    if not 2 <= len(clauses) <= 5:
+        raise PlanningError("operation sequence must contain two through five steps")
+    plans = tuple(plan_prompt(clause, base=base) for clause in clauses)
+    return OperationSequencePlan(
+        prompt=prompt,
+        base=base,
+        steps=tuple(PlannedStep(plan.rule, plan.operation) for plan in plans),
+        planner=CONTROLLED_ENGLISH_PLANNER,
+    )
+
+
 def mutation_plan_to_dict(plan: MutationPlan) -> dict[str, object]:
     """Return the complete JSON-compatible representation of one plan."""
 
@@ -280,6 +367,26 @@ def mutation_plan_to_dict(plan: MutationPlan) -> dict[str, object]:
     }
 
 
+def workspace_plan_to_dict(plan: WorkspacePlan) -> dict[str, object]:
+    if isinstance(plan, MutationPlan):
+        return mutation_plan_to_dict(plan)
+    if not isinstance(plan, OperationSequencePlan):
+        raise TypeError("plan must be MutationPlan or OperationSequencePlan")
+    return {
+        "schema": plan.schema,
+        "planner": {"name": plan.planner.name, "version": plan.planner.version},
+        "prompt": plan.prompt,
+        "base": {
+            "revision_id": plan.base.revision_id,
+            "artifact_sha256": plan.base.artifact_sha256,
+        },
+        "steps": [
+            {"rule": step.rule, "operation": verified_operation_details(step.operation)}
+            for step in plan.steps
+        ],
+    }
+
+
 def plan_provenance_to_dict(plan: MutationPlan) -> dict[str, object]:
     """Return the plan fields persisted with a workspace revision."""
 
@@ -296,6 +403,22 @@ def plan_provenance_to_dict(plan: MutationPlan) -> dict[str, object]:
     }
 
 
+def workspace_plan_provenance_to_dict(plan: WorkspacePlan) -> dict[str, object]:
+    if isinstance(plan, MutationPlan):
+        return plan_provenance_to_dict(plan)
+    if not isinstance(plan, OperationSequencePlan):
+        raise TypeError("plan must be MutationPlan or OperationSequencePlan")
+    return {
+        "schema": plan.schema,
+        "planner": {"name": plan.planner.name, "version": plan.planner.version},
+        "base_artifact_sha256": plan.base.artifact_sha256,
+        "steps": [
+            {"rule": step.rule, "operation": verified_operation_details(step.operation)}
+            for step in plan.steps
+        ],
+    }
+
+
 def validate_plan_provenance(plan: MutationPlan) -> None:
     """Reject forged provenance for the built-in controlled-English planner."""
 
@@ -307,4 +430,19 @@ def validate_plan_provenance(plan: MutationPlan) -> None:
     if plan.rule != expected.rule or plan.operation != expected.operation:
         raise PlanningError(
             "controlled-English plan does not match its prompt and grammar rule"
+        )
+
+
+def validate_workspace_plan_provenance(plan: WorkspacePlan) -> None:
+    if isinstance(plan, MutationPlan):
+        validate_plan_provenance(plan)
+        return
+    if not isinstance(plan, OperationSequencePlan):
+        raise TypeError("plan must be MutationPlan or OperationSequencePlan")
+    if plan.planner != CONTROLLED_ENGLISH_PLANNER:
+        return
+    expected = plan_request(plan.prompt, base=plan.base)
+    if not isinstance(expected, OperationSequencePlan) or plan.steps != expected.steps:
+        raise PlanningError(
+            "controlled-English sequence does not match its prompt and grammar rules"
         )

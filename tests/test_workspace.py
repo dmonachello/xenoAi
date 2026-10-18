@@ -79,6 +79,7 @@ from xenodream_xxp.planning import (
     PlannerIdentity,
     PlanningError,
     plan_prompt,
+    plan_request,
     plan_provenance_to_dict,
 )
 
@@ -369,6 +370,52 @@ def test_apply_plan_rejects_stale_head_without_moving_current_head(tmp_path) -> 
 
     assert workspace.status().head.id == intervening.revision.id
     assert len(workspace.history()) == 2
+
+
+def test_sequence_preview_is_pure_and_apply_commits_one_revision(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "sequence.xsp", _source(tmp_path))
+    plan = plan_request(
+        "add Sphere at 55 0 0; apply Sphere profile cushion-core to object Sphere3",
+        base=HeadBinding.from_revision(workspace.status().head),
+    )
+    before_head = workspace.status().head
+    before_history = workspace.history()
+    before_artifacts = {path.name for path in workspace.artifacts.iterdir()}
+
+    preview = workspace.preview_plan(plan)
+
+    assert preview.created is False
+    assert preview.operation == "operation-sequence-v1"
+    assert len(preview.steps) == 2
+    assert workspace.status().head == before_head
+    assert workspace.history() == before_history
+    assert {path.name for path in workspace.artifacts.iterdir()} == before_artifacts
+
+    applied = workspace.apply_plan(plan, message="add and shape sphere")
+    assert applied.created is True
+    assert applied.revision.operation == "operation-sequence-v1"
+    assert applied.revision.artifact_sha256 == preview.output_artifact_sha256
+    assert len(workspace.history()) == len(before_history) + 1
+    assert [node.name for node in workspace.describe().nodes] == [
+        "Group1", "Cube2", "Sphere3"
+    ]
+
+
+def test_failed_sequence_does_not_publish_the_successful_first_step(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "failed-sequence.xsp", _source(tmp_path))
+    plan = plan_request(
+        "add Sphere at 55 0 0; set object Missing position to 0 0 0",
+        base=HeadBinding.from_revision(workspace.status().head),
+    )
+    before = workspace.status().head
+    before_artifacts = {path.name for path in workspace.artifacts.iterdir()}
+
+    with pytest.raises(MutationError):
+        workspace.apply_plan(plan, message="must fail atomically")
+
+    assert workspace.status().head == before
+    assert len(workspace.history()) == 1
+    assert {path.name for path in workspace.artifacts.iterdir()} == before_artifacts
 
 
 def test_branch_checkout_compare_and_export(tmp_path) -> None:
