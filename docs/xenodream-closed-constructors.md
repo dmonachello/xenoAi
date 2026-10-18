@@ -38,4 +38,3 @@ They do not establish arbitrary constructor parameter combinations,
 self-intersection freedom, minimum feature size, printer process rules, or a
 physical fabrication result. Every generated or transformed revision requires
 native validation and remains fabrication-unsuitable.
-

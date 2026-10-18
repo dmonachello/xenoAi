@@ -11,7 +11,13 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
-from .composition import AddCube, AddEmptyGroup, AddSphere
+from .composition import (
+    AddCube,
+    AddEmptyGroup,
+    AddSphere,
+    ConfigureGroup3,
+    Group3Profile,
+)
 from .diffing import diff_documents
 from .document import parse_bytes
 from .fabrication import fabrication_assessment_to_dict
@@ -358,6 +364,20 @@ def _parser() -> argparse.ArgumentParser:
     project_add_empty_group.add_argument("--message", required=True)
     project_add_empty_group.add_argument("--prompt")
 
+    project_group_cube = project_commands.add_parser(
+        "group-cube2",
+        help="place Cube2 in the exact evidenced Group3 profile",
+    )
+    project_group_cube.add_argument("workspace", type=Path)
+    project_group_cube.add_argument(
+        "--profile",
+        choices=tuple(item.value for item in Group3Profile),
+        required=True,
+        help="grouped keeps the default scale; stretch-x-20 uses the measured 60/50/50 profile",
+    )
+    project_group_cube.add_argument("--message", required=True)
+    project_group_cube.add_argument("--prompt")
+
     project_additions = project_commands.add_parser(
         "additions", help="report additions admitted by an exact revision"
     )
@@ -665,6 +685,30 @@ def _handle_project(args: argparse.Namespace) -> int:
                 "structural_changes": []
                 if mutation is None
                 else [asdict(item) for item in mutation.structural_changes],
+                "native_validation_required": False
+                if mutation is None
+                else mutation.native_validation_required,
+                "fabrication_suitable": False
+                if mutation is None
+                else mutation.fabrication_suitable,
+            }
+        )
+        return 0
+    if args.project_command == "group-cube2":
+        result = workspace.apply(
+            ConfigureGroup3(Group3Profile(args.profile)),
+            message=args.message,
+            prompt=args.prompt,
+        )
+        mutation = result.mutation
+        _print_json(
+            {
+                "created": result.created,
+                "revision": asdict(result.revision),
+                "grouped": None
+                if mutation is None or mutation.grouped is None
+                else asdict(mutation.grouped),
+                "differences": [] if mutation is None else mutation.differences,
                 "native_validation_required": False
                 if mutation is None
                 else mutation.native_validation_required,

@@ -85,6 +85,15 @@ The remaining lanes are independent experiments:
 
 A failed lane records a stop without blocking verified constructor work.
 
+The corpus and paired runtime experiment later closed one group-membership
+slice. `ConfigureGroup3(profile)` accepts only the exact Group1, Cube2, Group3
+family, sets Cube2's literal GroupID to persisted group ID 2, and writes one
+of two complete measured group-scale vectors: 50/50/50 or 60/50/50. It is
+idempotent, preserves every other byte, and requires native validation. The
+100/50/50 trial timed out actively, so free-form scale is not exposed. The
+public command does not generalize names, multiple children, nesting, or
+arbitrary reparenting.
+
 ## Synthesis decision
 
 Candidate A is the base. It adds the five forms users can actually work with
@@ -157,4 +166,3 @@ mutation paths already provide the needed boundary.
 - Build the Lever makes the compiler and native matrix rerunnable proof tools.
 - Sequence Work into Verifiable Units makes each constructor independently
   keepable or revertible.
-

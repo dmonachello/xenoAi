@@ -1,8 +1,8 @@
 {
   "schema": "xenosculpt-xenodream-closed-constructor-promotion/v1",
   "recorded_at": "2026-10-18T17:00:00Z",
-  "source_commit": null,
-  "packaged_executable_sha256": null,
+  "source_commit": "ed3fb5f",
+  "packaged_executable_sha256": "d9b884ed13d5e0f359faa76c1bca06e163914775066424798c219d849029b72d",
   "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
   "profile": "preview/1",
   "requested_transform": {
@@ -87,5 +87,24 @@
       ]
     }
   ],
-  "interpretation": "All five exact default constructor vectors remained native-valid after non-default scale and position writes. This authorizes the closed compiler and those two transform operations. It does not authorize raw constructor parameters, mixed-scene insertion, structural identity operations, or fabrication suitability."
+  "packaged_validation": {
+    "constructor": "Torus",
+    "operation": "controlled-English set-position-v1",
+    "revision_id": "986b791b93238bd804325078a53896301cc32c798bc33bb425b1e7ef6f3a3ef8",
+    "artifact_sha256": "5c72bcf69fba83d0bfab23a6c6e69dbd27d92b771e0d97c9a1c0bef6bfd48b88",
+    "validation_id": "7ff4cb6fdfa0d1f3f0b3ad9b213efed6a02ea53d2058f6100fd5389129bd2e33",
+    "mesh_sha256": "49e1b68b3abe6a821fbc940d72814f99d3bbd936bd3c5adf614e8e4fb955ff26",
+    "triangle_count": 4298,
+    "connected_components": 1,
+    "dimensions_mm": [87.74489974975586, 120.408447265625, 28.978883504867554],
+    "outcome": "succeeded",
+    "native_model_valid": true,
+    "evaluates_to_3d": true,
+    "basic_mesh_valid": true,
+    "fabrication_suitable": false,
+    "cleanup_confirmed": true,
+    "source_unchanged": true,
+    "stl_max_dimension_mm": 126
+  },
+  "interpretation": "All five exact default constructor vectors remained native-valid after non-default scale and position writes. The packaged executable reproduced every transformed source artifact byte-for-byte, and its Torus path passed managed native preview. This authorizes the closed compiler and those two transform operations. It does not authorize raw constructor parameters, mixed-scene insertion, structural identity operations, or fabrication suitability."
 }

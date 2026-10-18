@@ -50,4 +50,3 @@ descriptor recovery.
 One compiler call hides profile selection and byte auditing. XDX style numbers
 and raw parameter vectors remain private. The module is organized around
 constructor knowledge, not generation stages. No pass-through layer is added.
-

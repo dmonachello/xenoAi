@@ -19,10 +19,13 @@ from .composition import (
     AddedEmptyGroup,
     AddedSphere,
     CompositionError,
+    ConfigureGroup3,
+    GroupedCube,
     StructuralChange,
     append_cube,
     append_empty_group,
     append_sphere,
+    configure_group3,
 )
 from .diffing import diff_documents
 from .document import Document, KeyValueRecord, parse_bytes
@@ -154,6 +157,7 @@ VerifiedOperation: TypeAlias = (
     | AddCube
     | AddEmptyGroup
     | AddSphere
+    | ConfigureGroup3
 )
 
 
@@ -167,6 +171,7 @@ class MutationResult:
     fabrication_suitable: bool = False
     structural_changes: tuple[StructuralChange, ...] = ()
     added: AddedCube | AddedSphere | AddedEmptyGroup | None = None
+    grouped: GroupedCube | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -394,6 +399,14 @@ def verified_operation_details(operation: VerifiedOperation) -> dict[str, object
         return {
             "type": "add-empty-group-v1",
             "evidence": ["E050", "E051"],
+            "native_validation_required": True,
+            "fabrication_suitable": False,
+        }
+    if isinstance(operation, ConfigureGroup3):
+        return {
+            "type": "configure-group3-v1",
+            "profile": operation.profile.value,
+            "evidence": ["E050", "E051", "E116"],
             "native_validation_required": True,
             "fabrication_suitable": False,
         }
@@ -979,12 +992,14 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
             AddCube,
             AddEmptyGroup,
             AddSphere,
+            ConfigureGroup3,
         ),
     ):
         raise TypeError(
             "operation must be ObjectMutation, CenteredRowMutation, "
             "SeededVariation, SphereMetamorphMutation, or "
-            "CylinderMetamorphMutation, AddCube, AddSphere, or AddEmptyGroup"
+            "CylinderMetamorphMutation, AddCube, AddSphere, AddEmptyGroup, "
+            "or ConfigureGroup3"
         )
     original = parse_bytes(data)
     if original.to_bytes() != data:
@@ -1014,6 +1029,20 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
             fabrication_suitable=False,
             structural_changes=rewrite.structural_changes,
             added=rewrite.added,
+        )
+    if isinstance(operation, ConfigureGroup3):
+        try:
+            group_rewrite = configure_group3(data, operation)
+        except CompositionError as error:
+            raise MutationError(str(error)) from error
+        return MutationResult(
+            data=group_rewrite.data,
+            changed=group_rewrite.data != data,
+            differences=group_rewrite.differences,
+            object_names=("Cube2", "Group3"),
+            native_validation_required=True,
+            fabrication_suitable=False,
+            grouped=group_rewrite.grouped,
         )
     if isinstance(operation, CylinderMetamorphMutation):
         node = _target_node(original, operation.object_name)

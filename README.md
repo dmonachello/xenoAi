@@ -190,6 +190,9 @@ xxp project add-sphere output/project.xsp --position 75 0 0 `
 xxp project add-empty-group output/project.xsp `
   --message "add empty Group3"
 
+xxp project group-cube2 output/project.xsp `
+  --profile stretch-x-20 --message "group and stretch Cube2"
+
 xxp project row output/project.xsp --spacing 90 `
   --message "arrange objects"
 
@@ -218,6 +221,8 @@ for the admitted Cube workflow and limits,
 for the one-Cube to Cube/Sphere transition,
 [Add the evidenced empty XenoDream group](docs/remaining-xenodream-empty-group.md)
 for the exact Group3 transition, and
+[Use the bounded Group3 membership profiles](docs/xenodream-group3-membership.md)
+for the only natively measured grouping relationship, and
 [XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
 Create one of the five native-evaluated closed constructor projects, then use
 the same workspace and controlled-prompt flow:

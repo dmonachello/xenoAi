@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 378 tests. The standalone `xenosculpt.exe` build can
+The current suite has 384 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -99,8 +99,10 @@ persisted holon IDs from current section positions, retains unknown nodes, and
 reports edit capabilities only for verified XDX 1.220 record shapes. Existing
 target-local mutations use the same constructor recognition. Bounded structural
 operations append Cube3 or Cube4, append Sphere3 to the one-Cube family, or
-reproduce the exact native-observed empty Group3 transition. They do not
-provide a general scene serializer or general grouping semantics.
+reproduce the exact native-observed empty Group3 transition. One additional
+closed operation places Cube2 in Group3 using either the measured default
+group profile or its measured 60/50/50 X-stretch. They do not provide a
+general scene serializer or general grouping semantics.
 
 Five closed constructor profiles are now public: RoundCube, Pipe, Torus, Cog,
 and SpiralShell. Each exact default vector and a non-default scale and position

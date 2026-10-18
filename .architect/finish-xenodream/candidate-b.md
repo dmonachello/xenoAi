@@ -41,4 +41,3 @@ the middle-Cube deletion writer.
 The definition object is coherent, but the interface leaks raw constructor
 metadata and asks callers to understand XenoDream parameter policy. It fails
 the evidence boundary even though the code could be clean.
-

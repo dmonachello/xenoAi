@@ -1,0 +1,71 @@
+{
+  "schema": "xenosculpt-xenodream-group3-evidence/v1",
+  "application": "XenoDream X 1.220",
+  "executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
+  "corpus": {
+    "files_with_resolved_non_root_group_ids": 6,
+    "objects_with_resolved_non_root_group_ids": 14,
+    "observation": "Object GroupID values resolve to persisted group IDs in the inspected corpus."
+  },
+  "ungrouped_scale_100": {
+    "revision_id": "a736dacbde9c791ec379c6737a8d6ad2b49fcf2b1581c80e8f3c1982ad6d3e3c",
+    "artifact_sha256": "eccbf6df26cceaf73d17b8b79964884dffd734d40ea35472fb4f4114f7f17082",
+    "validation_id": "99e61a2ea6b931c07682fba6465663bdaf3c6bc5b9830e623a3c8af3195818f9",
+    "mesh_sha256": "07b7ccbda27d9ebaf6f95607dae86c07f9cbde73c7db47bf63e5510ad56c1589",
+    "outcome": "succeeded",
+    "triangle_count": 4420,
+    "connected_components": 1,
+    "dimensions_mm": [122.75809144973755, 122.75809144973755, 122.75809144973755],
+    "cleanup_confirmed": true
+  },
+  "grouped": {
+    "revision_id": "76e7b1a830650130ea877e4d604c657d5c53d386d43fb210f5bbc07f6bcd5166",
+    "artifact_sha256": "bbc2a488c01a4a1ab78f7dfdaf950e7294b11d04901764b1a2f42f68bcea88f7",
+    "validation_id": "b3877b9f1c0b01bf859a470dc89e6b7754ebdb883ca67132556969894d5e1974",
+    "mesh_sha256": "b1d2da2c8de0dbbbe1450cac79d2114e3e35dc0ba46d31b86726164a451d08a2",
+    "outcome": "succeeded",
+    "scale": [50, 50, 50],
+    "triangle_count": 4420,
+    "connected_components": 1,
+    "dimensions_mm": [121.79903984069824, 121.79903984069824, 121.79903984069824],
+    "cleanup_confirmed": true
+  },
+  "stretch_x_20": {
+    "revision_id": "518d4debd6e41445222fba5cc3ada41bef02d099c61a6199527f9592c103deac",
+    "artifact_sha256": "d4b140ed1b4ffb31d5fdff0ff90749c7d821fb5433b4dce7773107fb078fd547",
+    "validation_id": "0d386fe103bd87d284c51253933e5c19c470a010e20635d53f97b775ab8ae08c",
+    "mesh_sha256": "5c1f41fc953e031e257d9bff3da34129ea5ac533f5081d026ccf79fa57fc782b",
+    "outcome": "succeeded",
+    "scale": [60, 50, 50],
+    "triangle_count": 4130,
+    "connected_components": 1,
+    "dimensions_mm": [122.84915804862976, 102.53388977050781, 102.53388977050781],
+    "cleanup_confirmed": true
+  },
+  "product_path": {
+    "operation": "configure-group3-v1",
+    "profile": "stretch-x-20",
+    "revision_id": "b2374e7d86336f7eb4cd7fdecb561e019dfa405e802aa04950d3c41054027d30",
+    "artifact_sha256": "4f145f66777fa5fae1f4728dd920871afb71b1e7df0fb3f4b5b1f1c5fd51fe73",
+    "validation_id": "4bccea77f14e5ba6b6768070f39aefc02175ec0c08737bf7e6a265065b21747d",
+    "mesh_sha256": "b5e95ac0f923e76bde164079693a571e7a4f2def3e1567f454e8b75482de4268",
+    "outcome": "succeeded",
+    "triangle_count": 4130,
+    "connected_components": 1,
+    "dimensions_mm": [122.84915804862976, 102.53388977050781, 102.53388977050781],
+    "source_unchanged": true,
+    "cleanup_confirmed": true,
+    "initial_attempt": {
+      "outcome": "settings_not_applied",
+      "cleanup_confirmed": true,
+      "note": "The first fresh process persisted 100 percent detail; the validator rejected it and the retry applied preview-v1 correctly."
+    }
+  },
+  "rejected_profile_observation": {
+    "scale": [100, 50, 50],
+    "outcome": "timed_out_active",
+    "cleanup_confirmed": true,
+    "public": false
+  },
+  "fabrication_suitable": false
+}

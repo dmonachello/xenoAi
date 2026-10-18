@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from decimal import Decimal, DecimalException
+from enum import StrEnum
 from hashlib import sha256
 from typing import Literal
 import re
@@ -26,7 +27,7 @@ from .document import (
     SectionRecord,
     parse_bytes,
 )
-from .generator import CubeSpec, SphereSpec, Vector3
+from .generator import CubeSpec, SphereSpec, Vector3, compile_cube
 from .scene import Recognition, SceneBinding, SceneOperation, describe_xdx_scene
 
 
@@ -57,6 +58,30 @@ class AddEmptyGroup:
     """Request the one evidenced Group1/Cube2 to Group1/Cube2/Group3 transition."""
 
 
+class Group3Profile(StrEnum):
+    GROUPED = "grouped"
+    STRETCH_X_20 = "stretch-x-20"
+
+
+_GROUP3_SCALES = {
+    Group3Profile.GROUPED: Vector3(Decimal("50"), Decimal("50"), Decimal("50")),
+    Group3Profile.STRETCH_X_20: Vector3(
+        Decimal("60"), Decimal("50"), Decimal("50")
+    ),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigureGroup3:
+    """Place Cube2 in Group3 using one natively measured group profile."""
+
+    profile: Group3Profile
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.profile, Group3Profile):
+            raise TypeError("profile must be Group3Profile")
+
+
 @dataclass(frozen=True, slots=True)
 class AddedCube:
     id: int
@@ -85,6 +110,14 @@ class AddedEmptyGroup:
 
 
 @dataclass(frozen=True, slots=True)
+class GroupedCube:
+    object_id: Literal[1] = 1
+    object_name: Literal["Cube2"] = "Cube2"
+    group_id: Literal[2] = 2
+    group_name: Literal["Group3"] = "Group3"
+
+
+@dataclass(frozen=True, slots=True)
 class StructuralChange:
     kind: Literal["section_added"]
     section: str
@@ -98,6 +131,13 @@ class CompositionRewrite:
     differences: tuple[dict[str, object], ...]
     structural_changes: tuple[StructuralChange, ...]
     added: AddedCube | AddedSphere | AddedEmptyGroup
+
+
+@dataclass(frozen=True, slots=True)
+class GroupRewrite:
+    data: bytes
+    differences: tuple[dict[str, object], ...]
+    grouped: GroupedCube
 
 
 @dataclass(frozen=True, slots=True)
@@ -703,6 +743,182 @@ def append_empty_group(data: bytes, operation: AddEmptyGroup) -> CompositionRewr
         ),
         added=AddedEmptyGroup(),
     )
+
+
+def _replace_unique_raw(
+    document: Document, section: bytes, key: bytes, value: bytes
+) -> Document:
+    matches = [
+        (index, record)
+        for index, record in enumerate(document.records)
+        if isinstance(record, KeyValueRecord)
+        and record.section == section
+        and record.section_occurrence == 0
+        and record.key == key
+    ]
+    if len(matches) != 1:
+        raise CompositionError(
+            f"expected one {section.decode()}.{key.decode()} record"
+        )
+    index, record = matches[0]
+    separator = record.content.find(b"=")
+    records = list(document.records)
+    records[index] = replace(
+        record,
+        content=record.content[: separator + 1] + value,
+        value=value,
+    )
+    return Document(tuple(records))
+
+
+def _format_scale(value: Decimal) -> bytes:
+    try:
+        formatted = value.quantize(Decimal("0.00001"))
+    except DecimalException as error:
+        raise CompositionError("group scale cannot be represented") from error
+    if formatted != value:
+        raise CompositionError("group scale exceeds five-place precision")
+    return format(formatted, ".5f").encode("ascii")
+
+
+def _replace_group_scale(document: Document, scale: Vector3) -> Document:
+    section = b"Holon\\2"
+    matches = [
+        record
+        for record in document.records
+        if isinstance(record, KeyValueRecord)
+        and record.section == section
+        and record.section_occurrence == 0
+        and record.key == b"Transform"
+    ]
+    if len(matches) != 1:
+        raise CompositionError("expected one Group3 Transform record")
+    value = matches[0].value
+    tokens = list(re.finditer(rb"\S+", value))
+    if len(tokens) != 12:
+        raise CompositionError("Group3 Transform must contain twelve tokens")
+    replacements = tuple(_format_scale(item) for item in (scale.x, scale.y, scale.z))
+    for index in (2, 1, 0):
+        token = tokens[index]
+        value = value[: token.start()] + replacements[index] + value[token.end() :]
+    return _replace_unique_raw(document, section, b"Transform", value)
+
+
+def _group3_context(data: bytes) -> Document:
+    document = parse_bytes(data)
+    if document.to_bytes() != data:
+        raise CompositionError("source failed exact parser round trip")
+    if _unique_key(document, b"Header", b"Program")[1].value != b"XDX" or _unique_key(
+        document, b"Header", b"Progversion"
+    )[1].value != b"1.220":
+        raise CompositionError("configure Group3 requires XDX 1.220")
+    if _unique_key(document, b"Header", b"NumHolons")[1].value != b"3":
+        raise CompositionError("configure Group3 requires exactly three holons")
+
+    starts = [
+        index
+        for index, record in enumerate(document.records)
+        if isinstance(record, SectionRecord)
+        and record.name == b"Holon\\2"
+        and record.occurrence == 0
+    ]
+    ends = [
+        index
+        for index, record in enumerate(document.records)
+        if isinstance(record, SectionRecord)
+        and record.name == b"Gradients"
+        and record.occurrence == 0
+    ]
+    if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
+        raise CompositionError("configure Group3 requires one terminal Group3 span")
+    start, end = starts[0], ends[0]
+    source_span = document.records[start:end]
+
+    cube_context = _admit_sphere(compile_cube())
+    expected_span = _empty_group_span(cube_context.source)
+    if len(source_span) != len(expected_span):
+        raise CompositionError("Group3 record span does not match native evidence")
+    normalized: list[Record] = []
+    for source, expected in zip(source_span, expected_span):
+        if (
+            isinstance(source, KeyValueRecord)
+            and isinstance(expected, KeyValueRecord)
+            and source.key == expected.key == b"Transform"
+        ):
+            if _mask_tokens(source.value, expected.value, frozenset((0, 1, 2))) != expected.value:
+                raise CompositionError("Group3 Transform shape is not admitted")
+            source = replace(source, content=expected.content, value=expected.value)
+        normalized.append(source)
+    if tuple(normalized) != expected_span:
+        raise CompositionError("Group3 record span does not match native evidence")
+
+    reconstructed_records = list(document.records)
+    del reconstructed_records[start:end]
+    reconstructed = _replace_count(Document(tuple(reconstructed_records)), 3, 2)
+    reconstructed = _replace_unique_raw(
+        reconstructed, b"Holon\\1", b"GroupID", b"0"
+    )
+    context = _admit_sphere(reconstructed.to_bytes())
+    if context.insertion_index != start:
+        raise CompositionError("Group3 is not at the evidenced insertion point")
+
+    scene = describe_xdx_scene(data, SceneBinding("0" * 64, "0" * 64))
+    if scene.diagnostics or [node.name for node in scene.nodes] != [
+        "Group1",
+        "Cube2",
+        "Group3",
+    ]:
+        raise CompositionError("configure Group3 requires the exact three-node family")
+    cube, group = scene.nodes[1:]
+    if (
+        cube.id != 1
+        or cube.group_id not in (0, 2)
+        or cube.constructor != "Cube"
+        or group.id != 2
+        or group.group_id != 2
+        or group.type_code != 0
+    ):
+        raise CompositionError("configure Group3 identity is not admitted")
+    return document
+
+
+def configure_group3(data: bytes, operation: ConfigureGroup3) -> GroupRewrite:
+    """Configure the one evidenced Cube2 and Group3 relationship."""
+
+    if not isinstance(data, bytes):
+        raise TypeError("data must be bytes")
+    if not isinstance(operation, ConfigureGroup3):
+        raise TypeError("operation must be ConfigureGroup3")
+    source = _group3_context(data)
+    output = _replace_unique_raw(source, b"Holon\\1", b"GroupID", b"2")
+    output = _replace_group_scale(output, _GROUP3_SCALES[operation.profile])
+    output_bytes = output.to_bytes()
+    if parse_bytes(output_bytes).to_bytes() != output_bytes:
+        raise CompositionError("configured Group3 output failed exact round trip")
+    _group3_context(output_bytes)
+
+    differences = tuple(diff_documents(source, output))
+    allowed = {
+        ("Holon\\1", 0, "GroupID", 0, None),
+        ("Holon\\2", 0, "Transform", 0, 0),
+        ("Holon\\2", 0, "Transform", 0, 1),
+        ("Holon\\2", 0, "Transform", 0, 2),
+    }
+    unexpected = [
+        item
+        for item in differences
+        if (
+            item.get("section"),
+            item.get("section_occurrence"),
+            item.get("key"),
+            item.get("key_occurrence"),
+            item.get("token_index"),
+        )
+        not in allowed
+    ]
+    if unexpected:
+        raise CompositionError(f"configure Group3 changed unsupported fields: {unexpected}")
+    return GroupRewrite(output_bytes, differences, GroupedCube())
 
 
 def addition_capabilities(
