@@ -1,0 +1,23 @@
+{
+  "schema": "xenosculpt-cross-app-checkpoint/v1",
+  "recorded_at": "2026-10-18T15:48:00Z",
+  "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
+  "moi": {
+    "status": "succeeded",
+    "workspace": "C:\\Users\\dmona\\xenoAITest\\remaining-moi-20261018",
+    "revision_id": "31fef422f99201585ae2c953135b2fffa36f8a3790a120c1405ac95998c5fd23",
+    "native_sha256": "04168facfefbbfa389af09687d35308c29a414fd30299865e7076b39c8b84650",
+    "stl_sha256": "4978f9d726a2ce3d4b6e872bb973c904e95209c7d72a26153b8c9b8999cf808b",
+    "triangle_count": 5216,
+    "connected_components": 1,
+    "topology_defects": 0,
+    "dimensions_mm": [30.0, 30.0, 40.0],
+    "fresh_reopen_succeeded": true
+  },
+  "comfyui": {
+    "status": "unavailable",
+    "checked_urls": ["http://127.0.0.1:8188", "http://127.0.0.1:8199"],
+    "fresh_live_result_claimed": false
+  },
+  "interpretation": "The XenoDream-only production change did not disturb the packaged MoI native create, reopen, and STL evidence path. ComfyUI was not running, so no fresh ComfyUI execution is claimed; its offline suite remains part of the full test run."
+}
