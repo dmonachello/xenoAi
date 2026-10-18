@@ -3,8 +3,10 @@
 from .document import Document, parse_bytes, parse_file
 from .composition import (
     AddCube,
+    AddEmptyGroup,
     AddSphere,
     AddedCube,
+    AddedEmptyGroup,
     AddedSphere,
     AdditionBlocker,
     AdditionCapabilities,
@@ -120,8 +122,10 @@ from .workspace import (
 __all__ = [
     "CubeSpec",
     "AddCube",
+    "AddEmptyGroup",
     "AddSphere",
     "AddedCube",
+    "AddedEmptyGroup",
     "AddedSphere",
     "AdditionBlocker",
     "AdditionCapabilities",

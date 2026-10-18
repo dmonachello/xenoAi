@@ -770,6 +770,37 @@ def test_project_cli_adds_a_sphere_and_reports_structural_result(
     assert result["fabrication_suitable"] is False
 
 
+def test_project_cli_adds_the_exact_empty_group(tmp_path, capsys) -> None:
+    source = tmp_path / "group-source.xxp"
+    workspace = tmp_path / "group-sculpture.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main([
+        "project", "add-empty-group", str(workspace),
+        "--message", "add empty Group3",
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["revision"]["operation"] == "add-empty-group-v1"
+    assert result["added"] == {
+        "group_id": 2,
+        "holon_index": 2,
+        "id": 2,
+        "kind": "group",
+        "name": "Group3",
+    }
+    assert result["structural_changes"] == [{
+        "kind": "section_added",
+        "record_count": 36,
+        "section": "Holon\\2",
+        "section_occurrence": 0,
+    }]
+    assert result["native_validation_required"] is True
+    assert result["fabrication_suitable"] is False
+
+
 def test_project_cli_dry_runs_then_applies_an_atomic_sequence(tmp_path, capsys) -> None:
     source = tmp_path / "plan-source.xxp"
     workspace = tmp_path / "plan-sculpture.xsp"

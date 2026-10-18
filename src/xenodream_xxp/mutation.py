@@ -13,12 +13,15 @@ from typing import Any, TypeAlias
 
 from .composition import (
     AddCube,
+    AddEmptyGroup,
     AddSphere,
     AddedCube,
+    AddedEmptyGroup,
     AddedSphere,
     CompositionError,
     StructuralChange,
     append_cube,
+    append_empty_group,
     append_sphere,
 )
 from .diffing import diff_documents
@@ -149,6 +152,7 @@ VerifiedOperation: TypeAlias = (
     | SphereMetamorphMutation
     | CylinderMetamorphMutation
     | AddCube
+    | AddEmptyGroup
     | AddSphere
 )
 
@@ -162,7 +166,7 @@ class MutationResult:
     native_validation_required: bool = False
     fabrication_suitable: bool = False
     structural_changes: tuple[StructuralChange, ...] = ()
-    added: AddedCube | AddedSphere | None = None
+    added: AddedCube | AddedSphere | AddedEmptyGroup | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -383,6 +387,13 @@ def verified_operation_details(operation: VerifiedOperation) -> dict[str, object
                 "E106",
                 "E108",
             ],
+            "native_validation_required": True,
+            "fabrication_suitable": False,
+        }
+    if isinstance(operation, AddEmptyGroup):
+        return {
+            "type": "add-empty-group-v1",
+            "evidence": ["E050", "E051"],
             "native_validation_required": True,
             "fabrication_suitable": False,
         }
@@ -950,32 +961,36 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
             SphereMetamorphMutation,
             CylinderMetamorphMutation,
             AddCube,
+            AddEmptyGroup,
             AddSphere,
         ),
     ):
         raise TypeError(
             "operation must be ObjectMutation, CenteredRowMutation, "
             "SeededVariation, SphereMetamorphMutation, or "
-            "CylinderMetamorphMutation, AddCube, or AddSphere"
+            "CylinderMetamorphMutation, AddCube, AddSphere, or AddEmptyGroup"
         )
     original = parse_bytes(data)
     if original.to_bytes() != data:
         raise MutationError("input failed exact parser round trip")
     _require_xdx_1220(original)
-    if isinstance(operation, (AddCube, AddSphere)):
+    if isinstance(operation, (AddCube, AddSphere, AddEmptyGroup)):
         try:
-            rewrite = (
-                append_cube(data, operation)
-                if isinstance(operation, AddCube)
-                else append_sphere(data, operation)
-            )
+            if isinstance(operation, AddCube):
+                rewrite = append_cube(data, operation)
+            elif isinstance(operation, AddSphere):
+                rewrite = append_sphere(data, operation)
+            else:
+                rewrite = append_empty_group(data, operation)
         except (CompositionError, TemplateMismatchError) as error:
             raise MutationError(str(error)) from error
         return MutationResult(
             data=rewrite.data,
             changed=rewrite.data != data,
             differences=rewrite.differences,
-            object_names=(rewrite.added.name,),
+            object_names=()
+            if isinstance(operation, AddEmptyGroup)
+            else (rewrite.added.name,),
             native_validation_required=True,
             fabrication_suitable=False,
             structural_changes=rewrite.structural_changes,

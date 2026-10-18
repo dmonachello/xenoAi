@@ -185,6 +185,9 @@ xxp project add-cube output/project.xsp --position 75 0 0 `
 xxp project add-sphere output/project.xsp --position 75 0 0 `
   --message "add right sphere"
 
+xxp project add-empty-group output/project.xsp `
+  --message "add empty Group3"
+
 xxp project row output/project.xsp --spacing 90 `
   --message "arrange objects"
 
@@ -210,7 +213,9 @@ canonical Cube identity, and requires native validation of the new revision.
 See [Add Cubes to a bounded XenoDream composition](docs/m25-xenodream-composition.md)
 for the admitted Cube workflow and limits,
 [Add a Sphere to a bounded XenoDream composition](docs/m27-xenodream-sphere-composition.md)
-for the one-Cube to Cube/Sphere transition, and
+for the one-Cube to Cube/Sphere transition,
+[Add the evidenced empty XenoDream group](docs/remaining-xenodream-empty-group.md)
+for the exact Group3 transition, and
 [XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
 See [Controlled recipes](docs/m28-m29-xenodream-controlled-recipes.md) for
 revision-bound addition offers, dry-run, and atomic multi-step prompts.

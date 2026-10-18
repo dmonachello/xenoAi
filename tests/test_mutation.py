@@ -4,7 +4,7 @@ from decimal import Decimal as D
 
 import pytest
 
-from xenodream_xxp.composition import AddCube, AddSphere
+from xenodream_xxp.composition import AddCube, AddEmptyGroup, AddSphere
 from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import parse_bytes
 from xenodream_xxp.generator import (
@@ -127,6 +127,23 @@ def test_add_sphere_is_a_verified_structural_mutation() -> None:
             "E106",
             "E108",
         ],
+        "native_validation_required": True,
+        "fabrication_suitable": False,
+    }
+
+
+def test_add_empty_group_is_a_verified_structural_mutation() -> None:
+    result = apply_verified_mutation(compile_cube(), AddEmptyGroup())
+
+    assert result.changed is True
+    assert result.object_names == ()
+    assert result.added is not None
+    assert result.added.name == "Group3"
+    assert result.native_validation_required is True
+    assert result.fabrication_suitable is False
+    assert verified_operation_details(AddEmptyGroup()) == {
+        "type": "add-empty-group-v1",
+        "evidence": ["E050", "E051"],
         "native_validation_required": True,
         "fabrication_suitable": False,
     }

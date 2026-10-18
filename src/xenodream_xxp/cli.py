@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
-from .composition import AddCube, AddSphere
+from .composition import AddCube, AddEmptyGroup, AddSphere
 from .diffing import diff_documents
 from .document import parse_bytes
 from .fabrication import fabrication_assessment_to_dict
@@ -321,6 +321,14 @@ def _parser() -> argparse.ArgumentParser:
     project_add_sphere.add_argument("--message", required=True)
     project_add_sphere.add_argument("--prompt")
 
+    project_add_empty_group = project_commands.add_parser(
+        "add-empty-group",
+        help="append the exact evidenced empty Group3 to a verified one-Cube scene",
+    )
+    project_add_empty_group.add_argument("workspace", type=Path)
+    project_add_empty_group.add_argument("--message", required=True)
+    project_add_empty_group.add_argument("--prompt")
+
     project_additions = project_commands.add_parser(
         "additions", help="report additions admitted by an exact revision"
     )
@@ -604,12 +612,13 @@ def _handle_project(args: argparse.Namespace) -> int:
     if args.project_command == "additions":
         _print_json(asdict(workspace.addition_capabilities(args.ref)), sort_keys=False)
         return 0
-    if args.project_command in ("add-cube", "add-sphere"):
-        operation = (
-            AddCube(position=Vector3(*args.position))
-            if args.project_command == "add-cube"
-            else AddSphere(position=Vector3(*args.position))
-        )
+    if args.project_command in ("add-cube", "add-sphere", "add-empty-group"):
+        if args.project_command == "add-cube":
+            operation = AddCube(position=Vector3(*args.position))
+        elif args.project_command == "add-sphere":
+            operation = AddSphere(position=Vector3(*args.position))
+        else:
+            operation = AddEmptyGroup()
         result = workspace.apply(
             operation,
             message=args.message,

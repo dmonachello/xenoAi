@@ -12,7 +12,7 @@ import struct
 import pytest
 
 import xenodream_xxp.mutation as mutation_module
-from xenodream_xxp.composition import AddCube, AddSphere
+from xenodream_xxp.composition import AddCube, AddEmptyGroup, AddSphere
 from xenodream_xxp.generator import (
     CubeSpec,
     TemplateMismatchError,
@@ -231,6 +231,34 @@ def test_add_sphere_creates_a_revision_and_the_new_sphere_is_editable(tmp_path) 
     assert moved.created is True
     assert workspace.describe().nodes[-1].transform is not None
     assert workspace.describe().nodes[-1].transform.position.x == D("100.00000")
+
+
+def test_workspace_adds_empty_group_and_rejects_second_atomically(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "group.xsp", _source(tmp_path))
+
+    added = workspace.apply(AddEmptyGroup(), message="add empty Group3")
+    assert added.created is True
+    assert added.revision.operation == "add-empty-group-v1"
+    assert added.mutation is not None
+    assert added.mutation.added is not None
+    assert added.mutation.added.name == "Group3"
+    before = workspace.status()
+    before_artifacts = {path.name for path in workspace.artifacts.iterdir()}
+    with sqlite3.connect(workspace.database) as connection:
+        before_revisions = connection.execute(
+            "SELECT COUNT(*) FROM revisions"
+        ).fetchone()[0]
+
+    with pytest.raises(MutationError, match="exactly one existing Cube"):
+        workspace.apply(AddEmptyGroup(), message="add another group")
+
+    assert workspace.status() == before
+    assert {path.name for path in workspace.artifacts.iterdir()} == before_artifacts
+    with sqlite3.connect(workspace.database) as connection:
+        after_revisions = connection.execute(
+            "SELECT COUNT(*) FROM revisions"
+        ).fetchone()[0]
+    assert after_revisions == before_revisions
 
 
 def test_rejected_add_cube_does_not_change_head_database_or_artifacts(tmp_path) -> None:

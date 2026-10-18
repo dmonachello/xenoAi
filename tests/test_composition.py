@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from dataclasses import replace
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
 import xenodream_xxp.composition as composition_module
 from xenodream_xxp.composition import (
     AddCube,
+    AddEmptyGroup,
     AddSphere,
     CompositionError,
     StructuralChange,
     addition_capabilities,
     append_cube,
+    append_empty_group,
     append_sphere,
 )
 from xenodream_xxp.document import KeyValueRecord, SectionRecord, parse_bytes
@@ -156,6 +159,46 @@ def test_append_sphere_preserves_admitted_cube_edits_and_rejects_two_cubes() -> 
 
     with pytest.raises(CompositionError, match="exactly one existing Cube"):
         append_sphere(_two_cubes(), AddSphere(position=Vector3()))
+
+
+def test_append_empty_group_reproduces_native_target_and_preserves_cube_edits() -> None:
+    source = compile_cube()
+    target = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "group-creation"
+        / "cube_two_groups.xxp"
+    ).read_bytes()
+
+    canonical = append_empty_group(source, AddEmptyGroup())
+    assert canonical.data == target
+    assert canonical.added.id == 2
+    assert canonical.added.holon_index == 2
+    assert canonical.added.name == "Group3"
+    assert canonical.added.group_id == 2
+    assert canonical.added.kind == "group"
+    assert canonical.structural_changes == (
+        StructuralChange("section_added", "Holon\\2", 0, 36),
+    )
+
+    edited = apply_verified_mutation(
+        source,
+        ObjectMutation("Cube2", position=Vector3(D("17"), D("2"), D("-3"))),
+    ).data
+    rewritten = append_empty_group(edited, AddEmptyGroup())
+    assert b"17.00000 2.00000 -3.00000" in rewritten.data
+
+
+def test_append_empty_group_rejects_a_second_group() -> None:
+    target = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "group-creation"
+        / "cube_two_groups.xxp"
+    ).read_bytes()
+
+    with pytest.raises(CompositionError, match="exactly one existing Cube"):
+        append_empty_group(target, AddEmptyGroup())
 
 
 def test_addition_capabilities_are_derived_from_writer_admission() -> None:

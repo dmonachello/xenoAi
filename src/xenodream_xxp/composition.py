@@ -53,6 +53,11 @@ class AddSphere:
 
 
 @dataclass(frozen=True, slots=True)
+class AddEmptyGroup:
+    """Request the one evidenced Group1/Cube2 to Group1/Cube2/Group3 transition."""
+
+
+@dataclass(frozen=True, slots=True)
 class AddedCube:
     id: int
     holon_index: int
@@ -71,6 +76,15 @@ class AddedSphere:
 
 
 @dataclass(frozen=True, slots=True)
+class AddedEmptyGroup:
+    id: Literal[2] = 2
+    holon_index: Literal[2] = 2
+    name: Literal["Group3"] = "Group3"
+    group_id: Literal[2] = 2
+    kind: Literal["group"] = "group"
+
+
+@dataclass(frozen=True, slots=True)
 class StructuralChange:
     kind: Literal["section_added"]
     section: str
@@ -83,7 +97,7 @@ class CompositionRewrite:
     data: bytes
     differences: tuple[dict[str, object], ...]
     structural_changes: tuple[StructuralChange, ...]
-    added: AddedCube | AddedSphere
+    added: AddedCube | AddedSphere | AddedEmptyGroup
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +137,12 @@ class _FlatCubeAppendContext:
 
 
 _EDITABLE_TRANSFORM_TOKENS = frozenset((0, 1, 2, 6, 7, 8, 9, 10, 11))
+_EMPTY_GROUP_SOURCE_SHA256 = (
+    "fcba6d61f2af4cf79c1e86a20b570a0bb0039db3fb79c9d73c84e842430fc7a0"
+)
+_EMPTY_GROUP_TARGET_SHA256 = (
+    "c207830dcb70a1a05b44f583cb3199752e634803ad9035296c6da7b1c8b53b4e"
+)
 
 
 def _mask_tokens(value: bytes, reference: bytes, indexes: frozenset[int]) -> bytes | None:
@@ -579,6 +599,109 @@ def append_sphere(data: bytes, operation: AddSphere) -> CompositionRewrite:
         differences=tuple(diff_documents(context.source, output)),
         structural_changes=changes,
         added=added,
+    )
+
+
+def _empty_group_span(source: Document) -> tuple[Record, ...]:
+    start = _unique_section(source, b"Holon\\0")
+    end = _unique_section(source, b"Holon\\1")
+    if end - start != 36:
+        raise CompositionError("source Group1 span is not the evidenced record family")
+    result: list[Record] = []
+    for record in source.records[start:end]:
+        if isinstance(record, SectionRecord):
+            if record.name != b"Holon\\0" or record.occurrence != 0:
+                raise CompositionError("source Group1 section is not canonical")
+            result.append(
+                replace(record, content=b"[Holon\\2]", name=b"Holon\\2")
+            )
+            continue
+        if isinstance(record, KeyValueRecord):
+            if record.section != b"Holon\\0" or record.section_occurrence != 0:
+                raise CompositionError("source Group1 fields are not canonical")
+            value = record.value
+            if record.key in (b"ID", b"GroupID"):
+                value = b"2"
+            elif record.key == b"Name":
+                value = b"Group3"
+            result.append(
+                replace(
+                    record,
+                    content=record.key + b"=" + value,
+                    value=value,
+                    section=b"Holon\\2",
+                )
+            )
+            continue
+        result.append(record)
+    return tuple(result)
+
+
+def append_empty_group(data: bytes, operation: AddEmptyGroup) -> CompositionRewrite:
+    """Append the exact native-observed empty Group3 record family."""
+
+    if not isinstance(data, bytes):
+        raise TypeError("data must be bytes")
+    if not isinstance(operation, AddEmptyGroup):
+        raise TypeError("operation must be AddEmptyGroup")
+    try:
+        context = _admit_sphere(data)
+    except CompositionError as error:
+        raise CompositionError(
+            "add empty group requires exactly one existing Cube in the canonical flat profile"
+        ) from error
+    inserted = _empty_group_span(context.source)
+    with_count = _replace_count(context.source, 2, 3)
+    records = list(with_count.records)
+    records[context.insertion_index:context.insertion_index] = inserted
+    output = parse_bytes(Document(tuple(records)).to_bytes())
+    output_bytes = output.to_bytes()
+    if parse_bytes(output_bytes).to_bytes() != output_bytes:
+        raise CompositionError("composed output failed exact parser round trip")
+
+    actual_span = output.records[
+        context.insertion_index : context.insertion_index + len(inserted)
+    ]
+    if actual_span != inserted:
+        raise CompositionError("inserted Group3 record span changed during composition")
+    reconstructed_records = list(output.records)
+    del reconstructed_records[
+        context.insertion_index : context.insertion_index + len(inserted)
+    ]
+    reconstructed = _replace_count(Document(tuple(reconstructed_records)), 3, 2)
+    if reconstructed.to_bytes() != data:
+        raise CompositionError("structural audit could not reconstruct the source")
+
+    if sha256(data).hexdigest() == _EMPTY_GROUP_SOURCE_SHA256:
+        if sha256(output_bytes).hexdigest() != _EMPTY_GROUP_TARGET_SHA256:
+            raise CompositionError("canonical Group3 output does not match native evidence")
+
+    digest = sha256(output_bytes).hexdigest()
+    scene = describe_xdx_scene(output_bytes, SceneBinding(digest, digest))
+    if scene.diagnostics or [node.name for node in scene.nodes] != [
+        "Group1",
+        "Cube2",
+        "Group3",
+    ]:
+        raise CompositionError("composed Group3 scene failed semantic audit")
+    group = scene.nodes[-1]
+    if (
+        group.id != 2
+        or group.holon_index != 2
+        or group.group_id != 2
+        or group.type_code != 0
+        or group.constructor is not None
+        or group.allowed_operations
+    ):
+        raise CompositionError("composed Group3 identity failed semantic audit")
+
+    return CompositionRewrite(
+        data=output_bytes,
+        differences=tuple(diff_documents(context.source, output)),
+        structural_changes=(
+            StructuralChange("section_added", "Holon\\2", 0, len(inserted)),
+        ),
+        added=AddedEmptyGroup(),
     )
 
 
