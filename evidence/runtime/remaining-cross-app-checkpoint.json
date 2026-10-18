@@ -1,10 +1,10 @@
 {
   "schema": "xenosculpt-cross-app-checkpoint/v1",
-  "recorded_at": "2026-10-18T15:48:00Z",
-  "source_commit": "f69d5c42dd57309f05c4f8c4610bb460c855594b",
-  "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
+  "recorded_at": "2026-10-18T15:55:00Z",
   "moi": {
     "status": "succeeded",
+    "source_commit": "f69d5c42dd57309f05c4f8c4610bb460c855594b",
+    "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
     "workspace": "C:\\Users\\dmona\\xenoAITest\\remaining-moi-20261018",
     "revision_id": "31fef422f99201585ae2c953135b2fffa36f8a3790a120c1405ac95998c5fd23",
     "native_sha256": "04168facfefbbfa389af09687d35308c29a414fd30299865e7076b39c8b84650",
@@ -16,9 +16,32 @@
     "fresh_reopen_succeeded": true
   },
   "comfyui": {
-    "status": "unavailable",
-    "checked_urls": ["http://127.0.0.1:8188", "http://127.0.0.1:8199"],
-    "fresh_live_result_claimed": false
+    "status": "succeeded_with_explicit_version_override",
+    "source_commit": "16c2540ca07f3b502fa5736d6f437874ae2b52e6",
+    "packaged_executable_sha256": "fb9af304e21f652cafc6706d2dcaad42d84f6fce63cde38d634c15358dd136c5",
+    "workspace": "C:\\Users\\dmona\\xenoAITest\\remaining-comfyui-20261018\\workflow.csp",
+    "server_url": "http://127.0.0.1:8188",
+    "revision_id": "4eb18577c999b2366a714192da081640cb45aed018b65f1f53d1060ca4397ba3",
+    "artifact_sha256": "bbb2ba5f7d3d297ea53c5a0a2c685cd8776db6902b60596e625bafde12e22e85",
+    "version_policy": {
+      "expected": "0.3.45",
+      "observed": "0.34.2",
+      "initial_rejection_run_id": "7065bc83-21dc-4382-ae06-3c28996afe4b",
+      "explicit_override_used": true
+    },
+    "run_id": "612e7bc5-a3df-4157-b2ee-f51c4c74906a",
+    "prompt_id": "b82944aa-969a-4f7b-801b-05d39d76bcef",
+    "submitted_prompt_sha256": "81f70f7b29c525f05dc525ddeb3a5483ded57a378e0d851e4a975387bf9d1b56",
+    "accepted_prompt_sha256": "81f70f7b29c525f05dc525ddeb3a5483ded57a378e0d851e4a975387bf9d1b56",
+    "output": {
+      "sha256": "12d74069032890d8fcba7a69c0fa442dd950fb8edfb45cfcff9f6e2383137ec3",
+      "byte_length": 395,
+      "media_type": "image/png",
+      "width": 80,
+      "height": 64,
+      "mode": "RGB"
+    },
+    "fresh_live_result_claimed": true
   },
-  "interpretation": "The MoI native create, reopen, and STL evidence path passed while the package hash was recorded separately. The MoI workspace does not embed that package hash, so no stronger causal binding is claimed. ComfyUI was not running, so no fresh ComfyUI execution is claimed; its offline suite remains part of the full test run."
+  "interpretation": "The MoI native create, reopen, and STL path passed with its recorded package. After ComfyUI restarted, the pinned-version guard rejected local ComfyUI 0.34.2 because the integration expects 0.3.45. A second request with the explicit version-mismatch override succeeded. The retained run binds the submitted prompt to the accepted prompt and independently verifies the retained 80 by 64 PNG. This does not promote ComfyUI 0.34.2 to the pinned supported version."
 }
