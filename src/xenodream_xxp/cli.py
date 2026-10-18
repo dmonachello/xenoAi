@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
-from .composition import AddCube
+from .composition import AddCube, AddSphere
 from .diffing import diff_documents
 from .document import parse_bytes
 from .fabrication import fabrication_assessment_to_dict
@@ -306,6 +306,16 @@ def _parser() -> argparse.ArgumentParser:
     project_add_cube.add_argument("--message", required=True)
     project_add_cube.add_argument("--prompt")
 
+    project_add_sphere = project_commands.add_parser(
+        "add-sphere", help="append one Sphere to a verified one-Cube composition"
+    )
+    project_add_sphere.add_argument("workspace", type=Path)
+    project_add_sphere.add_argument(
+        "--position", nargs=3, type=Decimal, metavar=("X", "Y", "Z"), required=True
+    )
+    project_add_sphere.add_argument("--message", required=True)
+    project_add_sphere.add_argument("--prompt")
+
     project_metamorph = project_commands.add_parser(
         "metamorph", help="apply one measured metamorph profile"
     )
@@ -535,9 +545,14 @@ def _handle_project(args: argparse.Namespace) -> int:
             }
         )
         return 0
-    if args.project_command == "add-cube":
+    if args.project_command in ("add-cube", "add-sphere"):
+        operation = (
+            AddCube(position=Vector3(*args.position))
+            if args.project_command == "add-cube"
+            else AddSphere(position=Vector3(*args.position))
+        )
         result = workspace.apply(
-            AddCube(position=Vector3(*args.position)),
+            operation,
             message=args.message,
             prompt=args.prompt,
         )

@@ -742,6 +742,34 @@ def test_project_cli_adds_a_cube_and_reports_structural_result(
     assert result["fabrication_suitable"] is False
 
 
+def test_project_cli_adds_a_sphere_and_reports_structural_result(
+    tmp_path, capsys
+) -> None:
+    source = tmp_path / "sphere-source.xxp"
+    workspace = tmp_path / "sphere-sculpture.xsp"
+    source.write_bytes(compile_cube())
+    assert main(["project", "init", str(workspace), str(source)]) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "project", "add-sphere", str(workspace),
+            "--position", "75", "0", "0",
+            "--message", "add right sphere",
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["revision"]["operation"] == "add-sphere-v1"
+    assert result["added"]["name"] == "Sphere3"
+    assert result["added"]["constructor"] == "Sphere"
+    assert [item["section"] for item in result["structural_changes"]] == [
+        "Holon\\2", "Holon\\2\\MM\\0"
+    ]
+    assert result["native_validation_required"] is True
+    assert result["fabrication_suitable"] is False
+
+
 def test_project_cli_creates_seeded_variation(tmp_path, capsys) -> None:
     source = tmp_path / "source.xxp"
     workspace = tmp_path / "sculpture.xsp"

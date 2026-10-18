@@ -8,9 +8,11 @@ import pytest
 import xenodream_xxp.composition as composition_module
 from xenodream_xxp.composition import (
     AddCube,
+    AddSphere,
     CompositionError,
     StructuralChange,
     append_cube,
+    append_sphere,
 )
 from xenodream_xxp.document import KeyValueRecord, SectionRecord, parse_bytes
 from xenodream_xxp.generator import (
@@ -21,6 +23,9 @@ from xenodream_xxp.generator import (
     compile_cube,
     compile_cube_project,
     compile_three_cubes,
+    ProjectSpec,
+    SphereSpec,
+    compile_project,
 )
 from xenodream_xxp.mutation import ObjectMutation, apply_verified_mutation
 from xenodream_xxp.scene import SceneBinding, describe_xdx_scene
@@ -94,6 +99,62 @@ def test_append_cube_allocates_cube3_and_preserves_the_existing_cube() -> None:
     scene = describe_xdx_scene(rewrite.data, BINDING)
     assert [node.name for node in scene.nodes] == ["Group1", "Cube2", "Cube3"]
     assert scene.diagnostics == ()
+
+
+def test_append_sphere_allocates_sphere3_and_matches_canonical_output() -> None:
+    source = apply_verified_mutation(
+        compile_cube(),
+        ObjectMutation("Cube2", position=Vector3(D("-50"), D("0"), D("0"))),
+    ).data
+
+    rewrite = append_sphere(
+        source,
+        AddSphere(position=Vector3(D("50"), D("0"), D("0"))),
+    )
+
+    assert rewrite.data == compile_project(
+        ProjectSpec(
+            objects=(
+                CubeSpec(position=Vector3(D("-50"), D("0"), D("0"))),
+                SphereSpec(position=Vector3(D("50"), D("0"), D("0"))),
+            )
+        )
+    )
+    assert rewrite.added.name == "Sphere3"
+    assert rewrite.added.constructor == "Sphere"
+    assert rewrite.structural_changes == (
+        StructuralChange("section_added", "Holon\\2", 0, 30),
+        StructuralChange("section_added", "Holon\\2\\MM\\0", 0, 9),
+    )
+    scene = describe_xdx_scene(rewrite.data, BINDING)
+    assert [node.name for node in scene.nodes] == ["Group1", "Cube2", "Sphere3"]
+    assert scene.nodes[-1].constructor == "Sphere"
+    assert scene.diagnostics == ()
+
+
+def test_append_sphere_preserves_admitted_cube_edits_and_rejects_two_cubes() -> None:
+    source = apply_verified_mutation(
+        compile_cube(),
+        ObjectMutation(
+            "Cube2",
+            scale=Vector3(D("25"), D("50"), D("75")),
+            position=Vector3(D("10"), D("20"), D("30")),
+            face_warp=D("0.25"),
+        ),
+    ).data
+    rewrite = append_sphere(
+        source,
+        AddSphere(position=Vector3(D("75"), D("0"), D("0"))),
+    )
+    assert _value(rewrite.data, b"Holon\\1", b"Transform") == _value(
+        source, b"Holon\\1", b"Transform"
+    )
+    assert _value(rewrite.data, b"Holon\\1\\MM\\0", b"Pars") == _value(
+        source, b"Holon\\1\\MM\\0", b"Pars"
+    )
+
+    with pytest.raises(CompositionError, match="exactly one existing Cube"):
+        append_sphere(_two_cubes(), AddSphere(position=Vector3()))
 
 
 def test_append_cube_allocates_cube4_from_the_two_cube_profile() -> None:

@@ -4,7 +4,7 @@ from decimal import Decimal as D
 
 import pytest
 
-from xenodream_xxp.composition import AddCube
+from xenodream_xxp.composition import AddCube, AddSphere
 from xenodream_xxp.diffing import diff_documents
 from xenodream_xxp.document import parse_bytes
 from xenodream_xxp.generator import (
@@ -96,6 +96,29 @@ def test_add_cube_is_a_verified_structural_mutation() -> None:
         "type": "add-cube-v1",
         "position": ["75", "0", "0"],
         "evidence": ["E055", "E056", "E057", "E060", "E061", "E062"],
+        "native_validation_required": True,
+        "fabrication_suitable": False,
+    }
+
+
+def test_add_sphere_is_a_verified_structural_mutation() -> None:
+    result = apply_verified_mutation(
+        compile_cube(),
+        AddSphere(position=Vector3(D("75"), D("0"), D("0"))),
+    )
+
+    assert result.changed is True
+    assert result.object_names == ("Sphere3",)
+    assert result.added is not None
+    assert result.added.name == "Sphere3"
+    assert result.native_validation_required is True
+    assert result.fabrication_suitable is False
+    assert verified_operation_details(
+        AddSphere(position=Vector3(D("75"), D("0"), D("0")))
+    ) == {
+        "type": "add-sphere-v1",
+        "position": ["75", "0", "0"],
+        "evidence": ["E063", "E064", "E066", "E069", "E085", "E106"],
         "native_validation_required": True,
         "fabrication_suitable": False,
     }

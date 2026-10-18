@@ -182,6 +182,9 @@ xxp project mutate output/project.xsp --object Cube2 `
 xxp project add-cube output/project.xsp --position 75 0 0 `
   --message "add right cube"
 
+xxp project add-sphere output/project.xsp --position 75 0 0 `
+  --message "add right sphere"
+
 xxp project row output/project.xsp --spacing 90 `
   --message "arrange objects"
 
@@ -205,7 +208,9 @@ projects containing one or two canonical Cubes. It preserves every existing
 record byte except the authorized `Header.NumHolons` value, allocates the next
 canonical Cube identity, and requires native validation of the new revision.
 See [Add Cubes to a bounded XenoDream composition](docs/m25-xenodream-composition.md)
-for the admitted workflow and limits, and
+for the admitted Cube workflow and limits,
+[Add a Sphere to a bounded XenoDream composition](docs/m27-xenodream-sphere-composition.md)
+for the one-Cube to Cube/Sphere transition, and
 [XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
 
 ## Validate a revision in XenoDream

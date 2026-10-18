@@ -12,7 +12,7 @@ import struct
 import pytest
 
 import xenodream_xxp.mutation as mutation_module
-from xenodream_xxp.composition import AddCube
+from xenodream_xxp.composition import AddCube, AddSphere
 from xenodream_xxp.generator import (
     CubeSpec,
     TemplateMismatchError,
@@ -205,6 +205,27 @@ def test_add_cube_creates_a_revision_and_the_new_cube_is_editable(tmp_path) -> N
     moved = workspace.apply(
         ObjectMutation("Cube3", position=Vector3(D("100"), D("0"), D("0"))),
         message="move added cube",
+    )
+    assert moved.created is True
+    assert workspace.describe().nodes[-1].transform is not None
+    assert workspace.describe().nodes[-1].transform.position.x == D("100.00000")
+
+
+def test_add_sphere_creates_a_revision_and_the_new_sphere_is_editable(tmp_path) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "sphere-project.xsp", _source(tmp_path))
+
+    added = workspace.apply(
+        AddSphere(position=Vector3(D("75"), D("0"), D("0"))),
+        message="add sphere",
+    )
+
+    assert added.revision.operation == "add-sphere-v1"
+    assert added.mutation is not None
+    assert added.mutation.added is not None
+    assert added.mutation.added.name == "Sphere3"
+    moved = workspace.apply(
+        ObjectMutation("Sphere3", position=Vector3(D("100"), D("0"), D("0"))),
+        message="move added sphere",
     )
     assert moved.created is True
     assert workspace.describe().nodes[-1].transform is not None

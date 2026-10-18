@@ -11,6 +11,7 @@ import re
 from ._cube_project_template import (
     _PROFILES,
     _cube_fields,
+    _sphere_fields,
     _replace_field,
     _template_bytes,
     _validate_template,
@@ -25,7 +26,7 @@ from .document import (
     SectionRecord,
     parse_bytes,
 )
-from .generator import CubeSpec, Vector3
+from .generator import CubeSpec, SphereSpec, Vector3
 from .scene import Recognition, SceneBinding, SceneOperation, describe_xdx_scene
 
 
@@ -43,12 +44,30 @@ class AddCube:
 
 
 @dataclass(frozen=True, slots=True)
+class AddSphere:
+    position: Vector3
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.position, Vector3):
+            raise TypeError("position must be Vector3")
+
+
+@dataclass(frozen=True, slots=True)
 class AddedCube:
     id: int
     holon_index: int
     name: str
     group_id: int
     constructor: Literal["Cube"] = "Cube"
+
+
+@dataclass(frozen=True, slots=True)
+class AddedSphere:
+    id: int
+    holon_index: int
+    name: str
+    group_id: int
+    constructor: Literal["Sphere"] = "Sphere"
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +83,7 @@ class CompositionRewrite:
     data: bytes
     differences: tuple[dict[str, object], ...]
     structural_changes: tuple[StructuralChange, ...]
-    added: AddedCube
+    added: AddedCube | AddedSphere
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +94,7 @@ class _FlatCubeAppendContext:
     insertion_index: int
     new_holon_index: int
     source_x: bytes
+    constructor: Literal["Cube", "Sphere"] = "Cube"
 
 
 _EDITABLE_TRANSFORM_TOKENS = frozenset((0, 1, 2, 6, 7, 8, 9, 10, 11))
@@ -252,6 +272,60 @@ def _admit(data: bytes) -> _FlatCubeAppendContext:
     )
 
 
+def _admit_sphere(data: bytes) -> _FlatCubeAppendContext:
+    source = parse_bytes(data)
+    if source.to_bytes() != data:
+        raise CompositionError("input failed exact parser round trip")
+    digest = sha256(data).hexdigest()
+    scene = describe_xdx_scene(data, SceneBinding(digest, digest))
+    if scene.xdx_version != "1.220" or scene.diagnostics:
+        raise CompositionError("source is not a canonical flat Cube profile")
+    if len(scene.nodes) != 2:
+        raise CompositionError("add Sphere requires exactly one existing Cube")
+    root, cube = scene.nodes
+    if (
+        root.id != 0
+        or root.holon_index != 0
+        or root.type_code != 0
+        or root.name != "Group1"
+        or root.group_id != 0
+        or cube.id != 1
+        or cube.holon_index != 1
+        or cube.section_occurrence != 0
+        or cube.name != "Cube2"
+        or cube.group_id != 0
+        or cube.constructor != "Cube"
+        or cube.recognition is not Recognition.VERIFIED
+        or len(cube.metamorphs) != 1
+        or cube.metamorphs[0].metamorph_index != 0
+        or SceneOperation.SET_POSITION not in cube.allowed_operations
+    ):
+        raise CompositionError("source is not a canonical flat Cube profile")
+
+    source_profile = _PROFILES[(CubeSpec,)]
+    source_template = parse_bytes(_template_bytes(source_profile))
+    _validate_template(source_template, source_profile)
+    if not _matches_source_profile(source, source_template, 1):
+        raise CompositionError("source is not a canonical flat Cube profile")
+
+    target_profile = _PROFILES[(CubeSpec, SphereSpec)]
+    target = parse_bytes(_template_bytes(target_profile))
+    _validate_template(target, target_profile)
+    insertion_index = _unique_section(source, b"Gradients")
+    last_mm_index = _unique_section(source, b"Holon\\1\\MM\\0")
+    if insertion_index <= last_mm_index:
+        raise CompositionError("Sphere insertion point is not canonical")
+    return _FlatCubeAppendContext(
+        source=source,
+        cube_count=1,
+        target=target,
+        insertion_index=insertion_index,
+        new_holon_index=2,
+        source_x=target_profile.objects[-1].source_x,
+        constructor="Sphere",
+    )
+
+
 def _target_span(context: _FlatCubeAppendContext) -> tuple[Record, ...]:
     section = f"Holon\\{context.new_holon_index}".encode("ascii")
     start = _unique_section(context.target, section)
@@ -280,9 +354,10 @@ def _positioned_span(
     context: _FlatCubeAppendContext, position: Vector3
 ) -> tuple[Record, ...]:
     span = Document(_target_span(context))
+    field_factory = _cube_fields if context.constructor == "Cube" else _sphere_fields
     fields = {
         field.token_index: field
-        for field in _cube_fields(context.new_holon_index, context.source_x)
+        for field in field_factory(context.new_holon_index, context.source_x)
         if field.key == b"Transform" and field.token_index in (9, 10, 11)
     }
     try:
@@ -302,7 +377,7 @@ def _audit(
 ) -> None:
     reference_span = _target_span(context)
     if len(inserted) != len(reference_span):
-        raise CompositionError("inserted Cube does not match the canonical target span")
+        raise CompositionError(f"inserted {context.constructor} does not match the canonical target span")
     transform_section = f"Holon\\{context.new_holon_index}".encode("ascii")
     expected_position = tuple(
         format(value, ".5f").encode("ascii")
@@ -324,11 +399,11 @@ def _audit(
                 or record.content != b"Transform=" + record.value
             ):
                 raise CompositionError(
-                    "inserted Cube does not match the canonical target span"
+                    f"inserted {context.constructor} does not match the canonical target span"
                 )
         elif record != reference:
             raise CompositionError(
-                "inserted Cube does not match the canonical target span"
+                f"inserted {context.constructor} does not match the canonical target span"
             )
 
     output_bytes = output.to_bytes()
@@ -342,7 +417,7 @@ def _audit(
         output_records[after_insertion : after_insertion + len(inserted)]
     )
     if actual_span != inserted:
-        raise CompositionError("inserted Cube record span changed during composition")
+        raise CompositionError(f"inserted {context.constructor} record span changed during composition")
 
     reconstructed = Document(
         tuple(
@@ -360,9 +435,11 @@ def _audit(
 
     digest = sha256(output_bytes).hexdigest()
     scene = describe_xdx_scene(output_bytes, SceneBinding(digest, digest))
-    expected_names = ["Group1"] + [
-        f"Cube{index + 1}" for index in range(1, context.cube_count + 2)
-    ]
+    expected_names = (
+        ["Group1"]
+        + [f"Cube{index + 1}" for index in range(1, context.cube_count + 1)]
+        + [f"{context.constructor}{context.new_holon_index + 1}"]
+    )
     if scene.diagnostics or [node.name for node in scene.nodes] != expected_names:
         raise CompositionError("composed scene failed semantic audit")
     added = scene.nodes[-1]
@@ -370,11 +447,11 @@ def _audit(
         added.id != context.new_holon_index
         or added.holon_index != context.new_holon_index
         or added.group_id != 0
-        or added.constructor != "Cube"
+        or added.constructor != context.constructor
         or added.recognition is not Recognition.VERIFIED
         or SceneOperation.SET_POSITION not in added.allowed_operations
     ):
-        raise CompositionError("composed Cube identity failed semantic audit")
+        raise CompositionError(f"composed {context.constructor} identity failed semantic audit")
 
 
 def append_cube(data: bytes, operation: AddCube) -> CompositionRewrite:
@@ -423,6 +500,53 @@ def append_cube(data: bytes, operation: AddCube) -> CompositionRewrite:
             section=metamorph_name,
             section_occurrence=0,
             record_count=len(inserted) - metamorph_start,
+        ),
+    )
+    return CompositionRewrite(
+        data=output.to_bytes(),
+        differences=tuple(diff_documents(context.source, output)),
+        structural_changes=changes,
+        added=added,
+    )
+
+
+def append_sphere(data: bytes, operation: AddSphere) -> CompositionRewrite:
+    """Append one canonical Sphere to an admitted one-Cube composition."""
+
+    if not isinstance(data, bytes):
+        raise TypeError("data must be bytes")
+    if not isinstance(operation, AddSphere):
+        raise TypeError("operation must be AddSphere")
+    context = _admit_sphere(data)
+    inserted = _positioned_span(context, operation.position)
+    with_count = _replace_count(context.source, 2, 3)
+    records = list(with_count.records)
+    records[context.insertion_index:context.insertion_index] = inserted
+    output = parse_bytes(Document(tuple(records)).to_bytes())
+    _audit(context, output, inserted, operation.position)
+
+    index = context.new_holon_index
+    added = AddedSphere(index, index, "Sphere3", 0)
+    metamorph_name = f"Holon\\{index}\\MM\\0"
+    metamorph_start = next(
+        (
+            record_index
+            for record_index, record in enumerate(inserted)
+            if isinstance(record, SectionRecord)
+            and record.name == metamorph_name.encode("ascii")
+            and record.occurrence == 0
+        ),
+        None,
+    )
+    if metamorph_start is None:
+        raise CompositionError("inserted Sphere is missing its canonical MM\\0 section")
+    changes = (
+        StructuralChange("section_added", f"Holon\\{index}", 0, metamorph_start),
+        StructuralChange(
+            "section_added",
+            metamorph_name,
+            0,
+            len(inserted) - metamorph_start,
         ),
     )
     return CompositionRewrite(
