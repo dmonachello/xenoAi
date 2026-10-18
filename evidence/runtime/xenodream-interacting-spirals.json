@@ -1,0 +1,73 @@
+{
+  "schema": "xenosculpt-xenodream-interacting-spirals-evidence/v1",
+  "source_commit": "26241088a67719da42665bb2020178ed134d87bc",
+  "packaged_executable_sha256": "b11dc8750bdc97bd09f4fed47b558ffbfe7013d19a20d386eeadaef913cf976d",
+  "compiler_profile": "xdx-1.220-interleaved-eight-closed-holons-2026-10-18",
+  "prompt": "Create multiple interacting spirals made out of a series of varying holon shapes",
+  "planner": {
+    "usage_source": "chatgpt-plan",
+    "model": "gpt-5.6-luna",
+    "selected_seed": "InteractingSpirals",
+    "translated_recipe": "",
+    "unsupported": [],
+    "packaged_dry_run_selected_same_seed_and_hash": true
+  },
+  "workspace": {
+    "path": "output/interacting-spirals-final.xsp",
+    "export": "output/interacting-spirals-final.xxp",
+    "revision_id": "9b75c996741b9775ab62a5c82a2d002f963ac7548c2aaeee09337779e2702a8b",
+    "artifact_sha256": "3370f2379a8d911bcd2d705c954e6ac5488fa5c708c8b4653618343bd2edc42d",
+    "artifact_bytes": 8467,
+    "declared_holons": 9,
+    "members": [
+      "SpiralShell2",
+      "Torus3",
+      "Cog4",
+      "Pipe5",
+      "RoundCube6",
+      "SpiralShell7",
+      "Pipe8",
+      "Cog9"
+    ]
+  },
+  "native_validation": {
+    "id": "378e9ce39d42b01c118b48b6f06a9744cfe3aa7974301c84012710e4ce75491d",
+    "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
+    "xenodream_file_version": "1.22.0.0",
+    "profile": "preview-v1",
+    "stl_max_dimension_mm": 123,
+    "mesh_size_percent": 10,
+    "outcome": "succeeded",
+    "native_model_valid": true,
+    "evaluates_to_3d": true,
+    "basic_mesh_valid": true,
+    "fabrication_suitable": false,
+    "source_sha256_unchanged": true,
+    "disposable_sha256_unchanged": true,
+    "cleanup_confirmed": true,
+    "preexisting_visible_xenodream_pids": [],
+    "elapsed_seconds": 22.834,
+    "mesh": {
+      "sha256": "6b6557f4d9569a109ac22d4c9d1753b2d12ebdc8091fa15a4c7e12eaaf41b95c",
+      "bytes": 266384,
+      "triangle_count": 5326,
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0,
+      "dimensions_mm": [
+        116.54794836044312,
+        115.54022097587585,
+        107.76995849609375
+      ]
+    }
+  },
+  "claims": {
+    "native_evaluation": true,
+    "general_spiral_grammar": false,
+    "xenodream_iterator_semantics": false,
+    "self_intersection_checked": false,
+    "fabrication_suitable": false
+  }
+}
