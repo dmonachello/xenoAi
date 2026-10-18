@@ -1,29 +1,23 @@
 {
   "schema": "xenosculpt-runtime-evidence/v1",
-  "recorded_at": "2026-10-18T15:18:00Z",
-  "workspace": "C:\\Users\\dmona\\xenoAITest\\m29-recipes-final\\recipe.xsp",
-  "packaged_executable_sha256": "668a11665bb6e5d51c3a9a8084fc8676c9a75caaa56748e468e19d1df2b2e4a4",
+  "recorded_at": "2026-10-18T15:25:00Z",
+  "source_commit": "52ee3f647ca886197dbfa391f5521018ff32f32e",
+  "workspace": "C:\\Users\\dmona\\xenoAITest\\m29-recipes-final-v2\\recipe.xsp",
+  "packaged_executable_sha256": "a395f6c079bc5ea4f14841f9f96540b9583c2170127fb4ce4761e0895eaa7f85",
   "prompt": "add Sphere at 55 0 0; apply Sphere profile cushion-core to object Sphere3",
   "preview_output_artifact_sha256": "e75a549e2226a585eb0edcf1616a6063de26fbf0649212f34806c4a27a056f6d",
-  "revision_id": "e154f52ae50142266ae8e0214592c6ca1a33cda4ffd52e4893c77c40efd50db0",
+  "revision_id": "8dd7705ba2fae130c42a5aaae3d42afec46e213d091488c02493ab148dd5ce15",
   "artifact_sha256": "e75a549e2226a585eb0edcf1616a6063de26fbf0649212f34806c4a27a056f6d",
   "operation": "operation-sequence-v1",
   "step_count": 2,
   "preview_apply_hash_match": true,
+  "packaged_no_op_steps_empty": true,
   "validation_attempts": [
     {
-      "validation_id": "0707bdcb2271bd1070912f3ea55ecd409d40ffe64d468a90c0e2ccaa77677061",
-      "profile": "preview/1",
-      "outcome": "automation_failed",
-      "error": "TimeoutError: timed out waiting for complete source path entry",
-      "source_unchanged": true,
-      "cleanup_confirmed": true
-    },
-    {
-      "validation_id": "88c468d3dbd1b8395f1bdea3b6815f9f150687bc548aa6be01d21a3d252804cc",
+      "validation_id": "078ecb00ea09646a06930c64fc2d5f139ae99891ace1171a9084dc4ddc6ef76d",
       "profile": "preview/1",
       "outcome": "succeeded",
-      "mesh_sha256": "c3e91e99ebc0ddfc53d701c2e6bb98e8e13063b77e5c5bf5bb4405e0c45eadff",
+      "mesh_sha256": "f0c8e4505a542d0be9afbf7cd1f4e6f5e7d8734d09881eaf809258ded58446e3",
       "source_unchanged": true,
       "cleanup_confirmed": true,
       "triangle_count": 3986,
@@ -35,10 +29,10 @@
       "dimensions_mm": [113.69230842590332, 73.63721895217896, 73.63721895217896]
     },
     {
-      "validation_id": "83c8422dacffb528e39038d5c2c6cb204bf533e256da1404c663095897e246f9",
+      "validation_id": "9a24dda63ffe96ac035c0a9429190b62a72740eeaa0f69bcf7c57cabe0e16c90",
       "profile": "review/1",
       "outcome": "succeeded",
-      "mesh_sha256": "f26534cbd66c96780fc4fa8ea153ff1648227647f39522bd3eea7a91ba7c2bbb",
+      "mesh_sha256": "4356ddb82bbe1f1476a6a1318b3607e8cc713ab12d049b1afb383978b3da8b66",
       "source_unchanged": true,
       "cleanup_confirmed": true,
       "triangle_count": 99768,
@@ -54,9 +48,9 @@
     "offline_tests": 59,
     "moi": {
       "status": "succeeded",
-      "workspace": "C:\\Users\\dmona\\xenoAITest\\m29-moi-final\\check.msp",
-      "revision_id": "593f20b4f67fe0b13adcead42705f50e8d7122484cb71430905751082a754998",
-      "native_sha256": "bee732cf266fc715250b9345157e362215d3a610fff27bafcd2b35d9b1191af8",
+      "workspace": "C:\\Users\\dmona\\xenoAITest\\m29-moi-final-v2\\check.msp",
+      "revision_id": "92fb25821f9427b8991a7e6f655f5fc674832a4e8a6ee902c9e100b9385278a4",
+      "native_sha256": "26ef2c419bc9295bce7a76834d49900be53d3ced6c3e12c53e029f3591c6a428",
       "stl_sha256": "4978f9d726a2ce3d4b6e872bb973c904e95209c7d72a26153b8c9b8999cf808b",
       "triangle_count": 5216,
       "dimensions_mm": [30.0, 30.0, 40.0]
@@ -71,5 +65,5 @@
     }
   },
   "fabrication_suitable": false,
-  "interpretation": "The exact packaged dry-run and apply produced the same final artifact. The recipe committed one revision, then evaluated successfully under both named profiles. The first preview attempt was an honestly retained UI-automation failure; retry succeeded in a fresh owned process. This evidence does not establish self-intersection freedom, thickness, process suitability, or fabrication success."
+  "interpretation": "The packaged executable built from the recorded source commit produced the same final artifact for dry-run and apply, suppressed stale step output for a no-op recipe, committed one revision, and evaluated successfully under both named profiles. This evidence does not establish self-intersection freedom, thickness, process suitability, or fabrication success."
 }
