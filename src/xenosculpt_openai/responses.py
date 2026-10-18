@@ -71,6 +71,7 @@ def decode_sse_response(
     event_lines: list[bytes] = []
     completed: dict[str, object] | None = None
     terminal_count = 0
+    done_texts: list[str] = []
 
     def process(lines: list[bytes]) -> None:
         nonlocal completed, terminal_count
@@ -110,6 +111,11 @@ def decode_sse_response(
         if kind in {"response.failed", "response.incomplete", "error"}:
             terminal_count += 1
             raise OpenAITransportError(f"OpenAI response ended with {kind}")
+        if kind == "response.output_text.done":
+            text = value.get("text")
+            if not isinstance(text, str):
+                raise OpenAITransportError("response.output_text.done has no text")
+            done_texts.append(text)
         if kind == "response.completed":
             terminal_count += 1
             if terminal_count != 1 or completed is not None:
@@ -135,6 +141,16 @@ def decode_sse_response(
             event_lines.append(stripped)
     if completed is None:
         raise OpenAITransportError("OpenAI response ended before response.completed")
+    if completed.get("output") == [] and done_texts:
+        if len(done_texts) != 1:
+            raise OpenAITransportError("OpenAI returned more than one completed output text")
+        completed = dict(completed)
+        completed["output"] = [
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": done_texts[0]}],
+            }
+        ]
     return completed
 
 
@@ -231,12 +247,17 @@ def list_chatgpt_models(
         value = json.loads(data, object_pairs_hook=_strict_object)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise OpenAITransportError(f"OpenAI models response was invalid: {error}") from error
-    if not isinstance(value, dict) or not isinstance(value.get("data"), list):
-        raise OpenAITransportError("OpenAI models response has no data array")
+    if not isinstance(value, dict) or not isinstance(value.get("models"), list):
+        raise OpenAITransportError("OpenAI models response has no models array")
     models: list[str] = []
-    for item in value["data"]:
-        if isinstance(item, dict) and isinstance(item.get("id"), str):
-            models.append(item["id"])
+    for item in value["models"]:
+        if (
+            isinstance(item, dict)
+            and item.get("visibility") == "list"
+            and isinstance(item.get("slug"), str)
+            and item["slug"]
+        ):
+            models.append(item["slug"])
     if not models:
         raise OpenAITransportError("OpenAI returned no available models")
     return tuple(models)

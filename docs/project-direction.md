@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 416 tests. The standalone `xenosculpt.exe` build can
+The current suite has 419 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.

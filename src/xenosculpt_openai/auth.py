@@ -120,6 +120,14 @@ class ChatGPTPlanAuth:
     def _load(self) -> AuthState:
         return self.store.load() or _new_state()
 
+    def _load_for_login(self) -> AuthState:
+        with auth_lock():
+            state = self.store.load()
+            if state is None:
+                state = _new_state()
+                self.store.save(state)
+            return state
+
     def accounts(self) -> tuple[AccountSummary, ...]:
         state = self._load()
         return tuple(
@@ -145,7 +153,7 @@ class ChatGPTPlanAuth:
         new: bool = False,
         timeout_seconds: float = 180,
     ) -> AccountSummary:
-        state = self._load()
+        state = self._load_for_login()
         existing: StoredAccount | None = None
         if new and account_id is not None:
             raise AuthError("--new and --account cannot be combined")

@@ -10,7 +10,9 @@ from xenosculpt_openai.responses import (
     build_chatgpt_payload,
     decode_completed_response,
     decode_sse_response,
+    list_chatgpt_models,
 )
+from xenosculpt_openai.storage import Secret
 
 
 def _response(*, status: str = "completed") -> dict[str, object]:
@@ -67,6 +69,25 @@ def test_sse_requires_one_completed_terminal_response() -> None:
     assert decode_sse_response(stream) == completed
 
 
+def test_sse_retains_done_text_when_terminal_output_is_empty() -> None:
+    completed = _response()
+    completed["output"] = []
+    text = '{"seed":"cube","recipe":"","summary":"cube","unsupported":[]}'
+    stream = BytesIO(
+        _event(
+            "response.output_text.done",
+            {"type": "response.output_text.done", "text": text},
+        )
+        + _event(
+            "response.completed",
+            {"type": "response.completed", "response": completed},
+        )
+    )
+
+    value = decode_completed_response(decode_sse_response(stream))
+    assert value.text == text
+
+
 @pytest.mark.parametrize("kind", ["response.failed", "response.incomplete", "error"])
 def test_sse_rejects_failure_terminals(kind: str) -> None:
     with pytest.raises(OpenAITransportError):
@@ -96,3 +117,28 @@ def test_completed_decoder_returns_only_output_text() -> None:
     assert value.response_id == "resp_test"
     assert value.model == "test-model"
     assert value.text.startswith('{"seed"')
+
+
+def test_model_catalog_uses_chatgpt_models_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = json.dumps(
+        {
+            "models": [
+                {"slug": "listed-model", "display_name": "Listed", "visibility": "list"},
+                {"slug": "hidden-model", "display_name": "Hidden", "visibility": "hide"},
+            ]
+        }
+    ).encode("utf-8")
+
+    class Response:
+        def __enter__(self) -> "Response":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self, _limit: int) -> bytes:
+            return body
+
+    monkeypatch.setattr("xenosculpt_openai.responses.urlopen", lambda *_args, **_kwargs: Response())
+
+    assert list_chatgpt_models(Secret("oauth-token")) == ("listed-model",)

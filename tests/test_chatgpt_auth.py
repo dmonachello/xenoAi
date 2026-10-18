@@ -9,7 +9,13 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from xenosculpt_openai.auth import AccessLease, AccountSummary, AuthorizationKind
+from xenosculpt_openai.auth import (
+    AccessLease,
+    AccountSummary,
+    AuthError,
+    AuthorizationKind,
+    ChatGPTPlanAuth,
+)
 from xenosculpt_openai.oidc import (
     OidcError,
     build_authorization_url,
@@ -164,3 +170,19 @@ def test_dpapi_store_roundtrips_without_plaintext_tokens(tmp_path: Path) -> None
     assert b"refresh-secret" not in raw
     loaded = store.load()
     assert loaded == state
+
+
+def test_first_login_persists_host_identity_before_opening_browser(tmp_path: Path) -> None:
+    store = FileAuthStore(tmp_path / "auth.bin")
+    observed: list[AuthState | None] = []
+
+    def inspect_then_refuse(_url: str) -> bool:
+        observed.append(store.load())
+        return False
+
+    auth = ChatGPTPlanAuth(store, browser_open=inspect_then_refuse)
+    with pytest.raises(AuthError, match="could not open"):
+        auth.login(timeout_seconds=1)
+
+    assert observed[0] is not None
+    assert store.load() == observed[0]
