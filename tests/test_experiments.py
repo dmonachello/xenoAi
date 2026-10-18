@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from hashlib import sha256
 from pathlib import Path
 
 from xenodream_xxp.diffing import diff_documents
-from xenodream_xxp.document import KeyValueRecord, SectionRecord, parse_bytes
+from xenodream_xxp.document import (
+    Document,
+    KeyValueRecord,
+    SectionRecord,
+    parse_bytes,
+)
 
 
 PAIR = Path(__file__).parents[1] / "experiments" / "scale-x"
@@ -34,6 +40,9 @@ GROUP_CREATION_PAIR = (
 )
 MIDDLE_CUBE_DELETION = (
     Path(__file__).parents[1] / "experiments" / "delete-middle-cube"
+)
+CLEAN_MIDDLE_CUBE_DELETION = (
+    Path(__file__).parents[1] / "experiments" / "delete-middle-cube-clean"
 )
 CUBE_SPHERE = Path(__file__).parents[1] / "experiments" / "cube-sphere"
 TWO_CUBE_REFERENCE = (
@@ -531,6 +540,68 @@ def test_deleting_middle_cube_compacts_sections_but_preserves_identity() -> None
     assert values[(b"Holon\\2", b"GroupID")] == b"0"
     assert values[(b"Holon\\2", b"Type")] == b"1"
     assert values[(b"SelectionSpots", b"0")] == b"3 1 1 "
+
+
+def test_clean_middle_cube_deletion_is_exact_and_has_no_incidental_change() -> None:
+    source_bytes = (
+        Path(__file__).parents[1]
+        / "experiments"
+        / "three-cube-positions"
+        / "3_cube_positions.xxp"
+    ).read_bytes()
+    target_bytes = (CLEAN_MIDDLE_CUBE_DELETION / "middle_deleted.xxp").read_bytes()
+    source = parse_bytes(source_bytes)
+    target = parse_bytes(target_bytes)
+
+    assert sha256(source_bytes).hexdigest() == (
+        "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d"
+    )
+    assert sha256(target_bytes).hexdigest() == (
+        "bb980364c5281d29a24c5b72accb74d907c33fc664e660731d697aaa56555d3a"
+    )
+    assert target.to_bytes() == target_bytes
+
+    def section_index(document: Document, name: bytes) -> int:
+        return next(
+            index
+            for index, record in enumerate(document.records)
+            if isinstance(record, SectionRecord) and record.name == name
+        )
+
+    removed_start = section_index(source, b"Holon\\2")
+    survivor_start = section_index(source, b"Holon\\3")
+    gradients_start = section_index(source, b"Gradients")
+    survivor = source.records[survivor_start:gradients_start]
+    reindexed = []
+    for record in survivor:
+        if isinstance(record, SectionRecord):
+            name = record.name.replace(b"Holon\\3", b"Holon\\2", 1)
+            reindexed.append(replace(record, content=b"[" + name + b"]", name=name))
+        elif isinstance(record, KeyValueRecord):
+            reindexed.append(
+                replace(
+                    record,
+                    section=record.section.replace(b"Holon\\3", b"Holon\\2", 1),
+                )
+            )
+        else:
+            reindexed.append(record)
+    records = list(source.records)
+    records[removed_start:gradients_start] = reindexed
+    count_index = next(
+        index
+        for index, record in enumerate(records)
+        if isinstance(record, KeyValueRecord)
+        and record.section == b"Header"
+        and record.key == b"NumHolons"
+    )
+    count = records[count_index]
+    assert isinstance(count, KeyValueRecord)
+    records[count_index] = replace(count, content=b"NumHolons=3", value=b"3")
+
+    assert Document(tuple(records)).to_bytes() == target_bytes
+    assert source.records[removed_start:survivor_start]
+    assert all(item["section"] != "Holon\\0" for item in diff_documents(source, target))
 
 
 def test_cube_sphere_changes_only_the_second_objects_constructor_records() -> None:

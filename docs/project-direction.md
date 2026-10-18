@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 371 tests. The standalone `xenosculpt.exe` build can
+The current suite has 372 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -101,6 +101,12 @@ target-local mutations use the same constructor recognition. Bounded structural
 operations append Cube3 or Cube4, append Sphere3 to the one-Cube family, or
 reproduce the exact native-observed empty Group3 transition. They do not
 provide a general scene serializer or general grouping semantics.
+
+A clean native middle-Cube deletion now establishes exact section compaction
+and survivor identity retention. It is not a product operation. The native
+result stayed actively computing through preview at 10 percent and a bounded
+diagnostic at 1 percent, so the runtime gate stopped the writer before public
+exposure. See `experiments/delete-middle-cube-clean/analysis.md`.
 
 The XenoDream runtime also has versioned `preview` and `review` validation
 profiles. Named validation pins the supported executable, serializes access to

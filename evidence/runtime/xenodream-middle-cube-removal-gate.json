@@ -1,0 +1,66 @@
+{
+  "schema": "xenosculpt-xenodream-middle-cube-removal-gate/v1",
+  "recorded_at": "2026-10-18T16:24:00Z",
+  "source_base_commit": "87ac2bc",
+  "xenodream": {
+    "file_version": "1.22.0.0",
+    "executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e"
+  },
+  "native_transition": {
+    "source_sha256": "caff33da71c7a24e6a79a7c4448a17daeefdc3c1915d3bc7d85ab167fe05654d",
+    "source_bytes": 4826,
+    "target_sha256": "bb980364c5281d29a24c5b72accb74d907c33fc664e660731d697aaa56555d3a",
+    "target_bytes": 4103,
+    "independent_rewrite_matches_target": true,
+    "reverse_reconstruction_matches_source": true,
+    "group1_unchanged": true,
+    "selection_spots_unchanged": true,
+    "survivor": {
+      "name": "Cube4",
+      "persisted_id": 3,
+      "section_before": "Holon\\3",
+      "section_after": "Holon\\2"
+    }
+  },
+  "validation_attempts": [
+    {
+      "id": "508f9f84df1a799a0069fa7d12e6a2928c30152453ee0f03a06ca03293c90d3d",
+      "artifact_sha256": "bb980364c5281d29a24c5b72accb74d907c33fc664e660731d697aaa56555d3a",
+      "profile": "preview-v1",
+      "stl_max_dimension_mm": 123,
+      "mesh_size_percent": 10,
+      "elapsed_seconds": 181.515,
+      "outcome": "timed_out_active",
+      "source_unchanged": true,
+      "cleanup_confirmed": true
+    },
+    {
+      "id": "07b6a91bf53bf9ef1871ba7060248e9f12a5fad1829b7066343f9ba19fedfaac",
+      "artifact_sha256": "1c6114d2c58643e02d6dae78abd46de15a87b65c0d2b25628e929eaa15d9e6e0",
+      "profile": "preview-v1",
+      "survivor_positions": [-50, 50],
+      "stl_max_dimension_mm": 123,
+      "mesh_size_percent": 10,
+      "elapsed_seconds": 181.601,
+      "outcome": "timed_out_active",
+      "source_unchanged": true,
+      "cleanup_confirmed": true
+    },
+    {
+      "id": "06d177fe9ba33ecdc80ee864e14a60904685996bfca8739c8336d6692fc0f7e9",
+      "artifact_sha256": "1c6114d2c58643e02d6dae78abd46de15a87b65c0d2b25628e929eaa15d9e6e0",
+      "profile": null,
+      "survivor_positions": [-50, 50],
+      "stl_max_dimension_mm": 123,
+      "mesh_size_percent": 1,
+      "elapsed_seconds": 301.687,
+      "outcome": "timed_out_active",
+      "source_unchanged": true,
+      "cleanup_confirmed": true
+    }
+  ],
+  "disposition": {
+    "public_writer_authorized": false,
+    "reason": "The native deletion bytes are fully explained, but the preserved-identity result did not complete batch evaluation even at 1 percent density. Renumbering the survivor is not authorized."
+  }
+}
