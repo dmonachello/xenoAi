@@ -175,14 +175,15 @@ accepted sentence form.
 
 ## Create from natural language
 
-Set an OpenAI API key in the environment and choose the model explicitly:
+Connect an eligible ChatGPT account once, then list the models available to it:
 
 ```powershell
-$env:OPENAI_API_KEY = "your-key"
+xenosculpt auth login
+xenosculpt auth models
 
 xenosculpt create output/sculpture.xsp `
   --prompt "Make a broad cube with a cushioned sphere 55 units to its right" `
-  --model gpt-5-mini `
+  --model MODEL_FROM_AUTH_MODELS `
   --export output/sculpture.xxp `
   --dry-run
 ```
@@ -193,13 +194,29 @@ but writes no workspace or export. Remove `--dry-run` to publish them. Each
 invocation is a new model request and can produce a different valid recipe, so
 inspect the JSON returned by the invocation you use.
 
-The prompt is sent to the OpenAI Responses API. The API key is read only from
-`OPENAI_API_KEY` and is not stored. The model cannot write XDX bytes or call
-XenoDream: it selects one verified seed and at most five existing operations.
+The prompt is sent to the public OpenAI Responses API with a protected,
+refreshable access token authorized through Continue with ChatGPT. Eligible
+ChatGPT Plus and Pro accounts can use their plan for eligible requests, subject
+to account, workspace, model, credit, and usage policies. XenoSculpt stores the
+renewable session under the current Windows account using DPAPI. It never puts
+tokens in a project, revision, console argument, or command output.
+
+API-key billing remains available only when selected explicitly:
+
+```powershell
+$env:OPENAI_API_KEY = "your-key"
+xenosculpt create output/sculpture.xsp `
+  --prompt "Make a broad cube" --model gpt-4o-mini --auth api-key
+```
+
+XenoSculpt never falls back between ChatGPT-plan and API-key billing after an
+authentication or request failure. The model cannot write XDX bytes or call
+XenoDream. It selects one verified seed and at most five existing operations.
 XenoSculpt rejects invalid recipes and explicitly unsupported intent before
 publication. Results still require native validation and are never marked
 fabrication-suitable. See
-[Natural-language XenoDream creation](docs/xenodream-natural-language-creation.md).
+[Natural-language XenoDream creation](docs/xenodream-natural-language-creation.md)
+and [ChatGPT-plan authentication](docs/chatgpt-plan-auth.md).
 
 ## Use explicit workspace operations
 
@@ -423,5 +440,4 @@ programs.
 
 ## License
 
-This repository does not currently include an open-source license. Public
-access does not grant permission to copy, modify, or redistribute the code.
+XenoSculpt is open-source software under the [MIT License](LICENSE).

@@ -54,7 +54,10 @@ from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
 from .native_export import DEFAULT_XENODREAM_EXECUTABLE, MeshExportSettings
-from .openai_planner import request_creation
+from .openai_planner import request_creation, request_creation_chatgpt
+from xenosculpt_openai.auth import AuthError, ChatGPTPlanAuth
+from xenosculpt_openai.oidc import OidcError
+from xenosculpt_openai.storage import AuthStorageError
 from .validation import ValidationProfileName
 from .solidify import SolidifySettings, solidify_binary_stl
 from .mutation import (
@@ -258,6 +261,16 @@ def _parser() -> argparse.ArgumentParser:
         "--model",
         required=True,
         help="OpenAI model ID recorded with the creation provenance",
+    )
+    create.add_argument(
+        "--auth",
+        choices=("chatgpt", "api-key"),
+        default="chatgpt",
+        help="billing source (default: chatgpt; API keys require --auth api-key)",
+    )
+    create.add_argument(
+        "--account",
+        help="saved ChatGPT account ID; valid only with --auth chatgpt",
     )
     create.add_argument(
         "--export",
@@ -870,11 +883,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ValueError(f"refusing to overwrite workspace: {args.workspace}")
             if not args.dry_run and args.export is not None and args.export.exists():
                 raise ValueError(f"refusing to overwrite export: {args.export}")
-            creation = request_creation(
-                args.prompt,
-                model=args.model,
-                timeout_seconds=args.timeout_seconds,
-            )
+            if args.auth == "api-key":
+                if args.account is not None:
+                    raise ValueError("--account requires --auth chatgpt")
+                creation = request_creation(
+                    args.prompt,
+                    model=args.model,
+                    timeout_seconds=args.timeout_seconds,
+                )
+            else:
+                lease = ChatGPTPlanAuth().acquire(args.account)
+                creation = request_creation_chatgpt(
+                    args.prompt,
+                    model=args.model,
+                    authorization=lease.authorization,
+                    timeout_seconds=args.timeout_seconds,
+                )
             preview = preview_creation(args.prompt, creation)
             value = {
                 "schema": "xenosculpt-natural-creation/v1",
@@ -882,6 +906,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "prompt": args.prompt,
                 "model": creation.model,
                 "response_id": creation.response_id,
+                "usage_source": creation.usage_source,
                 "seed": creation.recipe.seed.value,
                 "translated_recipe": creation.recipe.recipe,
                 "summary": creation.recipe.summary,
@@ -1224,7 +1249,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             }
         )
         return 1 if differences else 0
-    except (OSError, ValueError) as error:
+    except (AuthError, AuthStorageError, OidcError, OSError, ValueError) as error:
         print(str(error), file=sys.stderr)
         return 2
 

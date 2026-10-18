@@ -81,6 +81,7 @@ class ModelCreation:
     recipe: CreationRecipe
     model: str
     response_id: str
+    usage_source: str = "api-key"
 
     def __post_init__(self) -> None:
         if not isinstance(self.recipe, CreationRecipe):
@@ -93,6 +94,8 @@ class ModelCreation:
             r"[A-Za-z0-9][A-Za-z0-9_-]{0,255}", self.response_id
         ) is None:
             raise CreationError("response ID must be a supported ASCII identifier")
+        if self.usage_source not in {"api-key", "chatgpt-plan"}:
+            raise CreationError("usage source must be api-key or chatgpt-plan")
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,6 +222,7 @@ def apply_creation(
         "provider": "openai-responses",
         "model": creation.model,
         "response_id": creation.response_id,
+        "usage_source": creation.usage_source,
         "seed": creation.recipe.seed.value,
         "recipe": creation.recipe.recipe,
         "summary": creation.recipe.summary,

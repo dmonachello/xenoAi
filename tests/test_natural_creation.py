@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from hashlib import sha256
 import json
 
@@ -17,6 +18,8 @@ from xenodream_xxp.cli import main
 from xenodream_xxp.openai_planner import decode_creation_response
 from xenodream_xxp.openai_planner import request_creation
 from xenodream_xxp.workspace import ProjectWorkspace
+from xenosculpt_openai.auth import AccessLease, AuthError
+from xenosculpt_openai.storage import Secret
 
 
 def _creation(recipe: str, *, seed: CreationSeed = CreationSeed.CUBE) -> ModelCreation:
@@ -144,6 +147,8 @@ def test_create_cli_dry_run_and_apply(monkeypatch, tmp_path, capsys) -> None:
         "make a broad cube",
         "--model",
         "test-model",
+        "--auth",
+        "api-key",
         "--export",
         str(export),
     ]
@@ -161,6 +166,68 @@ def test_create_cli_dry_run_and_apply(monkeypatch, tmp_path, capsys) -> None:
     assert applied["translated_recipe"] == "set object Cube2 scale to 60 55 50"
     assert workspace.is_dir()
     assert export.is_file()
+
+
+def test_create_cli_defaults_to_chatgpt_without_api_key_fallback(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    creation = ModelCreation(
+        _creation("set object Cube2 scale to 60 55 50").recipe,
+        "test-model",
+        "resp_chatgpt",
+        "chatgpt-plan",
+    )
+
+    class FakeAuth:
+        def acquire(self, account=None):
+            assert account is None
+            return AccessLease(
+                Secret("plan-token"),
+                "acct_test",
+                datetime(2026, 10, 18, tzinfo=UTC),
+            )
+
+    monkeypatch.setattr("xenodream_xxp.cli.ChatGPTPlanAuth", FakeAuth)
+    monkeypatch.setattr(
+        "xenodream_xxp.cli.request_creation_chatgpt",
+        lambda prompt, **options: creation,
+    )
+    workspace = tmp_path / "chatgpt.xsp"
+    assert main(
+        [
+            "create",
+            str(workspace),
+            "--prompt",
+            "make a broad cube",
+            "--model",
+            "test-model",
+            "--dry-run",
+        ]
+    ) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["usage_source"] == "chatgpt-plan"
+    assert not workspace.exists()
+
+
+def test_create_auth_failure_never_creates_workspace(monkeypatch, tmp_path, capsys) -> None:
+    class MissingAuth:
+        def acquire(self, account=None):
+            raise AuthError("run 'xenosculpt auth login'")
+
+    monkeypatch.setattr("xenodream_xxp.cli.ChatGPTPlanAuth", MissingAuth)
+    workspace = tmp_path / "missing-auth.xsp"
+    assert main(
+        [
+            "create",
+            str(workspace),
+            "--prompt",
+            "make a cube",
+            "--model",
+            "test-model",
+        ]
+    ) == 2
+    assert "auth login" in capsys.readouterr().err
+    assert not workspace.exists()
 
 
 @pytest.mark.parametrize("seed", tuple(CreationSeed))

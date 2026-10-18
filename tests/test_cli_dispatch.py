@@ -29,12 +29,29 @@ def test_top_level_help_lists_both_application_surfaces(capsys) -> None:
     assert "comfyui" in output
     assert "XenoDream" in output
     assert "create" in output
+    assert "auth" in output
 
 
 def test_top_level_help_lists_moi_surface(capsys) -> None:
     assert main(["--help"]) == 0
     output = capsys.readouterr().out
     assert "moi" in output
+
+
+def test_top_level_dispatches_redacted_auth_status(monkeypatch, capsys) -> None:
+    from xenosculpt_openai.auth import AccountSummary
+
+    class FakeAuth:
+        def accounts(self):
+            return (
+                AccountSummary("acct_test", "u***@example.com", True, True, True),
+            )
+
+    monkeypatch.setattr("xenosculpt_openai.cli.ChatGPTPlanAuth", FakeAuth)
+    assert main(["auth", "status"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["accounts"][0]["account_id"] == "acct_test"
+    assert "token" not in json.dumps(output).lower()
 
 
 def test_cli_rejects_link_shaped_literal_without_advancing_head(tmp_path, capsys) -> None:

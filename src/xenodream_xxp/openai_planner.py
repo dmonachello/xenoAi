@@ -10,6 +10,12 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from xenosculpt_openai.responses import (
+    OpenAITransportError,
+    request_chatgpt_structured,
+)
+from xenosculpt_openai.storage import Secret
+
 from .creation import CreationError, CreationRecipe, CreationSeed, ModelCreation
 from .mutation import cylinder_metamorph_profiles, sphere_metamorph_profiles
 
@@ -93,6 +99,9 @@ def decode_creation_response(data: bytes, requested_model: str) -> ModelCreation
     response = _loads(data)
     if not isinstance(response, dict):
         raise CreationError("planner response must be a JSON object")
+    status = response.get("status")
+    if status is not None and status != "completed":
+        raise CreationError("planner response was not completed")
     response_id = response.get("id")
     actual_model = response.get("model", requested_model)
     output = response.get("output")
@@ -130,7 +139,7 @@ def decode_creation_response(data: bytes, requested_model: str) -> ModelCreation
             summary=value["summary"],
             unsupported=tuple(unsupported),
         )
-        return ModelCreation(recipe, actual_model, response_id)
+        return ModelCreation(recipe, actual_model, response_id, "api-key")
     except (KeyError, TypeError, ValueError) as error:
         if isinstance(error, CreationError):
             raise
@@ -201,3 +210,52 @@ def request_creation(
     if len(data) > _MAX_RESPONSE_BYTES:
         raise CreationError("OpenAI response exceeded the 1000000-byte limit")
     return decode_creation_response(data, model)
+
+
+def request_creation_chatgpt(
+    prompt: str,
+    *,
+    model: str,
+    authorization: Secret,
+    timeout_seconds: float = 60,
+) -> ModelCreation:
+    """Request a recipe using an authorized ChatGPT-plan access token."""
+
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise CreationError("prompt must be non-empty text")
+    if not isinstance(model, str) or re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model
+    ) is None:
+        raise CreationError("model must be a supported ASCII identifier")
+    if isinstance(timeout_seconds, bool) or not isinstance(
+        timeout_seconds, (int, float)
+    ) or not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+        raise CreationError("timeout must be finite and positive")
+    if len(prompt) > 20_000:
+        raise CreationError("prompt exceeds the 20000-character limit")
+    try:
+        completed = request_chatgpt_structured(
+            authorization=authorization,
+            model=model,
+            instructions=_instructions(),
+            prompt=prompt.strip(),
+            schema=_schema(),
+            timeout_seconds=timeout_seconds,
+        )
+    except OpenAITransportError as error:
+        raise CreationError(str(error)) from error
+    body = {
+        "id": completed.response_id,
+        "model": completed.model,
+        "status": "completed",
+        "output": [
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": completed.text}],
+            }
+        ],
+    }
+    result = decode_creation_response(
+        json.dumps(body, separators=(",", ":")).encode("utf-8"), model
+    )
+    return ModelCreation(result.recipe, result.model, result.response_id, "chatgpt-plan")

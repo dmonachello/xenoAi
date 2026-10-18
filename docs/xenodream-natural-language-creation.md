@@ -7,11 +7,12 @@ a translator. XenoSculpt remains the execution authority.
 ## Preview a request
 
 ```powershell
-$env:OPENAI_API_KEY = "your-key"
+xenosculpt auth login
+xenosculpt auth models
 
 ./dist/xenosculpt.exe create ./output/sculpture.xsp `
   --prompt "Make a broad cube with a cushioned sphere 55 units to its right" `
-  --model gpt-5-mini `
+  --model MODEL_FROM_AUTH_MODELS `
   --export ./output/sculpture.xxp `
   --dry-run
 ```
@@ -29,7 +30,7 @@ Run the same command without `--dry-run`:
 ```powershell
 ./dist/xenosculpt.exe create ./output/sculpture.xsp `
   --prompt "Make a broad cube with a cushioned sphere 55 units to its right" `
-  --model gpt-5-mini `
+  --model MODEL_FROM_AUTH_MODELS `
   --export ./output/sculpture.xxp
 ```
 
@@ -40,8 +41,12 @@ against the preview before publication. The exported `.xxp` is the exact HEAD
 artifact and can be opened manually in XenoDream.
 
 The initial revision records the original prompt, provider, model, response ID,
-seed, recipe, summary, and seed hash. Recipe revisions record the same typed
+seed, recipe, summary, usage source, and seed hash. Recipe revisions record the same typed
 operation provenance as `project prompt`.
+
+ChatGPT-plan credentials are the default. API-key billing remains available
+with `OPENAI_API_KEY` plus `--auth api-key`. XenoSculpt never silently switches
+between the two billing sources. See [ChatGPT-plan authentication](chatgpt-plan-auth.md).
 
 ## Supported vocabulary
 

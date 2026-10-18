@@ -22,6 +22,8 @@ def main() -> int:
         str(root / "src"),
         "--collect-data",
         "xenodream_xxp",
+        "--add-data",
+        f"{root / 'LICENSE'};.",
         "--exclude-module",
         "torch",
         "--exclude-module",
