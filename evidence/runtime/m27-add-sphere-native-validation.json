@@ -1,0 +1,60 @@
+{
+  "schema": "xenosculpt-runtime-evidence/v1",
+  "recorded_at": "2026-10-18T15:12:00Z",
+  "workspace": "C:\\Users\\dmona\\xenoAITest\\m27-sphere-final\\sphere.xsp",
+  "packaged_executable_sha256": "8854ddc908e5289480ffe15f4622a5e92514cb4f79c4f8369e6a08b1cd643746",
+  "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
+  "revision_id": "b47b15eb7a4133aee82c957a11937893522378b52c2bdeb0e3edfaa3735a2eeb",
+  "artifact_sha256": "735bd1e78709f5024cbf41e2a1985ca48f73e3c2e102219a3d7464bf4966f2ef",
+  "operation": "add-sphere-v1",
+  "scene": {
+    "names": ["Group1", "Cube2", "Sphere3"],
+    "cube_scale": ["25.00000", "50.00000", "75.00000"],
+    "cube_position": ["-40.00000", "0.00000", "0.00000"],
+    "cube_face_warp": "0.2500",
+    "sphere_position": ["55.00000", "0.00000", "0.00000"]
+  },
+  "validations": [
+    {
+      "profile": "preview/1",
+      "validation_id": "27c6704fbe96f2b9318d9f5fd11805fd4dfc840594f45aea2d74187a6aee63c4",
+      "mesh_sha256": "71ab178e4cb69f5db95b6a0175f45046e69547f202fa65e69f34dd596e83d96a",
+      "outcome": "succeeded",
+      "native_model_valid": true,
+      "evaluates_to_3d": true,
+      "basic_mesh_valid": false,
+      "fabrication_suitable": false,
+      "cleanup_confirmed": true,
+      "source_and_disposable_unchanged": true,
+      "elapsed_seconds": 20.183,
+      "triangle_count": 3712,
+      "connected_components": 2,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0,
+      "dimensions_mm": [115.25290369987488, 70.98581790924072, 106.04560780525208]
+    },
+    {
+      "profile": "review/1",
+      "validation_id": "1d6e2ad1be30a9b0c2513a0030986db40555f83fb0377aa29f85b9f1c11a1dc1",
+      "mesh_sha256": "6a0cae08c7d11146dc37c65f0d43e37446094840684ef617cb28518f43b45cb0",
+      "outcome": "succeeded",
+      "native_model_valid": true,
+      "evaluates_to_3d": true,
+      "basic_mesh_valid": false,
+      "fabrication_suitable": false,
+      "cleanup_confirmed": true,
+      "source_and_disposable_unchanged": true,
+      "elapsed_seconds": 20.543,
+      "triangle_count": 93016,
+      "connected_components": 2,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0,
+      "dimensions_mm": [115.29619336128235, 70.99035477638245, 106.05177927017212]
+    }
+  ],
+  "interpretation": "The exact packaged add-sphere artifact loaded and evaluated in XenoDream under both named profiles. Two intentionally separated objects produce two connected components, so the existing basic_mesh_valid predicate and CLI exit status remain false. This is native acceptance evidence, not fabrication suitability."
+}
