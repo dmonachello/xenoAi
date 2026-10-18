@@ -17,6 +17,7 @@ from xenodream_xxp.creation import (
 from xenodream_xxp.cli import main
 from xenodream_xxp.openai_planner import decode_creation_response
 from xenodream_xxp.openai_planner import request_creation
+from xenodream_xxp.openai_planner import _instructions
 from xenodream_xxp.workspace import ProjectWorkspace
 from xenosculpt_openai.auth import AccessLease, AuthError
 from xenosculpt_openai.storage import Secret
@@ -257,6 +258,8 @@ def test_interacting_spirals_creation_seed_exposes_all_named_members() -> None:
         "Pipe8",
         "Cog9",
     ]
+    assert "two interleaved spiral strands with four holons" in _instructions()
+    assert "not eight separate spirals" in _instructions()
 
 
 def test_invalid_translated_recipe_never_creates_workspace(tmp_path) -> None:

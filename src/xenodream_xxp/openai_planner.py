@@ -52,7 +52,8 @@ Cube2, Sphere2, Cylinder2, RoundCube2, Pipe2, Torus2, Cog2, SpiralShell2.
 InteractingSpirals is the exact native-validated eight-holon composition for
 requests describing multiple interacting spirals made from varied shapes. Its
 members are SpiralShell2, Torus3, Cog4, Pipe5, RoundCube6, SpiralShell7,
-Pipe8, and Cog9.
+Pipe8, and Cog9. It represents two interleaved spiral strands with four holons
+per strand, not eight separate spirals; preserve that distinction in summary.
 
 The recipe is either empty, one exact clause, or 2-5 exact clauses separated by
 '; '. Allowed clauses are:
