@@ -242,6 +242,8 @@ The underlying descriptor recovery and native probe remain documented in
 [XenoDream constructor probes](docs/remaining-xenodream-constructor-probes.md).
 See [Controlled recipes](docs/m28-m29-xenodream-controlled-recipes.md) for
 revision-bound addition offers, dry-run, and atomic multi-step prompts.
+The final shipped-versus-stopped inventory is in
+[XenoDream integration completion status](docs/xenodream-completion-status.md).
 
 ## Validate a revision in XenoDream
 

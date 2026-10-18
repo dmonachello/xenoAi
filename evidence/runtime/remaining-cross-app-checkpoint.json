@@ -1,13 +1,13 @@
 {
   "schema": "xenosculpt-cross-app-checkpoint/v1",
-  "recorded_at": "2026-10-18T15:55:00Z",
+  "recorded_at": "2026-10-18T16:53:00Z",
+  "source_commit": "33f8c10",
+  "packaged_executable_sha256": "4a61d82cf784eca18579e45e485900be060b20b39e945cf51cfdf0be1a3f30aa",
   "moi": {
     "status": "succeeded",
-    "source_commit": "f69d5c42dd57309f05c4f8c4610bb460c855594b",
-    "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
-    "workspace": "C:\\Users\\dmona\\xenoAITest\\remaining-moi-20261018",
-    "revision_id": "31fef422f99201585ae2c953135b2fffa36f8a3790a120c1405ac95998c5fd23",
-    "native_sha256": "04168facfefbbfa389af09687d35308c29a414fd30299865e7076b39c8b84650",
+    "workspace": "C:\\Users\\dmona\\xenoAITest\\moi-final-20261018-2\\project.msp",
+    "revision_id": "b4a00f5abd87fc0a22c2553d4a85cb0bce6d2ed51675bfa11fb67fe03057ef1a",
+    "native_sha256": "3c3d01fe091b0720f460e1c23a899acfd3f2591254eeeb6b7f24479b944d2c9b",
     "stl_sha256": "4978f9d726a2ce3d4b6e872bb973c904e95209c7d72a26153b8c9b8999cf808b",
     "triangle_count": 5216,
     "connected_components": 1,
@@ -17,31 +17,25 @@
   },
   "comfyui": {
     "status": "succeeded_with_explicit_version_override",
-    "source_commit": "16c2540ca07f3b502fa5736d6f437874ae2b52e6",
-    "packaged_executable_sha256": "fb9af304e21f652cafc6706d2dcaad42d84f6fce63cde38d634c15358dd136c5",
-    "workspace": "C:\\Users\\dmona\\xenoAITest\\remaining-comfyui-20261018\\workflow.csp",
+    "workspace": "C:\\Users\\dmona\\xenoAITest\\comfy-final-20261018\\project.csp",
     "server_url": "http://127.0.0.1:8188",
-    "revision_id": "4eb18577c999b2366a714192da081640cb45aed018b65f1f53d1060ca4397ba3",
-    "artifact_sha256": "bbb2ba5f7d3d297ea53c5a0a2c685cd8776db6902b60596e625bafde12e22e85",
+    "revision_id": "5884c98a6d3f38aeda29b79955a6923b4309357492790178f6809c9be482f371",
+    "artifact_sha256": "cc3850378234e4914d3e1115a1ba74e2709c23cba88a16f15fbec794b358869f",
     "version_policy": {
       "expected": "0.3.45",
       "observed": "0.34.2",
-      "initial_rejection_run_id": "7065bc83-21dc-4382-ae06-3c28996afe4b",
       "explicit_override_used": true
     },
-    "run_id": "612e7bc5-a3df-4157-b2ee-f51c4c74906a",
-    "prompt_id": "b82944aa-969a-4f7b-801b-05d39d76bcef",
-    "submitted_prompt_sha256": "81f70f7b29c525f05dc525ddeb3a5483ded57a378e0d851e4a975387bf9d1b56",
-    "accepted_prompt_sha256": "81f70f7b29c525f05dc525ddeb3a5483ded57a378e0d851e4a975387bf9d1b56",
+    "run_id": "c53a1cda-7838-4b0a-9c49-8b7ab956cbf5",
+    "prompt_id": "22ad79fb-a79e-4af7-82c0-c906388a2fa8",
+    "submitted_prompt_sha256": "09cc3129d85a2b841ac31b6a6a4279dcac9e27008b06dbd74efa062f61db382c",
+    "accepted_prompt_sha256": "09cc3129d85a2b841ac31b6a6a4279dcac9e27008b06dbd74efa062f61db382c",
     "output": {
-      "sha256": "12d74069032890d8fcba7a69c0fa442dd950fb8edfb45cfcff9f6e2383137ec3",
-      "byte_length": 395,
-      "media_type": "image/png",
-      "width": 80,
-      "height": 64,
-      "mode": "RGB"
+      "sha256": "f2b69c9e55273b20654e3932f4ff7efd43ae451a5f41a3e5ec136a18274978bb",
+      "byte_length": 394,
+      "media_type": "image/png"
     },
     "fresh_live_result_claimed": true
   },
-  "interpretation": "The MoI native create, reopen, and STL path passed with its recorded package. After ComfyUI restarted, the pinned-version guard rejected local ComfyUI 0.34.2 because the integration expects 0.3.45. A second request with the explicit version-mismatch override succeeded. The retained run binds the submitted prompt to the accepted prompt and independently verifies the retained 80 by 64 PNG. This does not promote ComfyUI 0.34.2 to the pinned supported version."
+  "interpretation": "The final package preserved both non-XenoDream integrations. MoI created a native cylinder, reopened it in a fresh process, and retained a clean 30 by 30 by 40 mm STL. Local ComfyUI 0.34.2 remained outside the pinned 0.3.45 policy, so the run used the explicit mismatch override and retained a prompt-bound PNG. No broader version-support claim is made."
 }

@@ -2,6 +2,8 @@
   "schema": "xenosculpt-xenodream-group3-evidence/v1",
   "application": "XenoDream X 1.220",
   "executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
+  "source_commit": "33f8c10",
+  "packaged_executable_sha256": "4a61d82cf784eca18579e45e485900be060b20b39e945cf51cfdf0be1a3f30aa",
   "corpus": {
     "files_with_resolved_non_root_group_ids": 6,
     "objects_with_resolved_non_root_group_ids": 14,
@@ -59,6 +61,26 @@
       "outcome": "settings_not_applied",
       "cleanup_confirmed": true,
       "note": "The first fresh process persisted 100 percent detail; the validator rejected it and the retry applied preview-v1 correctly."
+    }
+  },
+  "packaged_product_path": {
+    "workspace": "C:\\Users\\dmona\\xenoAITest\\group3-package-20261018\\project.xsp",
+    "operation": "configure-group3-v1",
+    "profile": "stretch-x-20",
+    "revision_id": "b2374e7d86336f7eb4cd7fdecb561e019dfa405e802aa04950d3c41054027d30",
+    "artifact_sha256": "4f145f66777fa5fae1f4728dd920871afb71b1e7df0fb3f4b5b1f1c5fd51fe73",
+    "validation_id": "7b8627a4041dba789346113c5c6b283e1db4760e10d5fd5e2fdf35653607c0e8",
+    "mesh_sha256": "745188767e66694c6e6832e3f7002e42e68433aced8fa5f9275e6a5f504b6889",
+    "outcome": "succeeded",
+    "triangle_count": 4130,
+    "connected_components": 1,
+    "dimensions_mm": [122.84915804862976, 102.53388977050781, 102.53388977050781],
+    "source_unchanged": true,
+    "cleanup_confirmed": true,
+    "initial_attempt": {
+      "outcome": "automation_failed",
+      "cleanup_confirmed": true,
+      "note": "The file-dialog path entry timed out; a fresh identical-hash retry succeeded."
     }
   },
   "rejected_profile_observation": {

@@ -63,7 +63,7 @@ class ClosedConstructorSpec:
 def compile_closed_constructor(spec: ClosedConstructorSpec) -> bytes: ...
 ```
 
-`xenodream_xxp.constructor` owns the closed profile table and byte compiler.
+`xenodream_xxp._closed_constructor` owns the closed profile table and byte compiler.
 It contains the constructor name, style, exact default parameter bytes,
 descriptor count, expected canonical artifact hash, and evidence IDs. It
 audits the four constructor records plus the requested transform tokens and
