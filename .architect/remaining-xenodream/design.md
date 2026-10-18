@@ -125,7 +125,8 @@ def run_constructor_probe(...) -> ConstructorProbeDisposition: ...
 ```
 
 The driver is the smallest reusable proof tool. It pins the executable, recovers
-contiguous descriptors, verifies historical anchor hashes and token formatting,
+contiguous descriptors, verifies closed historical anchor hashes, declared
+parameter arity, and numeric token syntax,
 synthesizes from the normalized one-object XDX 1.220 scaffold, audits the four
 authorized constructor fields, runs managed native validation, and writes one
 self-contained manifest. It never creates a workspace operation or changes the
@@ -153,7 +154,7 @@ a constructor-specific failure does not.
 
 - Any unexplained target byte, failed reverse audit, changed source hash, or
   non-atomic rejection blocks AddEmptyGroup.
-- Descriptor range, anchor hash, token width, native evaluation, or cleanup
+- Descriptor range, anchor hash, parameter arity or numeric syntax, native evaluation, or cleanup
   failure makes that constructor NOT VERIFIED or INCONCLUSIVE.
 - Native evaluation alone never authorizes a writer. Promotion still needs a
   native-created current-version profile or a separately reviewed change to the

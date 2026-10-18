@@ -1,6 +1,7 @@
 {
   "schema": "xenosculpt-cross-app-checkpoint/v1",
   "recorded_at": "2026-10-18T15:48:00Z",
+  "source_commit": "f69d5c42dd57309f05c4f8c4610bb460c855594b",
   "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
   "moi": {
     "status": "succeeded",
@@ -19,5 +20,5 @@
     "checked_urls": ["http://127.0.0.1:8188", "http://127.0.0.1:8199"],
     "fresh_live_result_claimed": false
   },
-  "interpretation": "The XenoDream-only production change did not disturb the packaged MoI native create, reopen, and STL evidence path. ComfyUI was not running, so no fresh ComfyUI execution is claimed; its offline suite remains part of the full test run."
+  "interpretation": "The MoI native create, reopen, and STL evidence path passed while the package hash was recorded separately. The MoI workspace does not embed that package hash, so no stronger causal binding is claimed. ComfyUI was not running, so no fresh ComfyUI execution is claimed; its offline suite remains part of the full test run."
 }

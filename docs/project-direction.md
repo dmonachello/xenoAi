@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 368 tests. The standalone `xenosculpt.exe` build can
+The current suite has 371 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -97,9 +97,10 @@ set of fields or tokens.
 The XenoDream integration also has a read-only scene description. It separates
 persisted holon IDs from current section positions, retains unknown nodes, and
 reports edit capabilities only for verified XDX 1.220 record shapes. Existing
-target-local mutations use the same constructor recognition. One bounded
-structural operation appends Cube3 or Cube4 to a canonical flat Group1 project.
-It does not provide a general scene serializer.
+target-local mutations use the same constructor recognition. Bounded structural
+operations append Cube3 or Cube4, append Sphere3 to the one-Cube family, or
+reproduce the exact native-observed empty Group3 transition. They do not
+provide a general scene serializer or general grouping semantics.
 
 The XenoDream runtime also has versioned `preview` and `review` validation
 profiles. Named validation pins the supported executable, serializes access to

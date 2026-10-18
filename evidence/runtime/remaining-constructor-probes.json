@@ -2,6 +2,8 @@
   "schema": "xenosculpt-xenodream-constructor-campaign/v1",
   "recorded_at": "2026-10-18T16:02:00Z",
   "driver": "scripts/probe_xenodream_constructors.py",
+  "descriptor_artifact": "evidence/recovery/xdx-1.220-closed-constructor-descriptors.json",
+  "descriptor_artifact_sha256": "49fd72fc08a062cd49f551d7e1be5598ce47cfeff0cbcc85019dbbed94d3dcf",
   "corpus_root": "C:\\Users\\dmona\\Documents\\XenoDreamX",
   "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
   "profile": "preview/1",
@@ -9,6 +11,8 @@
   "constructors": [
     {
       "constructor": "RoundCube",
+      "external_output_dir": "C:\\Users\\dmona\\xenoAITest\\constructor-probes-20261018\\RoundCube-run2",
+      "manifest_sha256": "40de87baeb046641534555981b915a5e54df4230b7b9cb499e7360e3a0e5437f",
       "style": 6,
       "descriptor_count": 10,
       "candidate_sha256": "9be76e32e36f9a98ba3295f38b7089aa94838681f4763470492f7ddd2b969da5",
@@ -26,6 +30,8 @@
     },
     {
       "constructor": "Pipe",
+      "external_output_dir": "C:\\Users\\dmona\\xenoAITest\\constructor-probes-20261018\\Pipe",
+      "manifest_sha256": "fc117d71654501c60c2be771823d020585bb3978c2ac11a935d42ebc5f1e1161",
       "style": 11,
       "descriptor_count": 11,
       "candidate_sha256": "2e28e99d702130ac93f248681ac255b430187a530467c39ffc95e985039342cd",
@@ -43,6 +49,8 @@
     },
     {
       "constructor": "Torus",
+      "external_output_dir": "C:\\Users\\dmona\\xenoAITest\\constructor-probes-20261018\\Torus-run2",
+      "manifest_sha256": "1e60a862c7de2d41b06760f9307ef7bd8ddb5ac541d2fd1453dbc38fb3f0c801",
       "style": 42,
       "descriptor_count": 11,
       "candidate_sha256": "c32c4dff9a2f946a4800aae7d689e4c18a3f07d57b3e8d95df8e78b224014ba7",
@@ -62,6 +70,8 @@
     },
     {
       "constructor": "Cog",
+      "external_output_dir": "C:\\Users\\dmona\\xenoAITest\\constructor-probes-20261018\\Cog",
+      "manifest_sha256": "1bf468deba335d3a7c4dbc235af3b1f1b83bda5ea41b7cac5ff358a1490013e8",
       "style": 62,
       "descriptor_count": 10,
       "candidate_sha256": "fe74b398d7b55d671ff1f86d326c90213ca04ef0eb5eb283c5a4e482a7911017",
@@ -79,6 +89,8 @@
     },
     {
       "constructor": "SpiralShell",
+      "external_output_dir": "C:\\Users\\dmona\\xenoAITest\\constructor-probes-20261018\\SpiralShell",
+      "manifest_sha256": "4e5f33588d1c124cebd1f1bf9568d5e4ef61a949853a2ea57b025f5c5a9e4e2f",
       "style": 65,
       "descriptor_count": 12,
       "candidate_sha256": "f75d94cf2db8e630439f1df50f04ab6dd3fcb8dabf1817418b3d19ac75cb6012",

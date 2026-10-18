@@ -172,8 +172,10 @@ accepted sentence form.
 
 ## Use explicit workspace operations
 
-The prompt command calls the same typed operations exposed by the explicit
-commands. Use the explicit commands when you already know the operation.
+The prompt command calls a documented subset of the same typed operations
+exposed by explicit commands. Use the explicit commands when you already know
+the operation. `add-empty-group` is direct-only and is not accepted by the
+controlled-language planner.
 
 ```powershell
 xxp project mutate output/project.xsp --object Cube2 `

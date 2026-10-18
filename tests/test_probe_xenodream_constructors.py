@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+from dataclasses import replace
 from pathlib import Path
 import sys
 from types import SimpleNamespace
 
-from xenodream_xxp.document import KeyValueRecord, parse_bytes
+from xenodream_xxp.document import Document, KeyValueRecord, parse_bytes
+from xenodream_xxp.generator import compile_sphere
 
 
 ROOT = Path(__file__).parents[1]
@@ -91,6 +93,50 @@ def test_manifest_never_authorizes_a_writer() -> None:
     assert manifest["fabrication_suitable"] is False
 
 
+def test_success_without_a_structural_anchor_stays_inconclusive() -> None:
+    candidate = probe.build_candidate("Pipe", _report())
+    validation = SimpleNamespace(
+        id="validation",
+        outcome="succeeded",
+        native_model_valid=True,
+        evaluates_to_3d=True,
+        basic_mesh_valid=True,
+        fabrication_suitable=False,
+        mesh_sha256="a" * 64,
+        report={"cleanup_confirmed": True, "error": None, "stl": {}},
+    )
+
+    manifest = probe._manifest(
+        "Pipe",
+        candidate,
+        next(item for item in _report()["operations"] if item["name"] == "Pipe"),
+        [],
+        validation,
+        "no structurally matching pinned historical XDX anchor",
+    )
+
+    assert manifest["disposition"] == "INCONCLUSIVE"
+
+
+def test_style_only_forgery_is_not_a_historical_anchor(tmp_path: Path) -> None:
+    document = parse_bytes(compile_sphere())
+    records = list(document.records)
+    for index, record in enumerate(records):
+        if (
+            isinstance(record, KeyValueRecord)
+            and record.section == b"Holon\\1\\MM\\0"
+            and record.key == b"Style"
+        ):
+            records[index] = replace(record, content=b"Style=11", value=b"11")
+            break
+    (tmp_path / "forged.xxp").write_bytes(Document(tuple(records)).to_bytes())
+    descriptors = next(
+        item["descriptors"] for item in _report()["operations"] if item["name"] == "Pipe"
+    )
+
+    assert probe.corpus_anchors(tmp_path, 11, descriptors) == []
+
+
 def test_automation_failure_is_inconclusive_not_a_constructor_rejection() -> None:
     candidate = probe.build_candidate("Torus", _report())
     validation = SimpleNamespace(
@@ -115,3 +161,28 @@ def test_automation_failure_is_inconclusive_not_a_constructor_rejection() -> Non
 
     assert manifest["disposition"] == "INCONCLUSIVE"
     assert manifest["validation"]["error"] == "chooser timeout"
+
+
+def test_cleanup_failure_cannot_be_verified() -> None:
+    candidate = probe.build_candidate("Cog", _report())
+    validation = SimpleNamespace(
+        id="validation",
+        outcome="succeeded",
+        native_model_valid=True,
+        evaluates_to_3d=True,
+        basic_mesh_valid=True,
+        fabrication_suitable=False,
+        mesh_sha256="b" * 64,
+        report={"cleanup_confirmed": False, "error": "cleanup failed", "stl": {}},
+    )
+
+    manifest = probe._manifest(
+        "Cog",
+        candidate,
+        next(item for item in _report()["operations"] if item["name"] == "Cog"),
+        [{"sha256": "c" * 64}],
+        validation,
+        None,
+    )
+
+    assert manifest["disposition"] == "NOT_VERIFIED"

@@ -2,6 +2,7 @@
   "schema": "xenosculpt-runtime-evidence/v1",
   "recorded_at": "2026-10-18T15:42:16Z",
   "workspace": "C:\\Users\\dmona\\xenoAITest\\empty-group-20261018-114100\\group-check.xsp",
+  "source_commit": "f69d5c42dd57309f05c4f8c4610bb460c855594b",
   "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
   "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
   "revision_id": "f085d1666c0f5c2db63750a0927d6ee6c74adb36ed707b632d828558af8e4ae9",
