@@ -220,14 +220,33 @@ Then evaluate the active revision and attach the mesh report to it:
 
 ```powershell
 xxp project validate output/cylinder.xsp `
-  --stl-max-dimension-mm 120 --mesh-size-percent 10
+  --profile preview --stl-max-dimension-mm 120
 ```
 
 The validator starts an isolated XenoDream process, works from a disposable
 copy, exports binary STL, and cleans up the process. It does not move workspace
-`HEAD` or change the native source. Mesh detail has a large effect on runtime.
-Use a low percentage for discovery and increase it only when the added detail
-is useful.
+`HEAD` or change the native source. `preview` uses 10% mesh detail. `review`
+uses 50% mesh detail. The maximum dimension remains explicit because it sets
+physical scale rather than mesh quality. Neither profile establishes
+fabrication suitability.
+
+Named profiles require the supported XenoDream X 1.220 executable and refuse
+to run while another XenoDream session is open. They serialize cooperating
+named-profile validation processes because XenoDream stores mesh settings in shared user
+preferences. XenoDream leaves the requested maximum dimension and density in
+those preferences after the run. Do not run raw validation or open XenoDream
+until a named-profile validation finishes.
+
+The raw flags remain available for experiments:
+
+```powershell
+xxp project validate output/cylinder.xsp `
+  --stl-max-dimension-mm 120 --mesh-size-percent 25 `
+  --timeout-seconds 300
+```
+
+See [Validate XenoDream revisions with named profiles](docs/m26-xenodream-validation.md)
+for the profile definitions, evidence identity, and safety limits.
 
 The default executable path is:
 

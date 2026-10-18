@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
@@ -45,6 +46,16 @@ from .planning import (
     validate_plan_provenance,
 )
 from .scene import SceneBinding, SceneDescription, describe_xdx_scene
+from .validation import (
+    ValidationProfileName,
+    XenoDreamInstallation,
+    ensure_no_xenodream_sessions,
+    managed_validation_session,
+    pinned_executable,
+    resolve_xenodream_installation,
+    resolve_profile_request,
+    validation_profile,
+)
 from xenosculpt.core.model import ApplyResult, ArtifactInfo, Revision
 from xenosculpt.core.workspace import RevisionWorkspace
 
@@ -266,21 +277,80 @@ class ProjectWorkspace(RevisionWorkspace):
 
     def _validation(self, row: sqlite3.Row) -> NativeValidation:
         mesh_sha = row["mesh_sha256"]
+        settings = json.loads(row["settings_json"])
+        report = json.loads(row["report_json"])
+        request_key = sha256(_json_bytes(settings)).hexdigest()
+        validation_payload = {
+            "request_key": request_key,
+            "report": report,
+            "mesh_sha256": mesh_sha,
+            "created_at": row["created_at"],
+        }
+        if row["request_key"] != request_key or row["id"] != sha256(
+            _json_bytes(validation_payload)
+        ).hexdigest():
+            raise WorkspaceError("native validation provenance is inconsistent")
+        if (
+            settings.get("revision_id") != row["revision_id"]
+            or not isinstance(settings.get("artifact_sha256"), str)
+        ):
+            raise WorkspaceError("native validation provenance is inconsistent")
+        with self._connect() as connection:
+            revision_row = connection.execute(
+                "SELECT artifact_sha256 FROM revisions WHERE id = ?",
+                (row["revision_id"],),
+            ).fetchone()
+        if (
+            revision_row is None
+            or revision_row["artifact_sha256"] != settings["artifact_sha256"]
+        ):
+            raise WorkspaceError("native validation provenance is inconsistent")
+        if mesh_sha is not None:
+            mesh_path = self.meshes / f"{mesh_sha}.stl"
+            if mesh_path.is_file() and sha256(mesh_path.read_bytes()).hexdigest() != mesh_sha:
+                raise WorkspaceError("retained validation mesh failed hash verification")
+        outcome = str(report.get("outcome"))
+        native_model_valid = outcome == "succeeded"
+        stl_data = report.get("stl")
+        mesh_report = None
+        if isinstance(stl_data, dict):
+            try:
+                mesh_report = StlReport(**stl_data)
+            except (TypeError, ValueError):
+                mesh_report = None
+        evaluates_to_3d = native_model_valid and mesh_sha is not None and mesh_report is not None
+        mesh_valid = evaluates_to_3d and basic_mesh_valid(mesh_report)
+        expected_facts = (
+            outcome,
+            int(native_model_valid),
+            int(evaluates_to_3d),
+            int(mesh_valid),
+            0,
+        )
+        stored_facts = (
+            row["outcome"],
+            row["native_model_valid"],
+            row["evaluates_to_3d"],
+            row["basic_mesh_valid"],
+            row["fabrication_suitable"],
+        )
+        if stored_facts != expected_facts:
+            raise WorkspaceError("native validation facts are inconsistent")
         return NativeValidation(
             id=row["id"],
             revision_id=row["revision_id"],
             created_at=row["created_at"],
-            outcome=row["outcome"],
-            settings=json.loads(row["settings_json"]),
-            report=json.loads(row["report_json"]),
+            outcome=outcome,
+            settings=settings,
+            report=report,
             mesh_path=(
                 str(self.meshes / f"{mesh_sha}.stl") if mesh_sha is not None else None
             ),
             mesh_sha256=mesh_sha,
-            native_model_valid=bool(row["native_model_valid"]),
-            evaluates_to_3d=bool(row["evaluates_to_3d"]),
-            basic_mesh_valid=bool(row["basic_mesh_valid"]),
-            fabrication_suitable=bool(row["fabrication_suitable"]),
+            native_model_valid=native_model_valid,
+            evaluates_to_3d=evaluates_to_3d,
+            basic_mesh_valid=mesh_valid,
+            fabrication_suitable=False,
         )
 
     def _latest_validation(
@@ -535,11 +605,72 @@ class ProjectWorkspace(RevisionWorkspace):
     ) -> NativeValidation:
         """Evaluate a revision in XenoDream and attach immutable mesh evidence."""
 
+        return self._validate_resolved(
+            ref=ref,
+            executable=executable,
+            settings=settings,
+            timeout_seconds=timeout_seconds,
+            poll_seconds=poll_seconds,
+            profile_payload=None,
+            installation=None,
+            required_xdx_version=None,
+        )
+
+    def validate_profile(
+        self,
+        profile: ValidationProfileName,
+        *,
+        stl_max_dimension_mm: int,
+        ref: str = "HEAD",
+        executable: str | Path = DEFAULT_XENODREAM_EXECUTABLE,
+    ) -> NativeValidation:
+        """Evaluate a revision under a pinned XenoDream validation profile."""
+
+        resolved = resolve_profile_request(
+            profile,
+            stl_max_dimension_mm=stl_max_dimension_mm,
+            executable=executable,
+        )
+        return self._validate_resolved(
+            ref=ref,
+            executable=resolved.installation.executable,
+            settings=resolved.settings,
+            timeout_seconds=resolved.timeout_seconds,
+            poll_seconds=resolved.poll_seconds,
+            profile_payload=resolved.profile.to_request_dict(),
+            installation=resolved.installation,
+            required_xdx_version="1.220",
+        )
+
+    def _validate_resolved(
+        self,
+        *,
+        ref: str,
+        executable: str | Path,
+        settings: MeshExportSettings,
+        timeout_seconds: float,
+        poll_seconds: float,
+        profile_payload: dict[str, object] | None,
+        installation: XenoDreamInstallation | None,
+        required_xdx_version: str | None,
+    ) -> NativeValidation:
+
         executable_path = Path(executable).resolve(strict=True)
         with self._connect() as connection:
             revision = self._get_revision(connection, ref)
+        if required_xdx_version is not None:
+            descriptor = self.adapter.inspect(self._artifact_data(revision))
+            if descriptor.xdx_version != required_xdx_version:
+                raise WorkspaceError(
+                    f"named validation profiles require an XDX "
+                    f"{required_xdx_version} revision"
+                )
         source = self.artifacts / f"{revision.artifact_sha256}.xxp"
-        executable_sha = sha256(executable_path.read_bytes()).hexdigest()
+        executable_sha = (
+            installation.executable_sha256
+            if installation is not None
+            else sha256(executable_path.read_bytes()).hexdigest()
+        )
         request = {
             "revision_id": revision.id,
             "artifact_sha256": revision.artifact_sha256,
@@ -547,6 +678,10 @@ class ProjectWorkspace(RevisionWorkspace):
             "settings": asdict(settings),
             "runner_schema": "xenodream-batch-stl/v2",
         }
+        if profile_payload is not None:
+            request["profile"] = profile_payload
+        if installation is not None:
+            request["installation"] = installation.to_request_dict()
         request_key = sha256(_json_bytes(request)).hexdigest()
         with self._connect() as connection:
             cached = connection.execute(
@@ -561,15 +696,39 @@ class ProjectWorkspace(RevisionWorkspace):
 
         run_directory = self.validation_runs / f"{revision.id[:12]}-{uuid4().hex}"
         report_path = run_directory / "report.json"
-        report = run_export(
-            executable_path,
-            source,
-            run_directory,
-            report_path,
-            timeout_seconds,
-            poll_seconds,
-            settings,
+        session = (
+            managed_validation_session(installation)
+            if installation is not None
+            else nullcontext()
         )
+        with session:
+            if installation is None:
+                report = run_export(
+                    executable_path,
+                    source,
+                    run_directory,
+                    report_path,
+                    timeout_seconds,
+                    poll_seconds,
+                    settings,
+                )
+            else:
+                ensure_no_xenodream_sessions()
+                with pinned_executable(installation) as pinned_path:
+                    report = run_export(
+                        pinned_path,
+                        source,
+                        run_directory,
+                        report_path,
+                        timeout_seconds,
+                        poll_seconds,
+                        settings,
+                    )
+                    after = sha256(pinned_path.read_bytes()).hexdigest()
+                    if after != installation.executable_sha256:
+                        raise WorkspaceError(
+                            "the XenoDream executable changed during validation"
+                        )
         stl_data = report.get("stl")
         mesh_sha: str | None = None
         mesh_report: StlReport | None = None

@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 324 tests. The standalone `xenosculpt.exe` build can
+The current suite has 338 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -100,6 +100,11 @@ reports edit capabilities only for verified XDX 1.220 record shapes. Existing
 target-local mutations use the same constructor recognition. One bounded
 structural operation appends Cube3 or Cube4 to a canonical flat Group1 project.
 It does not provide a general scene serializer.
+
+The XenoDream runtime also has versioned `preview` and `review` validation
+profiles. Named validation pins the supported executable, serializes access to
+XenoDream's shared mesh preferences, and refuses a preexisting XenoDream
+session. Physical maximum dimension remains an explicit request value.
 
 This design was correct for proving native generation without corrupting opaque
 state. It is not enough for reliable conversational editing because it cannot:

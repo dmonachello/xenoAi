@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from decimal import Decimal as D
 from dataclasses import asdict
+from hashlib import sha256
 from pathlib import Path
 import json
 import sqlite3
@@ -40,6 +42,37 @@ from xenodream_xxp.workspace import (
 )
 from xenodream_xxp.mesh import inspect_binary_stl
 from xenodream_xxp.native_export import MeshExportSettings
+from xenodream_xxp.validation import (
+    ResolvedValidationRequest,
+    ValidationProfileName,
+    XenoDreamInstallation,
+    validation_profile,
+)
+
+
+def _mock_profile_resolution(monkeypatch, executable: Path, executable_sha: str) -> None:
+    installation = XenoDreamInstallation(
+        str(executable), "1.22.0.0", executable_sha
+    )
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.resolve_profile_request",
+        lambda profile, stl_max_dimension_mm, executable: ResolvedValidationRequest(
+            settings=MeshExportSettings(stl_max_dimension_mm, validation_profile(profile).mesh_size_percent),
+            timeout_seconds=validation_profile(profile).timeout_seconds,
+            poll_seconds=validation_profile(profile).poll_seconds,
+            profile=validation_profile(profile),
+            installation=installation,
+        ),
+    )
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.ensure_no_xenodream_sessions", lambda: None
+    )
+
+    @contextmanager
+    def fake_pin(_installation):
+        yield executable
+
+    monkeypatch.setattr("xenodream_xxp.workspace.pinned_executable", fake_pin)
 from xenodream_xxp.planning import (
     HeadBinding,
     MutationPlan,
@@ -515,10 +548,364 @@ def test_native_validation_attaches_mesh_without_changing_head(
     assert first.evaluates_to_3d is True
     assert first.basic_mesh_valid is True
     assert first.fabrication_suitable is False
+    assert first.settings == {
+        "artifact_sha256": initial.artifact_sha256,
+        "executable_sha256": sha256(executable.read_bytes()).hexdigest(),
+        "revision_id": initial.id,
+        "runner_schema": "xenodream-batch-stl/v2",
+        "settings": {
+            "mesh_size_percent": 60,
+            "stl_max_dimension_mm": 120,
+        },
+    }
     assert first.mesh_path is not None and Path(first.mesh_path).is_file()
     assert workspace.status().head == initial
     assert workspace.status().latest_validation == first
     assert _source(tmp_path).read_bytes() == compile_cube()
+
+
+def test_named_validation_pins_policy_and_keeps_raw_cache_separate(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "profile.xsp", _source(tmp_path))
+    initial = workspace.status().head
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+    executable_sha = sha256(executable.read_bytes()).hexdigest()
+    calls = 0
+    sessions = 0
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        nonlocal calls
+        calls += 1
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    @contextmanager
+    def fake_session(installation):
+        nonlocal sessions
+        sessions += 1
+        yield
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    _mock_profile_resolution(monkeypatch, executable, executable_sha)
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.managed_validation_session", fake_session
+    )
+
+    first = workspace.validate_profile(
+        ValidationProfileName.PREVIEW,
+        stl_max_dimension_mm=120,
+        executable=executable,
+    )
+    second = workspace.validate_profile(
+        ValidationProfileName.PREVIEW,
+        stl_max_dimension_mm=120,
+        executable=executable,
+    )
+
+    assert first == second
+    assert calls == 1
+    assert sessions == 1
+    assert first.settings["settings"] == {
+        "mesh_size_percent": 10,
+        "stl_max_dimension_mm": 120,
+    }
+    assert first.settings["profile"]["name"] == "preview"
+    assert first.settings["profile"]["version"] == 1
+    assert first.settings["installation"] == {
+        "executable_sha256": executable_sha,
+        "file_version": "1.22.0.0",
+    }
+    assert workspace.status().head == initial
+
+    review = workspace.validate_profile(
+        ValidationProfileName.REVIEW,
+        stl_max_dimension_mm=120,
+        executable=executable,
+    )
+    assert review.id != first.id
+    assert review.settings["profile"]["name"] == "review"
+    assert review.settings["settings"]["mesh_size_percent"] == 50
+    assert calls == 2
+    assert sessions == 2
+
+    workspace.validate_native(
+        executable=executable,
+        settings=MeshExportSettings(120, 10),
+        timeout_seconds=180,
+    )
+    assert calls == 3
+    assert sessions == 2
+
+
+def test_named_validation_session_refusal_writes_no_evidence(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "refused.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+    executable_sha = sha256(executable.read_bytes()).hexdigest()
+    _mock_profile_resolution(monkeypatch, executable, executable_sha)
+
+    @contextmanager
+    def refused_session(installation):
+        raise WorkspaceError("close XenoDream before managed validation")
+        yield
+
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.managed_validation_session", refused_session
+    )
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.run_export",
+        lambda *args, **kwargs: pytest.fail("export must not start"),
+    )
+
+    with pytest.raises(WorkspaceError, match="close XenoDream"):
+        workspace.validate_profile(
+            ValidationProfileName.PREVIEW,
+            stl_max_dimension_mm=120,
+            executable=executable,
+        )
+
+    assert not any(workspace.validation_runs.iterdir())
+    with sqlite3.connect(workspace.database) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM validations").fetchone()[0] == 0
+
+
+def test_named_validation_rejects_non_1220_revision_before_export(
+    tmp_path, monkeypatch
+) -> None:
+    source = tmp_path / "older.xxp"
+    source.write_bytes(compile_cube().replace(b"Progversion=1.220", b"Progversion=1.007"))
+    workspace = ProjectWorkspace.create(tmp_path / "older.xsp", source)
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+    _mock_profile_resolution(
+        monkeypatch, executable, sha256(executable.read_bytes()).hexdigest()
+    )
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.run_export",
+        lambda *args, **kwargs: pytest.fail("unsupported revision must not run"),
+    )
+
+    with pytest.raises(WorkspaceError, match="require an XDX 1.220 revision"):
+        workspace.validate_profile(
+            ValidationProfileName.PREVIEW,
+            stl_max_dimension_mm=120,
+            executable=executable,
+        )
+
+
+def test_named_validation_rejects_tampered_request_provenance(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "tampered-profile.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+    executable_sha = sha256(executable.read_bytes()).hexdigest()
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    @contextmanager
+    def fake_session(installation):
+        yield
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    _mock_profile_resolution(monkeypatch, executable, executable_sha)
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.managed_validation_session", fake_session
+    )
+    validation = workspace.validate_profile(
+        ValidationProfileName.PREVIEW,
+        stl_max_dimension_mm=120,
+        executable=executable,
+    )
+    with sqlite3.connect(workspace.database) as connection:
+        request = json.loads(
+            connection.execute(
+                "SELECT settings_json FROM validations WHERE id = ?",
+                (validation.id,),
+            ).fetchone()[0]
+        )
+        request["profile"]["name"] = "review"
+        connection.execute(
+            "UPDATE validations SET settings_json = ? WHERE id = ?",
+            (json.dumps(request), validation.id),
+        )
+
+    with pytest.raises(WorkspaceError, match="provenance"):
+        workspace.validate_profile(
+            ValidationProfileName.PREVIEW,
+            stl_max_dimension_mm=120,
+            executable=executable,
+        )
+
+
+def test_named_validation_refuses_changed_executable_before_export(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "changed-exe.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"approved")
+    executable_sha = sha256(executable.read_bytes()).hexdigest()
+    _mock_profile_resolution(monkeypatch, executable, executable_sha)
+
+    @contextmanager
+    def changing_session(_installation):
+        executable.write_bytes(b"unapproved")
+        yield
+
+    @contextmanager
+    def rejecting_pin(installation):
+        assert executable.read_bytes() == b"unapproved"
+        raise WorkspaceError("changed before validation")
+        yield executable
+
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.managed_validation_session", changing_session
+    )
+    monkeypatch.setattr("xenodream_xxp.workspace.pinned_executable", rejecting_pin)
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.run_export",
+        lambda *args, **kwargs: pytest.fail("unapproved executable must not run"),
+    )
+
+    with pytest.raises(WorkspaceError, match="changed before validation"):
+        workspace.validate_profile(
+            ValidationProfileName.PREVIEW,
+            stl_max_dimension_mm=120,
+            executable=executable,
+        )
+
+
+def test_named_validation_request_uses_the_admitted_installation_hash(
+    tmp_path, monkeypatch
+) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "restored-exe.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    approved = b"approved"
+    executable.write_bytes(b"temporarily replaced")
+    approved_sha = sha256(approved).hexdigest()
+    _mock_profile_resolution(monkeypatch, executable, approved_sha)
+
+    @contextmanager
+    def restoring_session(_installation):
+        executable.write_bytes(approved)
+        yield
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.managed_validation_session", restoring_session
+    )
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+
+    result = workspace.validate_profile(
+        ValidationProfileName.PREVIEW,
+        stl_max_dimension_mm=120,
+        executable=executable,
+    )
+
+    assert result.settings["executable_sha256"] == approved_sha
+    assert result.settings["installation"]["executable_sha256"] == approved_sha
+
+
+def test_validation_rejects_tampered_result_facts(tmp_path, monkeypatch) -> None:
+    workspace = ProjectWorkspace.create(tmp_path / "facts.xsp", _source(tmp_path))
+    executable = tmp_path / "XenoDreamX.exe"
+    executable.write_bytes(b"test executable")
+
+    def fake_run_export(
+        executable_path,
+        source,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    validation = workspace.validate_native(executable=executable)
+    with sqlite3.connect(workspace.database) as connection:
+        connection.execute(
+            "UPDATE validations SET fabrication_suitable = 1 WHERE id = ?",
+            (validation.id,),
+        )
+
+    with pytest.raises(WorkspaceError, match="facts are inconsistent"):
+        workspace.status()
 
 
 def test_fabrication_assessment_is_cached_and_does_not_change_head(

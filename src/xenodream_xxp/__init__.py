@@ -37,6 +37,12 @@ from .generator import (
 from .recipes import centered_x_row
 from .mesh import StlReport, basic_mesh_valid, inspect_binary_stl
 from .native_export import MeshExportSettings
+from .validation import (
+    ValidationProfile,
+    ValidationProfileName,
+    XenoDreamInstallation,
+    validation_profile,
+)
 from .metamorph import inspect_metamorphs, load_metamorph_registry
 from .solidify import (
     SolidifyError,
@@ -139,6 +145,9 @@ __all__ = [
     "SphereSpec",
     "StlReport",
     "MeshExportSettings",
+    "ValidationProfile",
+    "ValidationProfileName",
+    "XenoDreamInstallation",
     "SolidifyError",
     "SolidifyReport",
     "SolidifySettings",
@@ -177,6 +186,7 @@ __all__ = [
     "basic_mesh_valid",
     "inspect_metamorphs",
     "load_metamorph_registry",
+    "validation_profile",
     "solidify_binary_stl",
     "describe_xdx_scene",
     "scene_description_to_dict",

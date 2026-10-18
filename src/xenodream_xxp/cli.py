@@ -43,6 +43,7 @@ from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
 from .native_export import DEFAULT_XENODREAM_EXECUTABLE, MeshExportSettings
+from .validation import ValidationProfileName
 from .solidify import SolidifySettings, solidify_binary_stl
 from .mutation import (
     CenteredRowMutation,
@@ -239,12 +240,36 @@ def _parser() -> argparse.ArgumentParser:
     project_validate.add_argument("workspace", type=Path)
     project_validate.add_argument("--ref", default="HEAD")
     project_validate.add_argument(
-        "--executable", type=Path, default=DEFAULT_XENODREAM_EXECUTABLE
+        "--executable",
+        type=Path,
+        default=DEFAULT_XENODREAM_EXECUTABLE,
+        help="XenoDream X executable (named profiles require the supported 1.220 binary)",
     )
-    project_validate.add_argument("--stl-max-dimension-mm", type=int, default=250)
-    project_validate.add_argument("--mesh-size-percent", type=int, default=50)
-    project_validate.add_argument("--timeout-seconds", type=float, default=600)
-    project_validate.add_argument("--poll-seconds", type=float, default=1)
+    project_validate.add_argument(
+        "--profile",
+        choices=[item.value for item in ValidationProfileName],
+        help="named density/timing policy; requires --stl-max-dimension-mm",
+    )
+    project_validate.add_argument(
+        "--stl-max-dimension-mm",
+        type=int,
+        help="physical maximum dimension in mm (raw default: 250; explicit for profiles)",
+    )
+    project_validate.add_argument(
+        "--mesh-size-percent",
+        type=int,
+        help="raw density override (raw default: 50; cannot be combined with --profile)",
+    )
+    project_validate.add_argument(
+        "--timeout-seconds",
+        type=float,
+        help="raw timeout override (raw default: 600; cannot be combined with --profile)",
+    )
+    project_validate.add_argument(
+        "--poll-seconds",
+        type=float,
+        help="raw polling override (raw default: 1; cannot be combined with --profile)",
+    )
 
     project_assess = project_commands.add_parser(
         "assess",
@@ -417,16 +442,45 @@ def _handle_project(args: argparse.Namespace) -> int:
         )
         return 0
     if args.project_command == "validate":
-        validation = workspace.validate_native(
-            ref=args.ref,
-            executable=args.executable,
-            settings=MeshExportSettings(
+        if args.profile is not None:
+            if args.stl_max_dimension_mm is None:
+                raise ValueError("--profile requires --stl-max-dimension-mm")
+            for option, value in (
+                ("--mesh-size-percent", args.mesh_size_percent),
+                ("--timeout-seconds", args.timeout_seconds),
+                ("--poll-seconds", args.poll_seconds),
+            ):
+                if value is not None:
+                    raise ValueError(f"{option} cannot be used with --profile")
+            validation = workspace.validate_profile(
+                ValidationProfileName(args.profile),
+                ref=args.ref,
+                executable=args.executable,
                 stl_max_dimension_mm=args.stl_max_dimension_mm,
-                mesh_size_percent=args.mesh_size_percent,
-            ),
-            timeout_seconds=args.timeout_seconds,
-            poll_seconds=args.poll_seconds,
-        )
+            )
+        else:
+            validation = workspace.validate_native(
+                ref=args.ref,
+                executable=args.executable,
+                settings=MeshExportSettings(
+                    stl_max_dimension_mm=(
+                        args.stl_max_dimension_mm
+                        if args.stl_max_dimension_mm is not None
+                        else 250
+                    ),
+                    mesh_size_percent=(
+                        args.mesh_size_percent
+                        if args.mesh_size_percent is not None
+                        else 50
+                    ),
+                ),
+                timeout_seconds=(
+                    args.timeout_seconds if args.timeout_seconds is not None else 600
+                ),
+                poll_seconds=(
+                    args.poll_seconds if args.poll_seconds is not None else 1
+                ),
+            )
         _print_json(asdict(validation))
         return 0 if validation.basic_mesh_valid else 1
     if args.project_command == "assess":

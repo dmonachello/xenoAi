@@ -1,0 +1,122 @@
+{
+  "schema": "xenosculpt-xenodream-validation-profiles/v1",
+  "date": "2026-10-18",
+  "packaged_executable_sha256": "02e4e87522725a5c2f9a5ea2106392b350b0379504382ea2620c029b34b36a66",
+  "xenodream": {
+    "path": "C:\\Program Files (x86)\\XenoDream Software\\XenoDreamX\\XenoDreamX.exe",
+    "file_version": "1.22.0.0",
+    "sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e"
+  },
+  "workspace": {
+    "path": "C:\\Users\\dmona\\xenoAITest\\m26-final-20261018-1045\\sculpture.xsp",
+    "revision_id": "9a5784a5da966b425ee1b3b44e73e7e4175a53a947e173ae7185425bd3975f7d",
+    "artifact_sha256": "ee7538afae5fb254856ba9e8c6d4ac31e4e2dfc752dd62904a9dde1dfaf231ae",
+    "description": "non-default Cube2 followed by Cube3"
+  },
+  "preview": {
+    "profile": "preview",
+    "version": 1,
+    "definition_sha256": "5a09d54fb8d003493a91ad3bc947412e82d123347fabd84e56d2d7f12bb3fbd7",
+    "validation_id": "c0be43bbfb18566fe3a1cd991b69e7a34480447325abdc338b1034d914362c1a",
+    "settings": {
+      "stl_max_dimension_mm": 123,
+      "mesh_size_percent": 10,
+      "timeout_seconds": 180,
+      "poll_seconds": 1
+    },
+    "outcome": "succeeded",
+    "native_model_valid": true,
+    "evaluates_to_3d": true,
+    "basic_mesh_valid": true,
+    "fabrication_suitable": false,
+    "elapsed_seconds": 20.492,
+    "mesh": {
+      "sha256": "74c26be8d260cb056aa50ebb695dc61616d11ae27b5d8179d286c0b42450c525",
+      "bytes": 207484,
+      "triangle_count": 4148,
+      "dimensions_mm": [117.74580693244934, 69.58433604240417, 69.58433604240417],
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0
+    }
+  },
+  "review": {
+    "profile": "review",
+    "version": 1,
+    "definition_sha256": "80c56205e309d7b12f834a7c8e0446570f37a47bfc998390c5779da7aa9af7b1",
+    "validation_id": "343ec9dac239a7751c4959287413b9a22603872465a6dd2f523a28a0a0de41b3",
+    "settings": {
+      "stl_max_dimension_mm": 123,
+      "mesh_size_percent": 50,
+      "timeout_seconds": 600,
+      "poll_seconds": 1
+    },
+    "outcome": "succeeded",
+    "native_model_valid": true,
+    "evaluates_to_3d": true,
+    "basic_mesh_valid": true,
+    "fabrication_suitable": false,
+    "elapsed_seconds": 21.83,
+    "mesh": {
+      "sha256": "c30dbc63fa0e5ffee90e30b15d4dd1c0ca184564ecb634bf683b4033dc93b7a2",
+      "bytes": 5189684,
+      "triangle_count": 103792,
+      "dimensions_mm": [117.74580693244934, 69.58433604240417, 69.58433604240417],
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0
+    }
+  },
+  "safety": {
+    "source_and_disposable_hashes_unchanged": true,
+    "cleanup_confirmed_for_both_runs": true,
+    "no_process_remained_after_each_run": true,
+    "preview_cache_reused_without_launch": true,
+    "preview_cache_elapsed_seconds": 1.281,
+    "preexisting_session_refused": true,
+    "preexisting_session_exit_code": 2,
+    "mutex_contention_refused": true,
+    "mutex_contention_exit_code": 2,
+    "mutex_identity": "Global Windows mutex keyed by process-token user SID",
+    "mutex_contention_with_different_logname_refused": true,
+    "approved_executable_held_open_through_launch": true,
+    "preferences_persisted_after_review": {
+      "stl_max_dimension_mm": 123,
+      "mesh_size_percent": 50
+    }
+  },
+  "observations": {
+    "review_to_preview_triangle_ratio": 25.022,
+    "physical_dimensions_equal": true,
+    "review_control_display_after_input_reported_percent": 10,
+    "review_persisted_after_percent": 50,
+    "review_density_application_confirmed_by_triangle_count": true,
+    "basic_mesh_valid_for_both_runs": true,
+    "fabrication_suitability_established": false
+  },
+  "cross_application_checkpoint": {
+    "moi": {
+      "outcome": "succeeded",
+      "file_version": "4.0.2020.1222",
+      "executable_sha256": "fda76d45d770b5c1ffcd62c1d262a9ecc36897c2fab3ee61e0ccdf0b29bcdcf5",
+      "revision_id": "065a52205535cf980cdfb7f3e18f87c0708fde3f51076c621a8f55a3383394c3",
+      "native_sha256": "e457212a70c2b46de86e22aa68ea9409b260af6b03019924d7995bc30e9e408d",
+      "stl_sha256": "77d3f5f54c00534ec48d117bae069f6ffa487e5f5b7d24c71b90297bb0b9606d",
+      "triangle_count": 5216,
+      "dimensions_mm": [30.0, 30.0, 40.0],
+      "basic_topology_valid": true
+    },
+    "comfyui": {
+      "outcome": "unavailable",
+      "checked_urls": [
+        "http://127.0.0.1:8188/system_stats",
+        "http://127.0.0.1:8199/system_stats"
+      ],
+      "claim": "no fresh live ComfyUI result"
+    }
+  }
+}

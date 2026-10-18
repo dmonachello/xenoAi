@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+from hashlib import sha256
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -19,7 +21,13 @@ from xenodream_xxp.generator import (
     compile_sphere,
     compile_cylinder,
 )
+from xenodream_xxp.validation import (
+    ResolvedValidationRequest,
+    XenoDreamInstallation,
+    validation_profile,
+)
 from xenodream_xxp.mesh import inspect_binary_stl
+from xenodream_xxp.native_export import MeshExportSettings
 from xenodream_xxp.workspace import ProjectWorkspace
 
 
@@ -494,6 +502,108 @@ def test_project_cli_assesses_a_validated_revision_without_claiming_printability
     assert checks["build-volume"]["status"] == "pass"
     assert checks["self-intersections"]["status"] == "not_evaluated"
     assert ProjectWorkspace.open(workspace_path).status().head.id == head_before
+
+
+def test_project_cli_uses_named_validation_profile_without_raw_overrides(
+    tmp_path, capsys, monkeypatch
+) -> None:
+    source = tmp_path / "source.xxp"
+    workspace_path = tmp_path / "profile.xsp"
+    executable = tmp_path / "XenoDreamX.exe"
+    source.write_bytes(compile_cube())
+    executable.write_bytes(b"test executable")
+    executable_sha = sha256(executable.read_bytes()).hexdigest()
+    assert main(["project", "init", str(workspace_path), str(source)]) == 0
+    capsys.readouterr()
+
+    def fake_run_export(
+        executable_path,
+        source_path,
+        run_directory,
+        report_path,
+        timeout_seconds,
+        poll_seconds,
+        settings,
+    ):
+        mesh_directory = run_directory / "mesh"
+        mesh_directory.mkdir(parents=True)
+        mesh = mesh_directory / "model.stl"
+        _closed_tetrahedron(mesh)
+        report = {
+            "schema": "xenodream-batch-stl/v2",
+            "outcome": "succeeded",
+            "stl": asdict(inspect_binary_stl(mesh)),
+            "cleanup_confirmed": True,
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    @contextmanager
+    def fake_session(installation):
+        yield
+
+    monkeypatch.setattr("xenodream_xxp.workspace.run_export", fake_run_export)
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.resolve_profile_request",
+        lambda profile, stl_max_dimension_mm, executable: ResolvedValidationRequest(
+            settings=MeshExportSettings(
+                stl_max_dimension_mm, validation_profile(profile).mesh_size_percent
+            ),
+            timeout_seconds=validation_profile(profile).timeout_seconds,
+            poll_seconds=validation_profile(profile).poll_seconds,
+            profile=validation_profile(profile),
+            installation=XenoDreamInstallation(
+                str(executable), "1.22.0.0", executable_sha
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.ensure_no_xenodream_sessions", lambda: None
+    )
+
+    @contextmanager
+    def fake_pin(_installation):
+        yield executable
+
+    monkeypatch.setattr("xenodream_xxp.workspace.pinned_executable", fake_pin)
+    monkeypatch.setattr(
+        "xenodream_xxp.workspace.managed_validation_session", fake_session
+    )
+
+    assert main(
+        [
+            "project",
+            "validate",
+            str(workspace_path),
+            "--profile",
+            "preview",
+            "--stl-max-dimension-mm",
+            "120",
+            "--executable",
+            str(executable),
+        ]
+    ) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["settings"]["profile"]["name"] == "preview"
+    assert result["settings"]["settings"] == {
+        "mesh_size_percent": 10,
+        "stl_max_dimension_mm": 120,
+    }
+
+    assert main(
+        [
+            "project",
+            "validate",
+            str(workspace_path),
+            "--profile",
+            "preview",
+            "--stl-max-dimension-mm",
+            "120",
+            "--mesh-size-percent",
+            "20",
+        ]
+    ) == 2
+    assert "cannot be used with --profile" in capsys.readouterr().err
 
 
 def test_project_cli_creates_mutates_branches_and_exports(tmp_path, capsys) -> None:
