@@ -219,8 +219,22 @@ for the one-Cube to Cube/Sphere transition,
 [Add the evidenced empty XenoDream group](docs/remaining-xenodream-empty-group.md)
 for the exact Group3 transition, and
 [XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
-RoundCube, Pipe, Torus, Cog, and SpiralShell currently remain research-only;
-see [Research-only XenoDream constructor probes](docs/remaining-xenodream-constructor-probes.md).
+Create one of the five native-evaluated closed constructor projects, then use
+the same workspace and controlled-prompt flow:
+
+```powershell
+xenosculpt generate-constructor Torus output/torus.xxp `
+  --scale 60 60 40 --position 0 0 10
+xenosculpt project init output/torus.xsp output/torus.xxp
+xenosculpt project prompt output/torus.xsp `
+  "set object Torus2 position to 25 0 10" --message "move torus"
+```
+
+The accepted names are RoundCube, Pipe, Torus, Cog, and SpiralShell. Their
+default parameter vectors remain fixed; only scale and position are writable.
+See [Closed XenoDream constructors](docs/xenodream-closed-constructors.md).
+The underlying descriptor recovery and native probe remain documented in
+[XenoDream constructor probes](docs/remaining-xenodream-constructor-probes.md).
 See [Controlled recipes](docs/m28-m29-xenodream-controlled-recipes.md) for
 revision-bound addition offers, dry-run, and atomic multi-step prompts.
 

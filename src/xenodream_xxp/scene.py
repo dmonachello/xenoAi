@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from decimal import Decimal, DecimalException
 from enum import StrEnum
+from hashlib import sha256
 import re
 from typing import Any
 
@@ -237,6 +238,14 @@ def _describe_metamorph(
         version=version, style=style, declared=declared
     )
     schema_verified = definition is not None and declared == len(tokens)
+    if schema_verified and definition is not None:
+        verified_vectors = definition.get("verified_pars_sha256")
+        if verified_vectors is not None:
+            schema_verified = (
+                isinstance(verified_vectors, list)
+                and pars is not None
+                and sha256(pars).hexdigest() in verified_vectors
+            )
     bindings = (
         {
             int(item["token_index"]): item
@@ -402,7 +411,17 @@ def _constructor(
     if (
         definition is not None
         and definition.get("role") == "constructor"
-        and mm0[0].operation_name in {"Cube", "Sphere", "Cylinder"}
+        and mm0[0].operation_name
+        in {
+            "Cube",
+            "Sphere",
+            "Cylinder",
+            "RoundCube",
+            "Pipe",
+            "Torus",
+            "Cog",
+            "SpiralShell",
+        }
     ):
         return mm0[0].operation_name
     return None
@@ -449,6 +468,11 @@ def _operation_capabilities(
             operations.append(SceneOperation.APPLY_SPHERE_PROFILE)
     elif constructor == "Cylinder" and mm0_verified:
         operations.append(SceneOperation.APPLY_CYLINDER_PROFILE)
+    elif constructor in {"RoundCube", "Pipe", "Torus", "Cog", "SpiralShell"}:
+        if has_tokens(b"Transform", (0, 1, 2)):
+            operations.append(SceneOperation.SET_SCALE)
+        if has_tokens(b"Transform", (9, 10, 11)):
+            operations.append(SceneOperation.SET_POSITION)
     return tuple(operations)
 
 

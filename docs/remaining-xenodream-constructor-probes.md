@@ -1,4 +1,4 @@
-# Research-only XenoDream constructor probes
+# XenoDream constructor probes
 
 The closed constructor probe recovers descriptor metadata from the pinned
 XenoDream X 1.220 executable, derives one default candidate from the normalized
@@ -23,13 +23,16 @@ or degenerate-triangle defects. The first Torus attempt ended in a batch source
 chooser automation timeout; cleanup succeeded, and a fresh retry verified the
 same candidate hash.
 
-These are research dispositions, not product capabilities. Every manifest
-sets `writer_authorized`, `registry_promoted`, and `fabrication_suitable` to
-false. Native evaluation does not prove application-authored save bytes,
-parameter mutation rules, interaction behavior, mixed-scene insertion, or
-printability. Promoting any constructor requires a separate controlled native
-create/save/resave transition, exact byte contract, parameter evidence, public
-API design, and fresh validation.
+The probe itself remains research-only and never grants write authority. A
+later promotion gate added a closed public compiler for the same five exact
+default vectors, proved canonical artifact hashes, and natively evaluated
+non-default scale and position variants. See
+[Closed XenoDream constructors](xenodream-closed-constructors.md).
+
+Raw parameter mutation, interaction behavior, mixed-scene insertion, and
+printability remain unsupported. `writer_authorized` and `registry_promoted`
+in old probe manifests describe what the probe authorized at the time; the
+separate promotion evidence is the authority for the current compiler.
 
 The retained campaign summary is
 [`remaining-constructor-probes.json`](../evidence/runtime/remaining-constructor-probes.json).

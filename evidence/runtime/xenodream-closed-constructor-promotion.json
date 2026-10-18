@@ -1,0 +1,91 @@
+{
+  "schema": "xenosculpt-xenodream-closed-constructor-promotion/v1",
+  "recorded_at": "2026-10-18T17:00:00Z",
+  "source_commit": null,
+  "packaged_executable_sha256": null,
+  "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
+  "profile": "preview/1",
+  "requested_transform": {
+    "scale": ["40", "55", "65"],
+    "position": ["15", "-10", "20"]
+  },
+  "constructors": [
+    {
+      "constructor": "RoundCube",
+      "revision_id": "f7e60b234910c88b288a45c0f101e8d7696fb97fd7e973e7cab4a891e2635e2b",
+      "artifact_sha256": "5058cd5cd14127387b5f24d218ff3c139ae1f3e796818a2301fe00f3dd645ce1",
+      "validation_id": "e94b5e1e434251da101a311d41880cb25821c1338a78164d727f8ae8f8de44bb",
+      "mesh_sha256": "1f16994ca6ad562c56a0d1067731f79a4706f9c6d02064a39d47621f51560339",
+      "triangle_count": 4130,
+      "connected_components": 1,
+      "dimensions_mm": [72.78538799285889, 99.74574422836304, 117.72159504890442],
+      "outcome": "succeeded",
+      "basic_mesh_valid": true,
+      "cleanup_confirmed": true
+    },
+    {
+      "constructor": "Pipe",
+      "revision_id": "3e52d3a0fd9a3c34e9d3511b3014a09cf5ddccd9b41889a69ae2a1155f7fddef",
+      "artifact_sha256": "1f4e10fb2c31a3721d30e6083af68a8f27a8fd55d661a8704a3c0f6f3dadc345",
+      "validation_id": "29b6ea2df4b2d9968bc7c8e16dc8e81e554adab3e1e4da88be98400350a191c3",
+      "mesh_sha256": "3d2ffe11409ac40021491577506aa416bb87f0d357de918ecc4e913a42b6438d",
+      "triangle_count": 4356,
+      "connected_components": 1,
+      "dimensions_mm": [36.6410653591156, 99.49793243408203, 117.45478296279907],
+      "outcome": "succeeded",
+      "basic_mesh_valid": true,
+      "cleanup_confirmed": true
+    },
+    {
+      "constructor": "Torus",
+      "revision_id": "57fde67d50b23e5e4065a2862402c10b96447840b0e05f0da7fa9d14e4a27e2c",
+      "artifact_sha256": "7f71d2cc2389bfc959a94bc23d50702c4fc92ec8ae41509078c9c234511ac101",
+      "validation_id": "02b93ad83280c4b61e35f49c6578d3b666e0d67ce1374ae1006df6e1425750e8",
+      "mesh_sha256": "d9e242058aa1dd41e03e19849e28578e2007aef33a6c54a1b51a70de5dafc262",
+      "triangle_count": 4298,
+      "connected_components": 1,
+      "dimensions_mm": [85.66071605682373, 117.55139899253845, 28.28891134262085],
+      "outcome": "succeeded",
+      "basic_mesh_valid": true,
+      "cleanup_confirmed": true
+    },
+    {
+      "constructor": "Cog",
+      "revision_id": "c07546d8c3e767608610194bf1b6ca40c6a5761880d163e40d3ad4387b6860cd",
+      "artifact_sha256": "c64029372df86f5d6d70d2f8f5b8efb938a401ad7ab62be6fd294cc74970b77c",
+      "validation_id": "11c18ddae73f89364165f42cd2836b961e6f0a5f6e90d632697e99a0e00b2bd2",
+      "mesh_sha256": "b1c78e15cdf058d24a33773aadee6ff5a04d814e85137d6a485a2a2d9868bca6",
+      "triangle_count": 4386,
+      "connected_components": 1,
+      "dimensions_mm": [94.21878671646118, 118.06960654258728, 51.39564633369446],
+      "outcome": "succeeded",
+      "basic_mesh_valid": true,
+      "cleanup_confirmed": true
+    },
+    {
+      "constructor": "SpiralShell",
+      "revision_id": "47ffc1e86f9d093236bd9a1a23541abfcddd0fc12a71f88c7e5c583b01d3a2ff",
+      "artifact_sha256": "509a4fa80839c7ac68d56933ca4b354c0ab788b27b1597a138250a8f2858c1d6",
+      "attempts": [
+        {
+          "validation_id": "2db55bd3eac1a0868660ae3869b6b884facfa365b266260f7f59f32c0a783499",
+          "outcome": "automation_failed",
+          "error": "source path entry timeout",
+          "cleanup_confirmed": true
+        },
+        {
+          "validation_id": "6d027e227e392416d96806970343d23cc31d4d45ce314e9b2f2cab33538fdf21",
+          "outcome": "succeeded",
+          "mesh_sha256": "06c49746dd4a583f93852d1de1d2e12d431e0e6ebcab8f8bf6d4ec98aba480ef",
+          "triangle_count": 6018,
+          "connected_components": 1,
+          "dimensions_mm": [87.059739112854, 104.86183547973633, 118.86575055122375],
+          "basic_mesh_valid": true,
+          "cleanup_confirmed": true,
+          "stl_max_dimension_mm": 124
+        }
+      ]
+    }
+  ],
+  "interpretation": "All five exact default constructor vectors remained native-valid after non-default scale and position writes. This authorizes the closed compiler and those two transform operations. It does not authorize raw constructor parameters, mixed-scene insertion, structural identity operations, or fabrication suitability."
+}

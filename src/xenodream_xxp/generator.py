@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import StrEnum
 from typing import TypeAlias
 
 
@@ -13,6 +14,9 @@ THREE_CUBE_COMPILER_PROFILE = "xdx-1.220-three-cube-evidence-2026-10-15"
 SPHERE_COMPILER_PROFILE = "xdx-1.220-sphere-evidence-2026-10-15"
 CUBE_SPHERE_COMPILER_PROFILE = "xdx-1.220-cube-sphere-evidence-2026-10-15"
 CYLINDER_COMPILER_PROFILE = "xdx-1.220-cylinder-binary-corpus-2026-10-16"
+CLOSED_CONSTRUCTOR_COMPILER_PROFILE = (
+    "xdx-1.220-closed-constructors-native-evaluated-2026-10-18"
+)
 
 
 class GenerationError(ValueError):
@@ -85,6 +89,31 @@ class CylinderSpec:
     position: Vector3 = Vector3()
 
     def __post_init__(self) -> None:
+        if not isinstance(self.scale, Vector3):
+            raise TypeError("scale must be Vector3")
+        if not isinstance(self.position, Vector3):
+            raise TypeError("position must be Vector3")
+
+
+class ClosedConstructorName(StrEnum):
+    ROUND_CUBE = "RoundCube"
+    PIPE = "Pipe"
+    TORUS = "Torus"
+    COG = "Cog"
+    SPIRAL_SHELL = "SpiralShell"
+
+
+@dataclass(frozen=True, slots=True)
+class ClosedConstructorSpec:
+    """Transform controls for one native-evaluated closed constructor profile."""
+
+    constructor: ClosedConstructorName
+    scale: Vector3 = Vector3(Decimal("50"), Decimal("50"), Decimal("50"))
+    position: Vector3 = Vector3()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.constructor, ClosedConstructorName):
+            raise TypeError("constructor must be ClosedConstructorName")
         if not isinstance(self.scale, Vector3):
             raise TypeError("scale must be Vector3")
         if not isinstance(self.position, Vector3):
@@ -219,6 +248,16 @@ def compile_cylinder(spec: CylinderSpec | None = None) -> bytes:
     if not isinstance(cylinder, CylinderSpec):
         raise TypeError("spec must be CylinderSpec")
     return compile_cylinder_template(cylinder)
+
+
+def compile_closed_constructor(spec: ClosedConstructorSpec) -> bytes:
+    """Compile one closed, native-evaluated XDX 1.220 constructor profile."""
+
+    from ._closed_constructor import compile_closed_constructor_template
+
+    if not isinstance(spec, ClosedConstructorSpec):
+        raise TypeError("spec must be ClosedConstructorSpec")
+    return compile_closed_constructor_template(spec)
 
 
 def compile_three_cubes(spec: ThreeCubeProjectSpec | None = None) -> bytes:

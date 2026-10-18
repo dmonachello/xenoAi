@@ -55,6 +55,9 @@ class XenoDreamArtifactAdapter:
     ) -> XenoDreamArtifactMutation:
         result = apply_verified_mutation(data, operation)
         details = verified_operation_details(operation)
+        if result.native_validation_required:
+            details.setdefault("native_validation_required", True)
+            details.setdefault("fabrication_suitable", False)
         return XenoDreamArtifactMutation(
             data=result.data,
             operation=str(details["type"]),

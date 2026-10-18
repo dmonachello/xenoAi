@@ -537,9 +537,18 @@ def _target_node(document: Document, object_name: str) -> SceneNode:
 
 
 def _target_object(node: SceneNode, object_name: str) -> _ObjectRecord:
-    if node.constructor not in {"Cube", "Sphere"}:
+    if node.constructor not in {
+        "Cube",
+        "Sphere",
+        "RoundCube",
+        "Pipe",
+        "Torus",
+        "Cog",
+        "SpiralShell",
+    }:
         raise MutationError(
-            f"{object_name} does not match a verified XDX 1.220 Cube or Sphere record"
+            f"{object_name} does not match a verified XDX 1.220 Cube or Sphere "
+            "record or promoted closed constructor"
         )
     return _ObjectRecord(
         f"Holon\\{node.holon_index}".encode("ascii"),
@@ -557,6 +566,13 @@ def _require_object_capabilities(
     ):
         raise MutationError(
             "Sphere mutations support only scale and position until more fields are verified"
+        )
+    if node.constructor in {"RoundCube", "Pipe", "Torus", "Cog", "SpiralShell"} and any(
+        value is not None
+        for value in (operation.rotation, operation.color_density, operation.face_warp)
+    ):
+        raise MutationError(
+            f"{node.constructor} mutations support only scale and position"
         )
     requested = {
         SceneOperation.SET_SCALE: operation.scale,
@@ -974,6 +990,9 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
     if original.to_bytes() != data:
         raise MutationError("input failed exact parser round trip")
     _require_xdx_1220(original)
+    native_validation_required = isinstance(
+        operation, (SphereMetamorphMutation, CylinderMetamorphMutation)
+    )
     if isinstance(operation, (AddCube, AddSphere, AddEmptyGroup)):
         try:
             if isinstance(operation, AddCube):
@@ -1011,6 +1030,13 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
             node = _target_node(original, operation.object_name)
             obj = _target_object(node, operation.object_name)
             _require_object_capabilities(operation, node)
+            native_validation_required = node.constructor in {
+                "RoundCube",
+                "Pipe",
+                "Torus",
+                "Cog",
+                "SpiralShell",
+            }
             mutated, names, allowed = _apply_object_mutation(
                 original, operation, (obj,)
             )
@@ -1078,8 +1104,6 @@ def apply_verified_mutation(data: bytes, operation: VerifiedOperation) -> Mutati
         output != data,
         differences,
         names,
-        native_validation_required=isinstance(
-            operation, (SphereMetamorphMutation, CylinderMetamorphMutation)
-        ),
+        native_validation_required=native_validation_required,
         fabrication_suitable=False,
     )

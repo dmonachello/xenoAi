@@ -16,9 +16,12 @@ from .diffing import diff_documents
 from .document import parse_bytes
 from .fabrication import fabrication_assessment_to_dict
 from .generator import (
+    CLOSED_CONSTRUCTOR_COMPILER_PROFILE,
     COMPILER_PROFILE,
     CUBE_SPHERE_COMPILER_PROFILE,
     CYLINDER_COMPILER_PROFILE,
+    ClosedConstructorName,
+    ClosedConstructorSpec,
     CubeProjectSpec,
     CubeSpec,
     CylinderSpec,
@@ -33,6 +36,7 @@ from .generator import (
     compile_cube,
     compile_cube_project,
     compile_cylinder,
+    compile_closed_constructor,
     compile_project,
     compile_sphere,
     compile_three_cubes,
@@ -178,6 +182,31 @@ def _parser() -> argparse.ArgumentParser:
         default=(Decimal("50"), Decimal("50"), Decimal("50")),
     )
     generate_cylinder.add_argument(
+        "--position",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
+
+    generate_constructor = commands.add_parser(
+        "generate-constructor",
+        help="create one exact native-evaluated XDX 1.220 constructor project",
+    )
+    generate_constructor.add_argument(
+        "constructor",
+        type=ClosedConstructorName,
+        choices=tuple(ClosedConstructorName),
+    )
+    generate_constructor.add_argument("output", type=Path)
+    generate_constructor.add_argument(
+        "--scale",
+        nargs=3,
+        type=Decimal,
+        metavar=("X", "Y", "Z"),
+        default=(Decimal("50"), Decimal("50"), Decimal("50")),
+    )
+    generate_constructor.add_argument(
         "--position",
         nargs=3,
         type=Decimal,
@@ -956,6 +985,35 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "bytes": len(output),
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": CYLINDER_COMPILER_PROFILE,
+                    "native_validation_required": True,
+                    "fabrication_suitable": False,
+                }
+            )
+            return 0
+
+        if args.command == "generate-constructor":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            output = compile_closed_constructor(
+                ClosedConstructorSpec(
+                    args.constructor,
+                    scale=Vector3(*args.scale),
+                    position=Vector3(*args.position),
+                )
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": CLOSED_CONSTRUCTOR_COMPILER_PROFILE,
+                    "constructor": args.constructor.value,
                     "native_validation_required": True,
                     "fabrication_suitable": False,
                 }

@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 372 tests. The standalone `xenosculpt.exe` build can
+The current suite has 378 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -90,7 +90,7 @@ The generator has a small semantic model, but it does not yet have a general
 XenoDream model representation.
 
 `Document` is a lossless syntax model. `ProjectSpec`, `CubeSpec`, `SphereSpec`,
-and `Vector3` are typed semantic inputs for a few verified operations. The
+`ClosedConstructorSpec`, and `Vector3` are typed semantic inputs for verified operations. The
 compiler selects a hash-pinned whole-project template and replaces an allowed
 set of fields or tokens.
 
@@ -101,6 +101,11 @@ target-local mutations use the same constructor recognition. Bounded structural
 operations append Cube3 or Cube4, append Sphere3 to the one-Cube family, or
 reproduce the exact native-observed empty Group3 transition. They do not
 provide a general scene serializer or general grouping semantics.
+
+Five closed constructor profiles are now public: RoundCube, Pipe, Torus, Cog,
+and SpiralShell. Each exact default vector and a non-default scale and position
+variant passed native evaluation. The compiler keeps their raw constructor
+parameters fixed and requires fresh native validation after transform edits.
 
 A clean native middle-Cube deletion now establishes exact section compaction
 and survivor identity retention. It is not a product operation. The native
