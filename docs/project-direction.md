@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 384 tests. The standalone `xenosculpt.exe` build can
+The current suite has 399 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -108,6 +108,14 @@ Five closed constructor profiles are now public: RoundCube, Pipe, Torus, Cog,
 and SpiralShell. Each exact default vector and a non-default scale and position
 variant passed native evaluation. The compiler keeps their raw constructor
 parameters fixed and requires fresh native validation after transform edits.
+
+The hosted natural-language creation boundary can select one verified seed and
+translate broader intent into the existing closed operation catalog. The model
+never authors XDX bytes or bypasses operation admission. XenoSculpt evaluates
+the complete result before publishing a workspace and retains the prompt,
+model, response ID, seed, translated recipe, and operation provenance. This
+improves access to the current vocabulary; it does not expand that vocabulary
+or establish native or fabrication validity.
 
 A clean native middle-Cube deletion now establishes exact section compaction
 and survivor identity retention. It is not a product operation. The native

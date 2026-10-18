@@ -5,6 +5,12 @@ means every roadmap item is either shipped behind an exact native contract or
 stopped at a recorded failed predicate. It does not mean XenoSculpt is a
 general replacement for XenoDream's editor.
 
+The supported surface also includes hosted natural-language creation. A model
+may select a verified seed and translate a request into the same bounded typed
+operations used by the deterministic planner. XenoSculpt evaluates that recipe
+before publication; the model has no XDX, filesystem, or native-application
+write authority.
+
 ## Shipped
 
 - Lossless XDX parsing, inspection, semantic comparison, immutable revisions,

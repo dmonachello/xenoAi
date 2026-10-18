@@ -1,0 +1,67 @@
+# Natural-language XenoDream creation
+
+`xenosculpt create` turns a broader text request into a new revision workspace
+and, optionally, an editable `.xxp` export. It uses the OpenAI Responses API as
+a translator. XenoSculpt remains the execution authority.
+
+## Preview a request
+
+```powershell
+$env:OPENAI_API_KEY = "your-key"
+
+./dist/xenosculpt.exe create ./output/sculpture.xsp `
+  --prompt "Make a broad cube with a cushioned sphere 55 units to its right" `
+  --model gpt-5-mini `
+  --export ./output/sculpture.xxp `
+  --dry-run
+```
+
+The result includes the selected seed, exact controlled recipe, typed
+operations, artifact hashes, complete scene description, and any unsupported
+parts. The dry run writes no workspace or export, but it does make a hosted API
+request. A later invocation is a new request and may translate the prompt
+differently.
+
+## Create the workspace and native file
+
+Run the same command without `--dry-run`:
+
+```powershell
+./dist/xenosculpt.exe create ./output/sculpture.xsp `
+  --prompt "Make a broad cube with a cushioned sphere 55 units to its right" `
+  --model gpt-5-mini `
+  --export ./output/sculpture.xxp
+```
+
+The command refuses to overwrite either destination. It compiles the seed,
+parses the recipe through the controlled grammar, evaluates every operation in
+memory, builds a sibling staging workspace, and verifies the staged HEAD hash
+against the preview before publication. The exported `.xxp` is the exact HEAD
+artifact and can be opened manually in XenoDream.
+
+The initial revision records the original prompt, provider, model, response ID,
+seed, recipe, summary, and seed hash. Recipe revisions record the same typed
+operation provenance as `project prompt`.
+
+## Supported vocabulary
+
+Seeds are Cube, Sphere, Cylinder, RoundCube, Pipe, Torus, Cog, and SpiralShell.
+Recipes may use verified absolute transforms, Cube measured fields, admitted
+Cube or Sphere additions, centered rows, seeded variation, and measured Sphere
+or Cylinder profiles. A recipe contains at most five operations.
+
+The command rejects a request when the model reports unsupported intent or the
+recipe fails deterministic parsing or mutation admission. It does not
+approximate unsupported features.
+
+## Security and evidence boundary
+
+- The prompt is sent to the OpenAI Responses API.
+- `OPENAI_API_KEY` is read from the environment and is never persisted.
+- The selected model is explicit and recorded.
+- The response uses strict JSON Schema and a bounded body.
+- The model cannot emit XDX bytes, run code, access files, or control XenoDream.
+- No creation result claims native validity or fabrication suitability.
+
+Run `project validate --profile preview` or `review` separately when native
+evaluation is required.

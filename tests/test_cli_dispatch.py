@@ -28,6 +28,7 @@ def test_top_level_help_lists_both_application_surfaces(capsys) -> None:
     output = capsys.readouterr().out
     assert "comfyui" in output
     assert "XenoDream" in output
+    assert "create" in output
 
 
 def test_top_level_help_lists_moi_surface(capsys) -> None:

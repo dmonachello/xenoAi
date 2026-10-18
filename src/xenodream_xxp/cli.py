@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from .creation import apply_creation, preview_creation
 from .composition import (
     AddCube,
     AddEmptyGroup,
@@ -53,6 +54,7 @@ from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
 from .mesh import inspect_binary_stl
 from .native_export import DEFAULT_XENODREAM_EXECUTABLE, MeshExportSettings
+from .openai_planner import request_creation
 from .validation import ValidationProfileName
 from .solidify import SolidifySettings, solidify_binary_stl
 from .mutation import (
@@ -244,6 +246,38 @@ def _parser() -> argparse.ArgumentParser:
         type=Decimal,
         metavar=("X", "Y", "Z"),
         default=(Decimal("0"), Decimal("0"), Decimal("0")),
+    )
+
+    create = commands.add_parser(
+        "create",
+        help="create a verified XenoDream workspace from a natural-language prompt",
+    )
+    create.add_argument("workspace", type=Path)
+    create.add_argument("--prompt", required=True)
+    create.add_argument(
+        "--model",
+        required=True,
+        help="OpenAI model ID recorded with the creation provenance",
+    )
+    create.add_argument(
+        "--export",
+        type=Path,
+        help="also export the final editable XDX artifact without overwriting",
+    )
+    create.add_argument(
+        "--message",
+        default="Create XenoDream project from natural language",
+    )
+    create.add_argument(
+        "--timeout-seconds",
+        type=float,
+        default=60,
+        help="OpenAI request timeout (default: 60)",
+    )
+    create.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="request and fully evaluate a recipe without writing workspace files",
     )
 
     project = commands.add_parser(
@@ -830,6 +864,55 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "project":
             return _handle_project(args)
+
+        if args.command == "create":
+            if not args.dry_run and args.workspace.exists():
+                raise ValueError(f"refusing to overwrite workspace: {args.workspace}")
+            if not args.dry_run and args.export is not None and args.export.exists():
+                raise ValueError(f"refusing to overwrite export: {args.export}")
+            creation = request_creation(
+                args.prompt,
+                model=args.model,
+                timeout_seconds=args.timeout_seconds,
+            )
+            preview = preview_creation(args.prompt, creation)
+            value = {
+                "schema": "xenosculpt-natural-creation/v1",
+                "dry_run": args.dry_run,
+                "prompt": args.prompt,
+                "model": creation.model,
+                "response_id": creation.response_id,
+                "seed": creation.recipe.seed.value,
+                "translated_recipe": creation.recipe.recipe,
+                "summary": creation.recipe.summary,
+                "unsupported": creation.recipe.unsupported,
+                "seed_artifact_sha256": preview.seed_sha256,
+                "output_artifact_sha256": preview.output_sha256,
+                "operations": preview.operations,
+                "scene": scene_description_to_dict(preview.scene),
+                "native_validation_required": True,
+                "fabrication_suitable": False,
+            }
+            if args.dry_run:
+                value.update({"created": False, "workspace": None, "export": None})
+            else:
+                result = apply_creation(
+                    args.workspace,
+                    prompt=args.prompt,
+                    creation=creation,
+                    message=args.message,
+                    export=args.export,
+                )
+                value.update(
+                    {
+                        "created": True,
+                        "workspace": result.workspace,
+                        "revision_id": result.revision_id,
+                        "export": result.export,
+                    }
+                )
+            _print_json(value, sort_keys=False)
+            return 0
 
         if args.command == "inspect":
             document = parse_bytes(args.input.read_bytes())

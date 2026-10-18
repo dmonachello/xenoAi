@@ -152,12 +152,66 @@ class ProjectWorkspace(RevisionWorkspace):
         root: str | Path,
         source: str | Path,
         constraints: FabricationConstraints | None = None,
+        *,
+        initial_details: dict[str, object] | None = None,
+        initial_message: str = "Import initial native project",
+        initial_prompt: str | None = None,
+    ) -> ProjectWorkspace:
+        source_path = Path(source).resolve()
+        data = source_path.read_bytes()
+        return cls._create_from_data(
+            root,
+            data,
+            source_label=str(source_path),
+            constraints=constraints,
+            initial_details=initial_details,
+            initial_message=initial_message,
+            initial_prompt=initial_prompt,
+        )
+
+    @classmethod
+    def create_from_bytes(
+        cls,
+        root: str | Path,
+        data: bytes,
+        *,
+        source_label: str,
+        constraints: FabricationConstraints | None = None,
+        initial_details: dict[str, object] | None = None,
+        initial_message: str = "Import initial native project",
+        initial_prompt: str | None = None,
+    ) -> ProjectWorkspace:
+        """Create a workspace from already verified application-owned bytes."""
+
+        if not isinstance(data, bytes):
+            raise TypeError("data must be bytes")
+        if not isinstance(source_label, str) or not source_label:
+            raise WorkspaceError("source label must be non-empty text")
+        return cls._create_from_data(
+            root,
+            data,
+            source_label=source_label,
+            constraints=constraints,
+            initial_details=initial_details,
+            initial_message=initial_message,
+            initial_prompt=initial_prompt,
+        )
+
+    @classmethod
+    def _create_from_data(
+        cls,
+        root: str | Path,
+        data: bytes,
+        *,
+        source_label: str,
+        constraints: FabricationConstraints | None,
+        initial_details: dict[str, object] | None,
+        initial_message: str,
+        initial_prompt: str | None,
     ) -> ProjectWorkspace:
         workspace = cls(Path(root))
         if workspace.database.exists():
             raise WorkspaceError(f"workspace already exists: {workspace.root}")
-        source_path = Path(source).resolve()
-        data = source_path.read_bytes()
         descriptor = workspace.adapter.inspect(data)
         version = descriptor.xdx_version
         policy = constraints if constraints is not None else FabricationConstraints()
@@ -167,6 +221,17 @@ class ProjectWorkspace(RevisionWorkspace):
         workspace.validation_runs.mkdir(parents=True, exist_ok=True)
         artifact_sha = sha256(data).hexdigest()
         details = {"source_sha256": artifact_sha}
+        if initial_details is not None:
+            if not isinstance(initial_details, dict):
+                raise TypeError("initial_details must be a dict")
+            if "source_sha256" in initial_details:
+                raise WorkspaceError("source_sha256 is reserved initial detail")
+            details.update(initial_details)
+        _json_bytes(details)
+        if not isinstance(initial_message, str) or not initial_message.strip():
+            raise WorkspaceError("initial message must be non-empty text")
+        if initial_prompt is not None and not isinstance(initial_prompt, str):
+            raise TypeError("initial_prompt must be text or None")
         created_at = _now()
         temporary_database = workspace.root / f".{_DATABASE_NAME}.{uuid4().hex}.tmp"
         try:
@@ -178,12 +243,12 @@ class ProjectWorkspace(RevisionWorkspace):
                     created_at=created_at,
                     operation="init",
                     details=details,
-                    message="Import initial native project",
-                    prompt=None,
+                    message=initial_message.strip(),
+                    prompt=initial_prompt,
                     metadata={
                         "schema_version": _SCHEMA_VERSION,
                         "created_at": created_at,
-                        "source_path": str(source_path),
+                        "source_path": source_label,
                         "source_sha256": artifact_sha,
                         "xdx_version": version,
                         "constraints_json": _json_bytes(

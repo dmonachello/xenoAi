@@ -43,8 +43,10 @@ for the current boundary and its deliberate limits.
   records remain visible and read-only where they can be associated with a
   node. Orphan metamorph sections appear as located diagnostics.
 - A controlled-English `project prompt` command that maps one exact sentence
-  to one existing typed operation. It runs offline and does not call a language
-  model.
+  or a two-to-five-step recipe to existing typed operations. It runs offline
+  and does not call a language model.
+- A hosted `create` command that translates broader natural language into a
+  verified seed and the same closed typed-operation catalog.
 - Supervised XenoDream export with binary STL inspection and revision-attached
   validation reports.
 - Revision-bound fabrication assessments that evaluate basic mesh validity and
@@ -62,8 +64,9 @@ for the current boundary and its deliberate limits.
 
 - Generated native projects target XenoDream X 1.220.
 - The generator supports only the object sequences listed above.
-- Prompt planning accepts a documented grammar, not unrestricted natural
-  language. Vague, relative, and multi-operation requests fail.
+- Offline prompt planning accepts a documented grammar. The hosted creation
+  command accepts broader wording, but it cannot exceed the verified operation
+  vocabulary and rejects explicitly unsupported intent.
 - Metamorph writes use complete, measured profiles. Descriptor ranges do not
   authorize arbitrary parameter values.
 - Basic mesh validation checks structure, finite coordinates, degeneracy, edge
@@ -169,6 +172,34 @@ planner identity, and the source revision hash. The workspace rejects the plan
 if `HEAD` changes before application. See
 [deterministic prompt planning](docs/m19-natural-language-planner.md) for every
 accepted sentence form.
+
+## Create from natural language
+
+Set an OpenAI API key in the environment and choose the model explicitly:
+
+```powershell
+$env:OPENAI_API_KEY = "your-key"
+
+xenosculpt create output/sculpture.xsp `
+  --prompt "Make a broad cube with a cushioned sphere 55 units to its right" `
+  --model gpt-5-mini `
+  --export output/sculpture.xxp `
+  --dry-run
+```
+
+The dry run calls the model and evaluates the returned recipe in memory. It
+prints the seed, exact translated operations, final artifact hash, and scene,
+but writes no workspace or export. Remove `--dry-run` to publish them. Each
+invocation is a new model request and can produce a different valid recipe, so
+inspect the JSON returned by the invocation you use.
+
+The prompt is sent to the OpenAI Responses API. The API key is read only from
+`OPENAI_API_KEY` and is not stored. The model cannot write XDX bytes or call
+XenoDream: it selects one verified seed and at most five existing operations.
+XenoSculpt rejects invalid recipes and explicitly unsupported intent before
+publication. Results still require native validation and are never marked
+fabrication-suitable. See
+[Natural-language XenoDream creation](docs/xenodream-natural-language-creation.md).
 
 ## Use explicit workspace operations
 

@@ -11,18 +11,20 @@ from .comfyui.cli import main as comfyui_main
 from .moi.cli import main as moi_main
 
 
-_HELP = """usage: xenosculpt [-h] {comfyui,moi,XenoDream-command} ...
+_HELP = """usage: xenosculpt [-h] {comfyui,moi,create,XenoDream-command} ...
 
 Revision and execution tools for creative applications.
 
 applications:
   comfyui             revise and run ComfyUI API workflows
   moi                  create verified native MoI CAD projects
-  XenoDream-command   any existing XenoDream command (inspect, project, etc.)
+  create              create a verified XenoDream project from natural language
+  XenoDream-command   any XenoDream command (create, inspect, project, etc.)
 
 Run `xenosculpt comfyui --help` for ComfyUI commands.
 Run `xenosculpt moi --help` for MoI commands.
-Run `xxp --help` or `xenosculpt project --help` for XenoDream commands.
+Run `xenosculpt create --help` for hosted natural-language creation.
+Run `xxp --help` or `xenosculpt project --help` for other XenoDream commands.
 """
 
 
