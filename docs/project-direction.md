@@ -79,7 +79,7 @@ The current code has four useful foundations.
    millimetre scaling and the relationship between sampling resolution and
    triangle count.
 
-The current suite has 419 tests. The standalone `xenosculpt.exe` build can
+The current suite has 424 tests. The standalone `xenosculpt.exe` build can
 run the supported XenoDream workflows and revise, execute, and retain image
 outputs from ComfyUI API workflows. It can also create a native
 MoI cylinder, reopen it in a fresh process, and retain its measured STL.
@@ -108,6 +108,12 @@ Five closed constructor profiles are now public: RoundCube, Pipe, Torus, Cog,
 and SpiralShell. Each exact default vector and a non-default scale and position
 variant passed native evaluation. The compiler keeps their raw constructor
 parameters fixed and requires fresh native validation after transform edits.
+
+One fixed mixed-constructor profile is public. `interleaved-eight/v1` combines
+two SpiralShells with Torus, Cog, Pipe, and RoundCube members in two interleaved
+four-member helices. The exact nine-holon XDX scene passed native preview
+evaluation as one clean connected component. This proves that named profile;
+it does not provide arbitrary mixed-scene assembly or Iterator semantics.
 
 The hosted natural-language creation boundary can select one verified seed and
 translate broader intent into the existing closed operation catalog. The model

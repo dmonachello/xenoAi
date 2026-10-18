@@ -20,6 +20,7 @@ from .generator import (
     compile_cylinder,
     compile_sphere,
 )
+from .multi_spiral import compile_interacting_spirals
 from .planning import (
     HeadBinding,
     MutationPlan,
@@ -46,6 +47,7 @@ class CreationSeed(StrEnum):
     TORUS = "Torus"
     COG = "Cog"
     SPIRAL_SHELL = "SpiralShell"
+    INTERACTING_SPIRALS = "InteractingSpirals"
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +126,8 @@ def _seed_bytes(seed: CreationSeed) -> bytes:
         return compile_sphere()
     if seed is CreationSeed.CYLINDER:
         return compile_cylinder()
+    if seed is CreationSeed.INTERACTING_SPIRALS:
+        return compile_interacting_spirals()
     return compile_closed_constructor(
         ClosedConstructorSpec(ClosedConstructorName(seed.value))
     )

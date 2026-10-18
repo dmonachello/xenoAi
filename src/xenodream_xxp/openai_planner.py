@@ -47,8 +47,12 @@ def _instructions() -> str:
     cylinder = ", ".join(cylinder_metamorph_profiles())
     return f"""You translate a user's XenoDream scene request into a closed recipe.
 Return only the required JSON object. Never invent operations, object names, or
-profiles. Choose exactly one seed from the schema. The seed object names are:
+profiles. Choose exactly one seed from the schema. Single-object seed names are:
 Cube2, Sphere2, Cylinder2, RoundCube2, Pipe2, Torus2, Cog2, SpiralShell2.
+InteractingSpirals is the exact native-validated eight-holon composition for
+requests describing multiple interacting spirals made from varied shapes. Its
+members are SpiralShell2, Torus3, Cog4, Pipe5, RoundCube6, SpiralShell7,
+Pipe8, and Cog9.
 
 The recipe is either empty, one exact clause, or 2-5 exact clauses separated by
 '; '. Allowed clauses are:

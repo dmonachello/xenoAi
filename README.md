@@ -218,6 +218,19 @@ fabrication-suitable. See
 [Natural-language XenoDream creation](docs/xenodream-natural-language-creation.md)
 and [ChatGPT-plan authentication](docs/chatgpt-plan-auth.md).
 
+One larger named seed is available for a proven mixed scene:
+
+```powershell
+xenosculpt create output/interacting-spirals.xsp `
+  --prompt "Create multiple interacting spirals made out of a series of varying holon shapes" `
+  --model MODEL_FROM_AUTH_MODELS `
+  --export output/interacting-spirals.xxp
+```
+
+It creates the fixed eight-holon `interleaved-eight/v1` composition. See
+[Interacting XenoDream spirals](docs/xenodream-interacting-spirals.md) for its
+exact members, native proof, and limits.
+
 ## Use explicit workspace operations
 
 The prompt command calls a documented subset of the same typed operations
@@ -288,6 +301,9 @@ default parameter vectors remain fixed; only scale and position are writable.
 See [Closed XenoDream constructors](docs/xenodream-closed-constructors.md).
 The underlying descriptor recovery and native probe remain documented in
 [XenoDream constructor probes](docs/remaining-xenodream-constructor-probes.md).
+The bounded eight-member mixed composition is also available directly through
+`generate-interacting-spirals`; it does not authorize arbitrary constructor
+insertion or a general spiral serializer.
 See [Controlled recipes](docs/m28-m29-xenodream-controlled-recipes.md) for
 revision-bound addition offers, dry-run, and atomic multi-step prompts.
 The final shipped-versus-stopped inventory is in

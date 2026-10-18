@@ -49,6 +49,10 @@ from .generator import (
     compile_three_cubes,
 )
 from .report import inspect_document
+from .multi_spiral import (
+    INTERACTING_SPIRAL_COMPILER_PROFILE,
+    compile_interacting_spirals,
+)
 from .scene import scene_description_to_dict
 from .metamorph import inspect_metamorphs
 from .recipes import centered_x_row
@@ -224,6 +228,12 @@ def _parser() -> argparse.ArgumentParser:
         metavar=("X", "Y", "Z"),
         default=(Decimal("0"), Decimal("0"), Decimal("0")),
     )
+
+    generate_spirals = commands.add_parser(
+        "generate-interacting-spirals",
+        help="create the fixed eight-holon interleaved spiral composition",
+    )
+    generate_spirals.add_argument("output", type=Path)
 
     generate_cube_sphere = commands.add_parser(
         "generate-cube-sphere",
@@ -1203,6 +1213,29 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "bytes": len(output),
                     "sha256": sha256(output).hexdigest(),
                     "compiler_profile": CUBE_SPHERE_COMPILER_PROFILE,
+                }
+            )
+            return 0
+
+        if args.command == "generate-interacting-spirals":
+            if args.output.exists():
+                print(
+                    f"refusing to overwrite: {args.output} already exists",
+                    file=sys.stderr,
+                )
+                return 2
+            output = compile_interacting_spirals()
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(output)
+            _print_json(
+                {
+                    "output": str(args.output),
+                    "bytes": len(output),
+                    "sha256": sha256(output).hexdigest(),
+                    "compiler_profile": INTERACTING_SPIRAL_COMPILER_PROFILE,
+                    "member_count": 8,
+                    "native_validation_required": True,
+                    "fabrication_suitable": False,
                 }
             )
             return 0

@@ -50,7 +50,11 @@ between the two billing sources. See [ChatGPT-plan authentication](chatgpt-plan-
 
 ## Supported vocabulary
 
-Seeds are Cube, Sphere, Cylinder, RoundCube, Pipe, Torus, Cog, and SpiralShell.
+Seeds are Cube, Sphere, Cylinder, RoundCube, Pipe, Torus, Cog, SpiralShell, and
+the fixed `InteractingSpirals` composition. The latter contains eight named
+members in the native-validated `interleaved-eight/v1` profile; it is not an
+arbitrary spiral grammar. See
+[Interacting XenoDream spirals](xenodream-interacting-spirals.md).
 Recipes may use verified absolute transforms, Cube measured fields, admitted
 Cube or Sphere additions, centered rows, seeded variation, and measured Sphere
 or Cylinder profiles. A recipe contains at most five operations.
@@ -62,7 +66,8 @@ approximate unsupported features.
 ## Security and evidence boundary
 
 - The prompt is sent to the OpenAI Responses API.
-- `OPENAI_API_KEY` is read from the environment and is never persisted.
+- ChatGPT-plan tokens use the protected account store; explicitly selected API
+  keys are read from `OPENAI_API_KEY` and are never persisted.
 - The selected model is explicit and recorded.
 - The response uses strict JSON Schema and a bounded body.
 - The model cannot emit XDX bytes, run code, access files, or control XenoDream.

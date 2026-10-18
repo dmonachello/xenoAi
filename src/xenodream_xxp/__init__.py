@@ -67,6 +67,14 @@ from .generator import (
 from .recipes import centered_x_row
 from .mesh import StlReport, basic_mesh_valid, inspect_binary_stl
 from .native_export import MeshExportSettings
+from .multi_spiral import (
+    INTERACTING_SPIRAL_COMPILER_PROFILE,
+    InteractingSpiralProfile,
+    InteractingSpiralsSpec,
+    SpiralMember,
+    compile_interacting_spirals,
+    interacting_spiral_members,
+)
 from .validation import (
     ValidationProfile,
     ValidationProfileName,
@@ -204,6 +212,10 @@ __all__ = [
     "SphereSpec",
     "StlReport",
     "MeshExportSettings",
+    "INTERACTING_SPIRAL_COMPILER_PROFILE",
+    "InteractingSpiralProfile",
+    "InteractingSpiralsSpec",
+    "SpiralMember",
     "ValidationProfile",
     "ValidationProfileName",
     "XenoDreamInstallation",
@@ -235,6 +247,7 @@ __all__ = [
     "compile_project",
     "compile_sphere",
     "compile_three_cubes",
+    "compile_interacting_spirals",
     "centered_x_row",
     "apply_verified_mutation",
     "cylinder_metamorph_profile_evidence",
@@ -250,6 +263,7 @@ __all__ = [
     "inspect_binary_stl",
     "basic_mesh_valid",
     "inspect_metamorphs",
+    "interacting_spiral_members",
     "load_metamorph_registry",
     "validation_profile",
     "solidify_binary_stl",

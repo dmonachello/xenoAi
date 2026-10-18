@@ -235,8 +235,28 @@ def test_every_creation_seed_compiles_to_a_described_scene(seed) -> None:
     preview = preview_creation("create the supported seed", _creation("", seed=seed))
 
     assert preview.seed_sha256 == preview.output_sha256
-    assert len(preview.scene.nodes) == 2
+    expected_nodes = 9 if seed.value == "InteractingSpirals" else 2
+    assert len(preview.scene.nodes) == expected_nodes
     assert preview.scene.diagnostics == ()
+
+
+def test_interacting_spirals_creation_seed_exposes_all_named_members() -> None:
+    preview = preview_creation(
+        "create multiple interacting spirals from varying holon shapes",
+        _creation("", seed=CreationSeed.INTERACTING_SPIRALS),
+    )
+
+    assert [node.name for node in preview.scene.nodes] == [
+        "Group1",
+        "SpiralShell2",
+        "Torus3",
+        "Cog4",
+        "Pipe5",
+        "RoundCube6",
+        "SpiralShell7",
+        "Pipe8",
+        "Cog9",
+    ]
 
 
 def test_invalid_translated_recipe_never_creates_workspace(tmp_path) -> None:
