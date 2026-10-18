@@ -19,6 +19,22 @@ sys.modules[SPEC.name] = recovery
 SPEC.loader.exec_module(recovery)
 
 
+def test_closed_constructor_recovery_profiles_are_explicit() -> None:
+    assert [
+        (profile.style, profile.name, profile.expected_descriptors, profile.end_style)
+        for profile in recovery.PROFILES
+    ] == [
+        (1, "Sphere", 12, 2),
+        (5, "Cube", 9, 6),
+        (6, "RoundCube", 10, 7),
+        (11, "Pipe", 11, 12),
+        (13, "Cylinder", 7, 14),
+        (42, "Torus", 11, 43),
+        (62, "Cog", 10, 65),
+        (65, "SpiralShell", 12, 66),
+    ]
+
+
 def _text(value: str) -> bytes:
     encoded = value.encode("ascii")
     return struct.pack("<H", len(encoded)) + encoded

@@ -59,7 +59,12 @@ class ChoiceDescriptor:
 PROFILES = (
     OperationProfile(style=1, name="Sphere", expected_descriptors=12, end_style=2),
     OperationProfile(style=5, name="Cube", expected_descriptors=9, end_style=6),
+    OperationProfile(style=6, name="RoundCube", expected_descriptors=10, end_style=7),
+    OperationProfile(style=11, name="Pipe", expected_descriptors=11, end_style=12),
     OperationProfile(style=13, name="Cylinder", expected_descriptors=7, end_style=14),
+    OperationProfile(style=42, name="Torus", expected_descriptors=11, end_style=43),
+    OperationProfile(style=62, name="Cog", expected_descriptors=10, end_style=65),
+    OperationProfile(style=65, name="SpiralShell", expected_descriptors=12, end_style=66),
 )
 
 

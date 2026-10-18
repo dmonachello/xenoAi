@@ -1,0 +1,61 @@
+{
+  "schema": "xenosculpt-runtime-evidence/v1",
+  "recorded_at": "2026-10-18T15:42:16Z",
+  "workspace": "C:\\Users\\dmona\\xenoAITest\\empty-group-20261018-114100\\group-check.xsp",
+  "packaged_executable_sha256": "a7765896e27fb102cfb2759c8b41127054360f1772d8977aa38fa197f10e0284",
+  "xenodream_executable_sha256": "1674590ed60cea95cfeef076dfdafce4384fb86f118f087c42e23fd9429f1b6e",
+  "revision_id": "f085d1666c0f5c2db63750a0927d6ee6c74adb36ed707b632d828558af8e4ae9",
+  "artifact_sha256": "9f80274b2ae20dee6bc59d0689ef01fcf8a124b0c16db8be74e6e7febd06fa70",
+  "operation": "add-empty-group-v1",
+  "scene": {
+    "names": ["Group1", "Cube2", "Group3"],
+    "cube_scale": ["45.00000", "55.00000", "65.00000"],
+    "cube_position": ["12.00000", "3.00000", "4.00000"],
+    "group_id": 2,
+    "group_holon_index": 2,
+    "group_writable_operations": []
+  },
+  "validations": [
+    {
+      "profile": "preview/1",
+      "validation_id": "f7dc78d1f1fc017491e9678a27c9509abd058cdd6ebe72e032fce384d5049871",
+      "mesh_sha256": "dcef19ebc763b0fc01d14c1c69329e464505de8e80d2e9d8dfe1ab1beeb3f7a9",
+      "outcome": "succeeded",
+      "native_model_valid": true,
+      "evaluates_to_3d": true,
+      "basic_mesh_valid": true,
+      "fabrication_suitable": false,
+      "cleanup_confirmed": true,
+      "source_and_disposable_unchanged": true,
+      "elapsed_seconds": 21.308,
+      "triangle_count": 4192,
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0,
+      "dimensions_mm": [79.63406038284302, 97.12877798080444, 114.62349653244019]
+    },
+    {
+      "profile": "review/1",
+      "validation_id": "0c44474d065b06cb81b8959e57802c561b44705fdcc48996ba9536dfd08e26f5",
+      "mesh_sha256": "962d524db11af0aa7edadbec1a4bbc51c338989a5adb5009c86e2618e7e43c32",
+      "outcome": "succeeded",
+      "native_model_valid": true,
+      "evaluates_to_3d": true,
+      "basic_mesh_valid": true,
+      "fabrication_suitable": false,
+      "cleanup_confirmed": true,
+      "source_and_disposable_unchanged": true,
+      "elapsed_seconds": 21.565,
+      "triangle_count": 104872,
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "inconsistent_winding_edges": 0,
+      "degenerate_triangles": 0,
+      "dimensions_mm": [79.63406038284302, 97.12877798080444, 114.62349653244019]
+    }
+  ],
+  "interpretation": "The packaged exact Group3 transition preserved the non-default Cube, loaded and evaluated under both named profiles, and produced the same one-component physical geometry family at both densities. Group3 remains an observed read-only record; this is native acceptance evidence, not general hierarchy or fabrication suitability."
+}

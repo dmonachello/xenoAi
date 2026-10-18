@@ -217,6 +217,8 @@ for the one-Cube to Cube/Sphere transition,
 [Add the evidenced empty XenoDream group](docs/remaining-xenodream-empty-group.md)
 for the exact Group3 transition, and
 [XenoDream scene descriptions](docs/m24-xenodream-scene.md) for the read model.
+RoundCube, Pipe, Torus, Cog, and SpiralShell currently remain research-only;
+see [Research-only XenoDream constructor probes](docs/remaining-xenodream-constructor-probes.md).
 See [Controlled recipes](docs/m28-m29-xenodream-controlled-recipes.md) for
 revision-bound addition offers, dry-run, and atomic multi-step prompts.
 
